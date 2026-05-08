@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCRUM Szimuláció</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+
+:root {
+  --bg:    #0a0f1e;
+  --surf:  #0f1628;
+  --card:  #141d35;
+  --brd:   #1e2d50;
+  --brd2:  #263a68;
+  --text:  #d8e4ff;
+  --muted: #4a5f8a;
+  --dim:   #111830;
+
+  /* Szerepkörök */
+  --sm:   #f59e0b;   /* Scrum Master */
+  --po:   #10b981;   /* Product Owner */
+  --team: #3b82f6;   /* Team */
+  --sh:   #8b5cf6;   /* Stakeholders */
+  --mgr:  #6b7280;   /* Manager */
+
+  /* Lépések */
+  --spm:  #f59e0b;   /* Sprint Planning */
+  --spr:  #3b82f6;   /* Sprint */
+  --dm:   #10b981;   /* Daily Meeting */
+  --rev:  #a855f7;   /* Sprint Review */
+  --ret:  #ef4444;   /* Retrospective */
+
+  /* Elemek */
+  --pb:   #22d3ee;   /* Product Backlog */
+  --sb:   #f97316;   /* Sprint Backlog */
+  --bd:   #84cc16;   /* Burndown */
+  --fw:   #10b981;   /* Finished Work */
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Sora', sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(245,158,11,0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(59,130,246,0.05) 0%, transparent 50%);
+  pointer-events:none; z-index:0;
+}
+
+/* ── HEADER ── */
+header {
+  position:relative; z-index:1;
+  padding:1.2rem 1.3rem 0.85rem;
+  border-bottom:1px solid var(--brd2);
+  background:linear-gradient(180deg, rgba(245,158,11,0.05) 0%, transparent 100%);
+}
+
+.hdr-row { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+
+h1 { font-size:1.4rem; font-weight:800; line-height:1.07; letter-spacing:-0.02em; }
+h1 span { color:var(--sm); }
+h1 em   { font-style:normal; color:var(--team); }
+
+.tag {
+  font-family:'Inconsolata', monospace; font-size:0.56rem;
+  padding:0.25rem 0.55rem; border-radius:4px;
+  background:rgba(245,158,11,0.12); color:var(--sm);
+  border:1px solid rgba(245,158,11,0.28); white-space:nowrap; margin-top:0.2rem;
+}
+
+header p { font-size:0.7rem; color:var(--muted); margin-top:0.25rem; font-family:'Inconsolata', monospace; }
+
+/* ── SCRUM BOARD (top visualizer) ── */
+.sboard {
+  position:relative; z-index:1;
+  background:var(--surf);
+  border-bottom:1px solid var(--brd2);
+  padding:0.75rem 1.3rem 0.65rem;
+}
+
+.sb-title {
+  font-family:'Inconsolata', monospace; font-size:0.54rem;
+  color:var(--muted); text-transform:uppercase; letter-spacing:0.09em;
+  margin-bottom:0.55rem;
+}
+
+/* Sprint progress row */
+.sprint-steps {
+  display:flex; align-items:center; gap:0; margin-bottom:0.5rem;
+}
+
+.ss-item {
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:0.2rem;
+  position:relative;
+}
+
+.ss-item:not(:last-child)::after {
+  content:'';
+  position:absolute; right:0; top:12px;
+  width:50%; height:2px;
+  background:var(--brd);
+  z-index:0;
+}
+
+.ss-item:not(:first-child)::before {
+  content:'';
+  position:absolute; left:0; top:12px;
+  width:50%; height:2px;
+  background:var(--brd);
+  z-index:0;
+}
+
+.ss-dot {
+  width:24px; height:24px; border-radius:50%;
+  border:2px solid var(--brd2); background:var(--card);
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.65rem; z-index:1; transition:all 0.4s;
+  position:relative;
+}
+
+.ss-label {
+  font-family:'Inconsolata', monospace; font-size:0.5rem;
+  color:var(--muted); text-align:center; line-height:1.2;
+}
+
+.ss-item.active .ss-dot { transform:scale(1.2); box-shadow:0 0 10px currentColor; }
+.ss-item.done   .ss-dot { opacity:0.7; }
+.ss-item.active .ss-label { font-weight:600; }
+
+/* Roles mini display */
+.roles-mini {
+  display:flex; gap:4px; flex-wrap:wrap;
+}
+
+.role-chip {
+  display:flex; align-items:center; gap:0.25rem;
+  padding:0.18rem 0.5rem; border-radius:20px;
+  font-family:'Inconsolata', monospace; font-size:0.55rem;
+  font-weight:600; border:1px solid; transition:all 0.35s;
+  opacity:0.28;
+}
+.role-chip.on { opacity:1; }
+
+/* ── CONTENT ── */
+.content {
+  position:relative; z-index:1;
+  padding:0.9rem 1.3rem;
+  min-height:275px;
+}
+
+.shdr { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.85rem; }
+
+.sico {
+  width:36px; height:36px; border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1rem; flex-shrink:0;
+  border:1.5px solid var(--brd2); background:var(--card);
+}
+
+.stitle { font-size:0.95rem; font-weight:800; letter-spacing:-0.02em; }
+.ssub   { font-family:'Inconsolata', monospace; font-size:0.56rem; color:var(--muted); margin-top:0.03rem; }
+
+/* CHAT */
+.chat { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.7rem; }
+
+.msg {
+  display:flex; gap:0.4rem; align-items:flex-start;
+  opacity:0; transform:translateY(6px);
+  transition:opacity 0.3s, transform 0.3s;
+}
+.msg.show { opacity:1; transform:translateY(0); }
+.msg.r { flex-direction:row-reverse; }
+
+.av {
+  width:30px; height:30px; border-radius:7px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.9rem; flex-shrink:0;
+  border:1px solid var(--brd2); background:var(--card);
+}
+
+.bub {
+  max-width:82%; padding:0.48rem 0.68rem;
+  border-radius:9px; font-size:0.77rem; line-height:1.55;
+  border:1px solid var(--brd2); background:var(--card);
+}
+.bub.l  { border-bottom-left-radius:2px; }
+.bub.r2 { border-bottom-right-radius:2px; text-align:right; }
+
+.who {
+  font-family:'Inconsolata', monospace; font-size:0.55rem;
+  font-weight:600; text-transform:uppercase; letter-spacing:0.05em;
+  margin-bottom:0.1rem;
+}
+
+/* ROLE CARD — big */
+.role-card {
+  border-radius:11px; padding:0.85rem 1rem;
+  margin-bottom:0.7rem; border:2px solid;
+  display:flex; gap:0.7rem; align-items:flex-start;
+}
+
+.rc-icon { font-size:1.8rem; flex-shrink:0; }
+.rc-badge {
+  font-family:'Inconsolata', monospace; font-size:0.57rem;
+  font-weight:600; text-transform:uppercase; letter-spacing:0.06em;
+  margin-bottom:0.25rem; opacity:0.8;
+}
+.rc-name  { font-size:0.98rem; font-weight:800; margin-bottom:0.3rem; letter-spacing:-0.02em; }
+.rc-desc  { font-size:0.75rem; line-height:1.6; color:rgba(216,228,255,0.85); }
+.rc-list  { margin-top:0.4rem; display:flex; flex-direction:column; gap:0.15rem; }
+.rc-item  { font-size:0.7rem; color:rgba(200,215,255,0.75); font-family:'Inconsolata', monospace; }
+.rc-item::before { content:'▸ '; opacity:0.6; }
+
+/* ELEMENT CARD */
+.elem-card {
+  border-radius:10px; padding:0.75rem 0.85rem;
+  margin:0.45rem 0; border:1.5px solid;
+}
+.ec-hdr { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.3rem; }
+.ec-icon { font-size:1.1rem; }
+.ec-name { font-size:0.85rem; font-weight:800; letter-spacing:-0.01em; }
+.ec-badge { font-family:'Inconsolata', monospace; font-size:0.53rem; padding:0.1rem 0.4rem; border-radius:3px; border:1px solid; font-weight:600; }
+.ec-desc { font-size:0.74rem; line-height:1.55; color:rgba(216,228,255,0.82); }
+
+/* BACKLOG VISUAL */
+.backlog-vis {
+  background:var(--card); border:1.5px solid var(--brd2);
+  border-radius:9px; overflow:hidden; margin:0.45rem 0;
+}
+
+.bv-hdr {
+  font-family:'Inconsolata', monospace; font-size:0.56rem; color:var(--muted);
+  padding:0.3rem 0.7rem; border-bottom:1px solid var(--brd);
+  background:var(--surf); display:flex; align-items:center; gap:0.4rem;
+  text-transform:uppercase; letter-spacing:0.07em;
+}
+.bv-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+
+.bv-item {
+  display:flex; align-items:center; gap:0.5rem;
+  padding:0.38rem 0.7rem; border-bottom:1px solid var(--brd);
+  font-size:0.72rem; transition:all 0.3s;
+}
+.bv-item:last-child { border-bottom:none; }
+
+.bv-pri {
+  font-family:'Inconsolata', monospace; font-size:0.55rem;
+  width:22px; flex-shrink:0; text-align:center; font-weight:700;
+}
+
+.bv-name { flex:1; }
+
+.bv-pts {
+  font-family:'Inconsolata', monospace; font-size:0.58rem;
+  padding:0.1rem 0.4rem; border-radius:3px;
+  background:rgba(255,255,255,0.06); color:var(--muted);
+  border:1px solid var(--brd);
+}
+
+.bv-item.selected { background:rgba(59,130,246,0.08); }
+.bv-item.done { opacity:0.4; }
+.bv-item.done .bv-name { text-decoration:line-through; }
+
+/* BURNDOWN */
+.burndown {
+  background:var(--card); border:1.5px solid var(--brd2);
+  border-radius:9px; padding:0.7rem; margin:0.45rem 0;
+}
+
+.bd-title {
+  font-family:'Inconsolata', monospace; font-size:0.56rem;
+  color:var(--muted); text-transform:uppercase; letter-spacing:0.07em;
+  margin-bottom:0.5rem;
+}
+
+.bd-chart {
+  display:flex; align-items:flex-end; gap:4px; height:55px;
+}
+
+.bd-bar-group { display:flex; align-items:flex-end; gap:2px; flex:1; }
+
+.bd-bar-ideal { flex:1; border-radius:2px 2px 0 0; background:rgba(59,130,246,0.25); border:1px solid rgba(59,130,246,0.4); }
+.bd-bar-actual { flex:1; border-radius:2px 2px 0 0; background:rgba(34,197,94,0.3); border:1px solid rgba(34,197,94,0.5); }
+
+.bd-labels {
+  display:flex; gap:4px; margin-top:4px;
+}
+.bd-lbl { flex:1; font-family:'Inconsolata', monospace; font-size:0.45rem; color:var(--muted); text-align:center; }
+
+/* DAILY 3 QUESTIONS */
+.daily-q {
+  background:var(--card); border:1.5px solid var(--brd2);
+  border-radius:9px; padding:0.65rem 0.75rem; margin:0.45rem 0;
+}
+.dq-hdr { font-family:'Inconsolata', monospace; font-size:0.57rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.45rem; }
+
+.dq-item {
+  display:flex; gap:0.5rem; padding:0.38rem 0;
+  border-bottom:1px solid var(--brd); font-size:0.75rem;
+}
+.dq-item:last-child { border-bottom:none; }
+.dq-num { font-family:'Inconsolata', monospace; font-size:0.6rem; font-weight:700; flex-shrink:0; margin-top:0.05rem; width:18px; }
+.dq-q   { font-weight:700; margin-bottom:0.08rem; font-size:0.76rem; }
+.dq-a   { font-size:0.69rem; color:var(--muted); font-family:'Inconsolata', monospace; }
+
+/* INFO BOX */
+.ibox {
+  border-radius:8px; padding:0.55rem 0.75rem;
+  font-size:0.74rem; line-height:1.55; margin:0.45rem 0;
+  border:1px solid var(--brd2); background:var(--card);
+  border-left:3px solid var(--sm);
+}
+.ibox strong { font-weight:700; }
+.ibox.po-b  { border-left-color:var(--po); }
+.ibox.po-b strong  { color:var(--po); }
+.ibox.tm-b  { border-left-color:var(--team); }
+.ibox.tm-b strong  { color:var(--team); }
+.ibox.sh-b  { border-left-color:var(--sh); }
+.ibox.sh-b strong  { color:var(--sh); }
+.ibox.ret-b { border-left-color:var(--ret); }
+.ibox.ret-b strong { color:var(--ret); }
+
+/* CHECKLIST */
+.cklist { display:flex; flex-direction:column; gap:0.35rem; margin:0.45rem 0; }
+.cli {
+  display:flex; align-items:flex-start; gap:0.5rem;
+  padding:0.42rem 0.65rem; background:var(--card);
+  border:1px solid var(--brd2); border-radius:8px;
+  font-size:0.75rem; line-height:1.45;
+}
+.cli-i { flex-shrink:0; font-size:0.88rem; }
+.cli strong { display:block; font-weight:700; font-size:0.76rem; margin-bottom:0.03rem; }
+.cli span   { color:var(--muted); font-size:0.68rem; font-family:'Inconsolata', monospace; }
+
+/* SUMGRID */
+.sumgrid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+.sbox { background:var(--card); border:1px solid var(--brd2); border-radius:8px; padding:0.6rem; text-align:center; }
+.sbox .ico { font-size:1.2rem; display:block; margin-bottom:0.15rem; }
+.sbox .val { font-size:0.88rem; font-weight:800; }
+.sbox .lbl { font-family:'Inconsolata', monospace; font-size:0.52rem; color:var(--muted); margin-top:0.04rem; }
+
+/* PIG/CHICKEN visual */
+.pc-row { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+.pc-box { border-radius:9px; padding:0.65rem; border:1.5px solid; }
+.pc-title { font-size:0.8rem; font-weight:800; margin-bottom:0.15rem; }
+.pc-sub { font-family:'Inconsolata', monospace; font-size:0.58rem; margin-bottom:0.25rem; opacity:0.75; }
+.pc-members { display:flex; flex-direction:column; gap:0.15rem; }
+.pc-m { font-size:0.7rem; display:flex; align-items:center; gap:0.3rem; }
+
+/* NAV */
+.nav {
+  position:sticky; bottom:0; z-index:10;
+  background:var(--bg); border-top:1px solid var(--brd2);
+  padding:0.7rem 1.3rem; display:flex; align-items:center; gap:0.5rem;
+}
+.btn {
+  font-family:'Inconsolata', monospace; font-size:0.63rem; font-weight:600;
+  padding:0.52rem 1rem; border-radius:7px; cursor:pointer;
+  transition:all 0.18s; text-transform:uppercase; letter-spacing:0.04em;
+}
+.btnp { background:transparent; color:var(--muted); border:1px solid var(--brd2); }
+.btnp:hover { color:var(--text); }
+.btnp:disabled { opacity:0.2; cursor:not-allowed; }
+.btnn { flex:1; background:rgba(245,158,11,0.12); color:var(--sm); border:1px solid rgba(245,158,11,0.3); }
+.btnn:hover { background:rgba(245,158,11,0.22); }
+.ctr { font-family:'Inconsolata', monospace; font-size:0.57rem; color:var(--muted); white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <h1><span>SCRUM</span><br>Szimuláció<br><em>2.7.2</em></h1>
+    <div class="tag">1986 // Takeuchi &amp; Nonaka</div>
+  </div>
+  <p>// Szerepkörök · Elemek · Lépések</p>
+</header>
+
+<!-- SCRUM BOARD -->
+<div class="sboard">
+  <div class="sb-title">// SCRUM sprint folyamat — aktuális fázis</div>
+
+  <div class="sprint-steps" id="sprintSteps"></div>
+
+  <div class="roles-mini" id="rolesMini"></div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 18</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+
+<script>
+const SPRINT_STEPS = [
+  { label:'Sprint\nPlanning', color:'var(--spm)', icon:'📋' },
+  { label:'Sprint\n(1-4 hét)', color:'var(--spr)', icon:'🏃' },
+  { label:'Daily\nMeeting', color:'var(--dm)', icon:'☀️' },
+  { label:'Sprint\nReview', color:'var(--rev)', icon:'🎯' },
+  { label:'Sprint\nRetro', color:'var(--ret)', icon:'🪞' },
+];
+
+const ROLES = [
+  { label:'Scrum Master', color:'var(--sm)', icon:'🦁' },
+  { label:'Product Owner', color:'var(--po)', icon:'💼' },
+  { label:'Team', color:'var(--team)', icon:'👥' },
+  { label:'Stakeholders', color:'var(--sh)', icon:'🏢' },
+  { label:'Manager', color:'var(--mgr)', icon:'📊' },
+];
+
+// Backlog stories
+const STORIES = [
+  { pri:1, name:'Felhasználói bejelentkezés', pts:5, st:'todo' },
+  { pri:2, name:'Termék lista oldal', pts:8, st:'todo' },
+  { pri:3, name:'Kosár funkció', pts:13, st:'todo' },
+  { pri:4, name:'Fizetési folyamat', pts:8, st:'todo' },
+  { pri:5, name:'Rendelés követés', pts:5, st:'todo' },
+  { pri:6, name:'Admin felület', pts:13, st:'todo' },
+];
+
+function backlogHtml(selectedIdxs, doneIdxs) {
+  return `<div class="backlog-vis">
+    <div class="bv-hdr"><div class="bv-dot" style="background:var(--pb)"></div>Product Backlog — priorizált lista</div>
+    ${STORIES.map((s,i) => {
+      const isDone = doneIdxs && doneIdxs.includes(i);
+      const isSel  = selectedIdxs && selectedIdxs.includes(i);
+      return `<div class="bv-item ${isDone?'done':''} ${isSel&&!isDone?'selected':''}">
+        <div class="bv-pri" style="color:${isDone?'var(--muted)':'var(--po)'}">P${s.pri}</div>
+        <div class="bv-name">${isDone?'✓ ':''} ${s.name}</div>
+        <div class="bv-pts">${s.pts}sp</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function burndownHtml(day) {
+  // ideal: 26→22→18→14→10→6→2→0, actual varies
+  const ideal  = [26,22,18,14,10, 6, 2, 0];
+  const actual = [26,24,19,16,11, 7, 3, 0];
+  const maxH = 48;
+  const bars = ideal.map((v,i) => {
+    if (i > day) return `<div class="bd-bar-group" style="opacity:0.2"><div class="bd-bar-ideal" style="height:${v/26*maxH}px"></div><div class="bd-bar-actual" style="height:${actual[i]/26*maxH}px"></div></div>`;
+    return `<div class="bd-bar-group"><div class="bd-bar-ideal" style="height:${v/26*maxH}px"></div><div class="bd-bar-actual" style="height:${actual[i]/26*maxH}px"></div></div>`;
+  }).join('');
+  const labels = ['H','K','Sz','Cs','P','Sz','V','V+'].map(l=>`<div class="bd-lbl">${l}</div>`).join('');
+  return `<div class="burndown">
+    <div class="bd-title">// Burndown chart — hátralévő story pointok naponta</div>
+    <div class="bd-chart">${bars}</div>
+    <div class="bd-labels">
+      <div style="width:36px;flex-shrink:0"></div>
+      ${labels}
+    </div>
+    <div style="display:flex;gap:0.8rem;margin-top:0.35rem;font-family:'Inconsolata',monospace;font-size:0.52rem;color:var(--muted)">
+      <span><span style="color:rgba(59,130,246,0.7)">■</span> Ideális ütem</span>
+      <span><span style="color:rgba(34,197,94,0.7)">■</span> Tényleges haladás</span>
+    </div>
+  </div>`;
+}
+
+const STEPS = [
+  // ── 0. BEVEZETŐ ─────────────────────────────────────────────────
+  {
+    step:-1, roles:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">🏉</div>
+        <div><div class="stitle">Mi a SCRUM?</div>
+        <div class="ssub">// 1986, Takeuchi & Nonaka — rugbyből merítve</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--sm)">Oktató</div>
+            Két japán professzor tanulmányozta, hogy bizonyos cégek miért fejlesztenek annyival gyorsabban és jobb minőségben mint a többiek. 1986-ban publikálták az eredményt — ez lett a SCRUM.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--team);text-align:right">Tanuló</div>
+            Miért hívják SCRUM-nak?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--sm)">Oktató</div>
+            A rugby-ból! A "scrum" a dulakodást jelenti — ahol az egész csapat összezárul és együtt nyomul előre. Pontosan ilyen a SCRUM csapatmunkája is.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.45s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--team);text-align:right">Tanuló</div>
+            Miben más mint a hagyományos fejlesztés?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.6s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--sm)">Oktató</div>
+            3 dolog: rövid sprint ciklusok, napi kommunikáció, és az ügyfél folyamatosan bevonva. Eredmény: iteratív, inkrementális, adaptív fejlesztés.
+          </div>
+        </div>
+      </div>
+      <div class="ibox"><strong>A SCRUM 3 pillére:</strong> Szerepkörök (ki mit csinál) + Elemek (mivel dolgozunk) + Lépések (hogyan haladunk). Most mindet végigvezetjük egy webshop fejlesztési projekten.</div>
+    `
+  },
+
+  // ── 1. DISZNÓK ÉS CSIRKÉK ───────────────────────────────────────
+  {
+    step:-1, roles:[0,1,2,3,4],
+    render:()=>`
+      <div class="shdr"><div class="sico">🐷</div>
+        <div><div class="stitle">Disznók és Csirkék — a SCRUM metafora</div>
+        <div class="ssub">// ki elkötelezett és ki érdekelt csak</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--sm)">Oktató</div>
+            A SCRUM egy vicces metaforával osztja fel a résztvevőket: Disznók és Csirkék. Gondolj egy reggeli tányérra — sonka és tojás.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--team);text-align:right">Tanuló</div>
+            Mi a különbség?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--sm)">Oktató</div>
+            A csirke csak tojást ad — érdekelt, de nem áldoz semmit. A disznónak a sonkájával kell fizetnie — TELJESEN elkötelezett. Ezért a disznók döntenek a sprintről!
+          </div>
+        </div>
+      </div>
+      <div class="pc-row">
+        <div class="pc-box" style="background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.35)">
+          <div class="pc-title">🐷 Disznók</div>
+          <div class="pc-sub" style="color:var(--sm)">Elkötelezettek — "mindent beleadnak"</div>
+          <div class="pc-members">
+            <div class="pc-m"><span style="color:var(--sm)">🦁</span> Scrum Master</div>
+            <div class="pc-m"><span style="color:var(--po)">💼</span> Product Owner</div>
+            <div class="pc-m"><span style="color:var(--team)">👥</span> Team (fejlesztők)</div>
+          </div>
+        </div>
+        <div class="pc-box" style="background:rgba(139,92,246,0.08);border-color:rgba(139,92,246,0.35)">
+          <div class="pc-title">🐔 Csirkék</div>
+          <div class="pc-sub" style="color:var(--sh)">Érdekeltek — "nem halnak bele"</div>
+          <div class="pc-members">
+            <div class="pc-m"><span style="color:var(--sh)">🏢</span> Stakeholders</div>
+            <div class="pc-m"><span style="color:var(--mgr)">📊</span> Manager</div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Praktikusan:</strong> A Daily Meeting-re csak a Disznók mehetnek. A Csirkék figyelhetnek, de nem szólhatnak bele — mert nem ők viselik a felelősséget.</div>
+    `
+  },
+
+  // ── 2. SCRUM MASTER ─────────────────────────────────────────────
+  {
+    step:-1, roles:[0],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(245,158,11,0.5)">🦁</div>
+        <div><div class="stitle">Scrum Master</div>
+        <div class="ssub">// "servant leader" — szolgáló vezető</div></div>
+      </div>
+      <div class="role-card" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.35)">
+        <div class="rc-icon">🦁</div>
+        <div>
+          <div class="rc-badge" style="color:var(--sm)">DISZNÓ — ELKÖTELEZETT</div>
+          <div class="rc-name">Scrum Master</div>
+          <div class="rc-desc">Szerepe hasonló a projekt menedzseréhez, de NEM vezeti a csapatot — inkább védi és segíti. Felügyeli a folyamatokat és betartatja a SCRUM szabályait.</div>
+          <div class="rc-list">
+            <div class="rc-item">Felügyeli és betartatja a SCRUM folyamatokat</div>
+            <div class="rc-item">Segít az akadályok elhárításában (impediment removal)</div>
+            <div class="rc-item">Konfliktust vállal fel — védi a csapatot a külső zavarástól</div>
+            <div class="rc-item">NEM ő határozza meg mit fejlesztenek — ez a PO feladata</div>
+            <div class="rc-item">A csapat SCRUM coachja — segít jobbá válni</div>
+          </div>
+        </div>
+      </div>
+      <div class="vs-grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem">
+        <div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:0.6rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.56rem;color:#ef4444;font-weight:700;margin-bottom:0.2rem">❌ NEM ez a Scrum Master</div>
+          <div style="font-size:0.72rem;line-height:1.5">"Mindent én irányítok, én osztom ki a feladatokat, én döntöm el ki mit csinál."</div>
+        </div>
+        <div style="background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.25);border-radius:8px;padding:0.6rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.56rem;color:#22c55e;font-weight:700;margin-bottom:0.2rem">✅ Valódi Scrum Master</div>
+          <div style="font-size:0.72rem;line-height:1.5">"Mi az akadályotok? Hogyan tudlak segíteni? Tartsuk a folyamatot — ez a sprintbe nem fér bele."</div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 3. PRODUCT OWNER ────────────────────────────────────────────
+  {
+    step:-1, roles:[1],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(16,185,129,0.5)">💼</div>
+        <div><div class="stitle">Product Owner</div>
+        <div class="ssub">// a megrendelő hangja a csapatban</div></div>
+      </div>
+      <div class="role-card" style="background:rgba(16,185,129,0.06);border-color:rgba(16,185,129,0.35)">
+        <div class="rc-icon">💼</div>
+        <div>
+          <div class="rc-badge" style="color:var(--po)">DISZNÓ — ELKÖTELEZETT</div>
+          <div class="rc-name">Product Owner</div>
+          <div class="rc-desc">A megrendelő szerepét tölti be — képviseli az üzleti érdekeket a csapaton belül. Ő dönt arról, hogy mit és milyen sorrendben fejlesszenek.</div>
+          <div class="rc-list">
+            <div class="rc-item">Kezeli és priorizálja a Product Backlog-ot</div>
+            <div class="rc-item">User Story-kat ír és magyaráz a teamnek</div>
+            <div class="rc-item">Eldönti melyik story a legfontosabb (üzleti értéke alapján)</div>
+            <div class="rc-item">Sprint Review-n elfogadja vagy visszautasítja a kész munkát</div>
+            <div class="rc-item">Egy személy — nem bizottság! (egyértelmű döntéshozás)</div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox po-b"><strong>PO vs Scrum Master:</strong> A PO mondja meg MIT fejlesszünk. A Scrum Master figyeli HOGYAN fejlesztünk. A csapat dönti el HOW TO — hogyan valósítsák meg. Ez a 3 felelősség nem keveredhet össze.</div>
+    `
+  },
+
+  // ── 4. TEAM ─────────────────────────────────────────────────────
+  {
+    step:-1, roles:[2],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(59,130,246,0.5)">👥</div>
+        <div><div class="stitle">Team — a fejlesztő csapat</div>
+        <div class="ssub">// 5-9 fő, önszerveződő, cross-functional</div></div>
+      </div>
+      <div class="role-card" style="background:rgba(59,130,246,0.06);border-color:rgba(59,130,246,0.35)">
+        <div class="rc-icon">👥</div>
+        <div>
+          <div class="rc-badge" style="color:var(--team)">DISZNÓ — ELKÖTELEZETT</div>
+          <div class="rc-name">Fejlesztő Team</div>
+          <div class="rc-desc">Ők végzik a tényleges fejlesztést. Általában 5-9 fő: elemzők, fejlesztők, programozók, tesztelők. A csapat FELELŐS a sprint-re bevállalt feladatok elvégzéséért.</div>
+          <div class="rc-list">
+            <div class="rc-item">5-9 fő (optimális méret — kis csapat = jó kommunikáció)</div>
+            <div class="rc-item">Cross-functional: analyst, fejlesztő, tesztelő együtt</div>
+            <div class="rc-item">Önszerveződő: ők döntik el ki mit csinál a sprinten belül</div>
+            <div class="rc-item">Felelős a bevállalt sprint backlog elvégzéséért</div>
+            <div class="rc-item">Daily Meeting-en elmondja haladását és akadályait</div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox tm-b"><strong>Miért 5-9 fő?</strong> Kevesebb mint 5: nem elég kapacitás. Több mint 9: kommunikáció összetörik, koordináció nehézkes. A SCRUM csapat mérete kulcsfontosságú!</div>
+    `
+  },
+
+  // ── 5. STAKEHOLDERS + MANAGER ───────────────────────────────────
+  {
+    step:-1, roles:[3,4],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico">🏢</div>
+        <div><div class="stitle">Stakeholders és Manager</div>
+        <div class="ssub">// a "csirkék" — érdekeltek, de nem vesznek részt</div></div>
+      </div>
+      <div class="pc-row" style="display:grid;grid-template-columns:1fr;gap:0.4rem">
+        <div class="role-card" style="background:rgba(139,92,246,0.06);border-color:rgba(139,92,246,0.3)">
+          <div class="rc-icon">🏢</div>
+          <div>
+            <div class="rc-badge" style="color:var(--sh)">CSIRKE — ÉRDEKELT</div>
+            <div class="rc-name" style="font-size:0.88rem">Stakeholders (érintett felek)</div>
+            <div class="rc-desc">Üzleti élet szereplői: megrendelő, vevő, kereskedő. Igényeik és elvárásaik határozzák meg a terméket — de a fejlesztési folyamathoz semmi köze. Sprint Review-n kap szerepet.</div>
+          </div>
+        </div>
+        <div class="role-card" style="background:rgba(107,114,128,0.06);border-color:rgba(107,114,128,0.3)">
+          <div class="rc-icon">📊</div>
+          <div>
+            <div class="rc-badge" style="color:var(--mgr)">CSIRKE — ÉRDEKELT</div>
+            <div class="rc-name" style="font-size:0.88rem">Manager</div>
+            <div class="rc-desc">Általánosságban a projekt menedzselését végzi. Feladata: fejlesztés körülményeinek biztosítása — tárgyi feltételek, szolgáltatások, pénz. NEM szól bele a napi fejlesztésbe.</div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox sh-b"><strong>Miért fontos ez a különbség?</strong> A napi munkát CSAK a Disznók irányítják. Ha a Manager vagy Stakeholder közvetlenül utasítja a fejlesztőket — az megöli a SCRUM-ot. A PO-n keresztül kommunikálnak.</div>
+    `
+  },
+
+  // ── 6. PRODUCT BACKLOG ──────────────────────────────────────────
+  {
+    step:-1, roles:[1],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(34,211,238,0.5)">📋</div>
+        <div><div class="stitle">Product Backlog</div>
+        <div class="ssub">// a termék összes teendőjének priorizált listája</div></div>
+      </div>
+      <div class="elem-card" style="background:rgba(34,211,238,0.05);border-color:rgba(34,211,238,0.3)">
+        <div class="ec-hdr">
+          <div class="ec-icon">📋</div>
+          <div class="ec-name" style="color:var(--pb)">Product Backlog</div>
+          <div class="ec-badge" style="background:rgba(34,211,238,0.1);color:var(--pb);border-color:rgba(34,211,238,0.3)">Product Owner kezeli</div>
+        </div>
+        <div class="ec-desc">A termék-teendők listája. Az elkészítendő User Story-kat tartalmazza, priorizáltan. Az előrébb lévő sztori-knak nagyobb az üzleti értéke — ezeket kell először megcsinálni.</div>
+      </div>
+      ${backlogHtml([], [])}
+      <div class="ibox po-b"><strong>A PO prioritizálja!</strong> Nem a fejlesztők, nem a manager — kizárólag a Product Owner dönti el mi kerüljön előre. Az alapja az üzleti érték: ami a legtöbb értéket hozza az ügyfélnek, az kerül előre.</div>
+    `
+  },
+
+  // ── 7. SPRINT PLANNING ──────────────────────────────────────────
+  {
+    step:0, roles:[0,1,2],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(245,158,11,0.5)">📋</div>
+        <div><div class="stitle">Sprint Planning Meeting</div>
+        <div class="ssub">// futamtervező megbeszélés — mi kerül be a sprintbe?</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">💼</div>
+          <div class="bub l"><div class="who" style="color:var(--po)">Product Owner</div>
+            A backlog alapján: a webshophoz a bejelentkezés és a termék lista a legfontosabb. Ezek kerüljenek az első sprintbe.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">👥</div>
+          <div class="bub r2"><div class="who" style="color:var(--team);text-align:right">Team</div>
+            A bejelentkezés 5, a termék lista 8 story pont. 2 hét alatt maximum 13 pontot vállalunk — ez belefér.
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">🦁</div>
+          <div class="bub l"><div class="who" style="color:var(--sm)">Scrum Master</div>
+            Remek. Sprint 1 elkezdődik. A Sprint Backlogra felkerül a 2 story, felosztjuk taszkokra.
+          </div>
+        </div>
+      </div>
+      ${backlogHtml([0,1], [])}
+      <div class="ibox" style="border-left-color:var(--spm)"><strong>Sprint Planning eredménye:</strong> Sprint Goal (mi a sprint célja?), Sprint Backlog (melyik story-k kerültek be), Csapat elkötelezettsége. Ezt senki nem változtathatja meg a sprint közben!</div>
+    `
+  },
+
+  // ── 8. SPRINT BACKLOG ───────────────────────────────────────────
+  {
+    step:1, roles:[0,2],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(249,115,22,0.5)">🗂️</div>
+        <div><div class="stitle">Sprint Backlog</div>
+        <div class="ssub">// a sprintre bevállalt story-k → taszkokra bontva</div></div>
+      </div>
+      <div class="elem-card" style="background:rgba(249,115,22,0.05);border-color:rgba(249,115,22,0.3)">
+        <div class="ec-hdr">
+          <div class="ec-icon">🗂️</div>
+          <div class="ec-name" style="color:var(--sb)">Sprint Backlog</div>
+          <div class="ec-badge" style="background:rgba(249,115,22,0.1);color:var(--sb);border-color:rgba(249,115,22,0.3)">Team kezeli</div>
+        </div>
+        <div class="ec-desc">A futam-teendő lista. Az aktuális sprintre bevállalt story-kat tartalmazza, tovább bontva taszkokra. A tagok a Daily Meeting során vállalják el a taszkokat.</div>
+      </div>
+      <div class="backlog-vis">
+        <div class="bv-hdr"><div class="bv-dot" style="background:var(--sb)"></div>Sprint Backlog — Story → Taszkokra bontva</div>
+        <div class="bv-item selected">
+          <div class="bv-pri" style="color:var(--po)">S1</div>
+          <div class="bv-name">📖 Bejelentkezés (5sp)</div>
+          <div class="bv-pts" style="color:var(--team)">In Progress</div>
+        </div>
+        <div class="bv-item" style="padding-left:1.5rem;background:rgba(59,130,246,0.04)">
+          <div class="bv-pri" style="color:var(--muted)">T1</div>
+          <div class="bv-name" style="font-size:0.68rem">← Login form UI megírása</div>
+          <div class="bv-pts">2ó</div>
+        </div>
+        <div class="bv-item" style="padding-left:1.5rem;background:rgba(59,130,246,0.04)">
+          <div class="bv-pri" style="color:var(--muted)">T2</div>
+          <div class="bv-name" style="font-size:0.68rem">← Auth backend API</div>
+          <div class="bv-pts">4ó</div>
+        </div>
+        <div class="bv-item" style="padding-left:1.5rem;background:rgba(59,130,246,0.04)">
+          <div class="bv-pri" style="color:var(--muted)">T3</div>
+          <div class="bv-name" style="font-size:0.68rem">← JWT token kezelés</div>
+          <div class="bv-pts">3ó</div>
+        </div>
+        <div class="bv-item">
+          <div class="bv-pri" style="color:var(--po)">S2</div>
+          <div class="bv-name">📖 Termék lista (8sp)</div>
+          <div class="bv-pts" style="color:var(--muted)">Todo</div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--sb)"><strong>Story vs Taszk:</strong> A Story az ügyfél szemszögéből írja le a funkciót ("Felhasználóként be akarok jelentkezni"). A Taszk a fejlesztő szemszögéből írja le a teendőt ("Login form megírása"). A team bontja fel.</div>
+    `
+  },
+
+  // ── 9. SPRINT ───────────────────────────────────────────────────
+  {
+    step:1, roles:[0,2],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(59,130,246,0.5)">🏃</div>
+        <div><div class="stitle">Sprint — a fejlesztési futam</div>
+        <div class="ssub">// 1-4 hét, rögzített hossz, sprint közben nem változik a cél</div></div>
+      </div>
+      <div class="elem-card" style="background:rgba(59,130,246,0.05);border-color:rgba(59,130,246,0.3)">
+        <div class="ec-hdr">
+          <div class="ec-icon">🏃</div>
+          <div class="ec-name" style="color:var(--spr)">Sprint</div>
+          <div class="ec-badge" style="background:rgba(59,130,246,0.1);color:var(--spr);border-color:rgba(59,130,246,0.3)">1-4 hét</div>
+        </div>
+        <div class="ec-desc">Rögzített hosszúságú fejlesztési szakasz. A SCRUM iterációs ciklusa — addig ismétlik, amíg a Product Backlog-ból el nem tűnnek a megoldásra váró story-k. Sprint közben a Sprint Backlog nem változtatható!</div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--spr)">
+          <div class="cli-i">🔒</div>
+          <div><strong>Sprint Backlog "befagyasztva"</strong>
+          <span>Sprint elindult? A sprint célját SENKI nem változtathatja — sem PO, sem Manager. Ez védi a csapat fókuszát.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--spr)">
+          <div class="cli-i">⏱️</div>
+          <div><strong>Rögzített hossz (timebox)</strong>
+          <span>Ha 2 hetes sprint, akkor 2 hét. Ha nem fér bele minden — a backlogba kerül vissza. Nem nyúlik meg a sprint!</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--spr)">
+          <div class="cli-i">🚚</div>
+          <div><strong>Sprint végén: működő szoftver</strong>
+          <span>Minden sprint végén átadható, potenciálisan kiadható inkrementum születik. Ez a "done" definíciója.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--spr)">
+          <div class="cli-i">🔄</div>
+          <div><strong>Addig ismétlik, amíg a Backlog ki nem ürül</strong>
+          <span>Sprint 1 → Sprint 2 → Sprint 3 → ... minden körben értéket szállítunk az ügyfélnek.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 10. DAILY MEETING ───────────────────────────────────────────
+  {
+    step:2, roles:[0,2],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(16,185,129,0.5)">☀️</div>
+        <div><div class="stitle">Daily Meeting — Napi Standup</div>
+        <div class="ssub">// max 15 perc, minden reggel, állva</div></div>
+      </div>
+      <div class="elem-card" style="background:rgba(16,185,129,0.05);border-color:rgba(16,185,129,0.3)">
+        <div class="ec-hdr">
+          <div class="ec-icon">☀️</div>
+          <div class="ec-name" style="color:var(--dm)">Daily Meeting (Standup)</div>
+          <div class="ec-badge" style="background:rgba(16,185,129,0.1);color:var(--dm);border-color:rgba(16,185,129,0.3)">Max 15 perc</div>
+        </div>
+        <div class="ec-desc">Maximum 15 perces megbeszélés minden reggel, állva (stand up). Scrum Master + minden csapattag vesz részt. Mindenki 3 kérdésre válaszol.</div>
+      </div>
+      <div class="daily-q">
+        <div class="dq-hdr">// A 3 kötelező kérdés — mindenki válaszol</div>
+        <div class="dq-item">
+          <div class="dq-num" style="color:var(--po)">1.</div>
+          <div><div class="dq-q">Mit csináltam tegnap?</div>
+          <div class="dq-a">Pl: "Kész az auth backend API, JWT tokent is megírtam"</div></div>
+        </div>
+        <div class="dq-item">
+          <div class="dq-num" style="color:var(--team)">2.</div>
+          <div><div class="dq-q">Mit tervezek ma csinálni?</div>
+          <div class="dq-a">Pl: "Ma befejezem a login form UI-t és megírom a teszteket"</div></div>
+        </div>
+        <div class="dq-item">
+          <div class="dq-num" style="color:var(--ret)">3.</div>
+          <div><div class="dq-q">Van-e valami akadály?</div>
+          <div class="dq-a">Pl: "Az API dokumentáció nem elérhető — kell valakinek utánajárni"</div></div>
+        </div>
+      </div>
+      <div class="ibox tm-b"><strong>Miért állva?</strong> Hogy ne húzódjon el! Állva senki nem akar 30 percet tölteni. A Daily nem megbeszélés — csak szinkronizáció. Ha valami részletes egyeztetést igényel, az a meeting után külön zajlik.</div>
+    `
+  },
+
+  // ── 11. BURNDOWN ────────────────────────────────────────────────
+  {
+    step:1, roles:[0,2],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(132,204,22,0.5)">📉</div>
+        <div><div class="stitle">Burndown / Burnup Chart</div>
+        <div class="ssub">// napi eredmény diagram — hogyan halad a csapat?</div></div>
+      </div>
+      <div class="elem-card" style="background:rgba(132,204,22,0.05);border-color:rgba(132,204,22,0.3)">
+        <div class="ec-hdr">
+          <div class="ec-icon">📉</div>
+          <div class="ec-name" style="color:var(--bd)">Burndown Chart</div>
+          <div class="ec-badge" style="background:rgba(132,204,22,0.1);color:var(--bd);border-color:rgba(132,204,22,0.3)">Napi frissítés</div>
+        </div>
+        <div class="ec-desc">Napi eredmény diagram. Megmutatja hogyan halad a csapat az aktuális sprinten belül, az eredeti ütemezéshez képest. Ha a tényleges vonal az ideális FELETT van — késésben vagyunk!</div>
+      </div>
+      ${burndownHtml(4)}
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🦁</div>
+          <div class="bub l"><div class="who" style="color:var(--sm)">Scrum Master</div>
+            A zöld vonal (tényleges) picit az ideális felett van csütörtökön — kicsit lemaradtunk. Holnap pótolni kell 4 story pontot.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">👥</div>
+          <div class="bub r2"><div class="who" style="color:var(--team);text-align:right">Team</div>
+            Megvan — a login tesztek elkészültek, a termék lista API is majdnem kész. Holnap behozunk.
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 12. SPRINT REVIEW ───────────────────────────────────────────
+  {
+    step:3, roles:[0,1,2,3],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(168,85,247,0.5)">🎯</div>
+        <div><div class="stitle">Sprint Review</div>
+        <div class="ssub">// sprint végén — demó az ügyfélnek, elfogadás</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👥</div>
+          <div class="bub l"><div class="who" style="color:var(--team)">Team</div>
+            Sprint 1 kész! Megmutatjuk a bejelentkezést és a termék lista oldalt.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🏢</div>
+          <div class="bub r2"><div class="who" style="color:var(--sh);text-align:right">Stakeholder</div>
+            A bejelentkezés tökéletes. A termék listánál viszont szeretnék szűrési lehetőséget is — lehetséges?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">💼</div>
+          <div class="bub l"><div class="who" style="color:var(--po)">Product Owner</div>
+            Elfogadom a 2 kész story-t. A szűrés kerüljön be a Product Backlogba — a következő sprint Planning-en döntünk róla.
+          </div>
+        </div>
+      </div>
+      ${backlogHtml([2,3], [0,1])}
+      <div class="ibox" style="border-left-color:var(--rev)"><strong>Sprint Review ≠ Sprint Retrospective!</strong> A Review a TERMÉKRŐL szól — mit csináltunk, mit fogad el az ügyfél? A Retro a FOLYAMATRÓL szól — hogyan dolgoztunk? Ez a kettő mindig KÜLÖN esemény.</div>
+    `
+  },
+
+  // ── 13. SPRINT RETROSPECTIVE ────────────────────────────────────
+  {
+    step:4, roles:[0,2],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(239,68,68,0.5)">🪞</div>
+        <div><div class="stitle">Sprint Retrospective — Visszatekintés</div>
+        <div class="ssub">// mi ment jól? mi nem? mit csináljunk másképp?</div></div>
+      </div>
+      <div class="daily-q">
+        <div class="dq-hdr">// Retrospective — 3 kérdés a csapatnak</div>
+        <div class="dq-item">
+          <div class="dq-num" style="color:var(--po)">😊</div>
+          <div><div class="dq-q">Mi ment jól ebben a sprintben?</div>
+          <div class="dq-a">"A pair programming nagyon hasznos volt — gyorsabban megvolt az auth." "A daily meetingek rövidek és hatékonyak voltak."</div></div>
+        </div>
+        <div class="dq-item">
+          <div class="dq-num" style="color:var(--ret)">😞</div>
+          <div><div class="dq-q">Mi nem ment jól? Mi akadályozott?</div>
+          <div class="dq-a">"Az API dokumentáció hiányos volt — sokat kellett keresgélni." "A teszt környezet instabil volt."</div></div>
+        </div>
+        <div class="dq-item">
+          <div class="dq-num" style="color:var(--team)">🎯</div>
+          <div><div class="dq-q">Mit teszünk másképp a következő sprintben?</div>
+          <div class="dq-a">"A PO-val előre egyeztetjük az API specet." "DevOps beállítja a stabil CI környezetet Sprint 2 elejéig."</div></div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🦁</div>
+          <div class="bub l"><div class="who" style="color:var(--sm)">Scrum Master</div>
+            3 konkrét akciópont lett belőle. Ezeket a Sprint 2-ben megvalósítjuk. A retro nem panaszkodás — hanem tanulás!
+          </div>
+        </div>
+      </div>
+      <div class="ibox ret-b"><strong>Retro felelőse: a Scrum Master</strong> — ő vezeti a folyamatot. Fontos: a csapat biztonságban kell érezze magát — kritika nem személy ellen, hanem a folyamat ellen irányul. Pszichológiai biztonság nélkül nincs őszinte retro.</div>
+    `
+  },
+
+  // ── 14. FINISHED WORK ───────────────────────────────────────────
+  {
+    step:-1, roles:[0,1,2,3],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(16,185,129,0.5)">✅</div>
+        <div><div class="stitle">Finished Work — a kész termék felépülése</div>
+        <div class="ssub">// sprint → sprint → kész termék</div></div>
+      </div>
+      <div class="elem-card" style="background:rgba(16,185,129,0.05);border-color:rgba(16,185,129,0.3)">
+        <div class="ec-hdr">
+          <div class="ec-icon">✅</div>
+          <div class="ec-name" style="color:var(--fw)">Finished Work</div>
+          <div class="ec-badge" style="background:rgba(16,185,129,0.1);color:var(--fw);border-color:rgba(16,185,129,0.3)">Inkrementum</div>
+        </div>
+        <div class="ec-desc">A sprintek eredményeiből összeállt termék. Minden sprint végén egy újabb értékes inkrementummal bővül — a backlog fokozatosan kiürül, a termék fokozatosan felépül.</div>
+      </div>
+      ${backlogHtml([], [0,1,2,3])}
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--fw)">
+          <div class="cli-i">🏃</div>
+          <div><strong>Sprint 1 kész</strong>
+          <span>Bejelentkezés ✓ + Termék lista ✓ — az alap funkciók megvannak, az ügyfél már használhatja</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--fw)">
+          <div class="cli-i">🏃</div>
+          <div><strong>Sprint 2 kész</strong>
+          <span>Kosár funkció ✓ + Fizetési folyamat ✓ — már vásárolni is lehet</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--fw)">
+          <div class="cli-i">🎉</div>
+          <div><strong>Sprint 3+ kész</strong>
+          <span>Rendelés követés ✓ + Admin felület ✓ — teljes webshop átadva</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 15. SCRUM JELLEMZŐI ─────────────────────────────────────────
+  {
+    step:-1, roles:[0,1,2],
+    render:()=>`
+      <div class="shdr"><div class="sico">⭐</div>
+        <div><div class="stitle">A SCRUM jellemzői</div>
+        <div class="ssub">// az előadásdiák alapján</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--sm)">
+          <div class="cli-i">🔄</div>
+          <div><strong>Inkrementális, iteratív modell</strong>
+          <span>Minden sprint = egy iteráció. Minden iteráció végén értékes inkrementum. Nem big bang átadás — hanem folyamatos értékszállítás.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--po)">
+          <div class="cli-i">🌀</div>
+          <div><strong>Az agilis módszertan szép példája</strong>
+          <span>Megvalósítja az összes agilis alapelvet: ügyfél bevonás, rugalmasság, működő szoftver, önszerveződő csapat, retrospektív.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--team)">
+          <div class="cli-i">🔀</div>
+          <div><strong>Jól kezeli a megrendelő igényeinek változását</strong>
+          <span>A Product Backlog bármikor átpriorizálható. A változás a következő sprintbe kerül — nem töri össze az aktuális sprint munkáját.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--dm)">
+          <div class="cli-i">💬</div>
+          <div><strong>Kommunikáció intenzív, sok a megbeszélés</strong>
+          <span>Daily standup, Sprint Planning, Sprint Review, Retrospektív — sok meeting, de mind rövid és strukturált. Félreértések azonnal kiderülnek.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--fw)">
+          <div class="cli-i">🧩</div>
+          <div><strong>Hatékony csapatmunka, adaptív menedzsment</strong>
+          <span>Önszerveződő csapat + Scrum Master mint akadályeltávolító = a csapat a lehető leghatékonyabban dolgozhat.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 16. ÖSSZEFOGLALÁS ───────────────────────────────────────────
+  {
+    step:-1, roles:[0,1,2,3,4],
+    render:()=>`
+      <div class="shdr"><div class="sico">∑</div>
+        <div><div class="stitle">Összefoglalás — SCRUM</div>
+        <div class="ssub">// szerepkörök + elemek + lépések</div></div>
+      </div>
+      <div class="sumgrid">
+        <div class="sbox"><span class="ico">🐷</span><div class="val">3 Disznó</div><div class="lbl">SM + PO + Team</div></div>
+        <div class="sbox"><span class="ico">🐔</span><div class="val">2 Csirke</div><div class="lbl">Stakeholders + Mgr</div></div>
+        <div class="sbox"><span class="ico">📦</span><div class="val">4 Elem</div><div class="lbl">PB + SB + Burndown + FW</div></div>
+        <div class="sbox"><span class="ico">🔄</span><div class="val">5 Lépés</div><div class="lbl">SPM→Sprint→Daily→Rev→Retro</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--sm)">
+          <div class="cli-i">🦁</div>
+          <div><strong style="color:var(--sm)">Scrum Master</strong>
+          <span>Folyamat felügyelő, akadályeltávolító, SCRUM coach — NEM projekt manager</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--po)">
+          <div class="cli-i">💼</div>
+          <div><strong style="color:var(--po)">Product Owner</strong>
+          <span>Product Backlog kezelője, priorizáló, "Mit fejlesszünk?" — az ügyfél hangja</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--team)">
+          <div class="cli-i">👥</div>
+          <div><strong style="color:var(--team)">Team (5-9 fő)</strong>
+          <span>Tényleges fejlesztés, önszerveződő, felelős a sprint-re bevállalt munkáért</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--ret)">
+          <div class="cli-i">🔄</div>
+          <div><strong>Sprint ciklus</strong>
+          <span>Planning → Sprint (1-4 hét, Daily-kkel) → Review → Retrospektív → újra</span></div>
+        </div>
+      </div>
+      <div class="ibox"><strong>1986 → ma:</strong> A SCRUM a világ legelterjedtebb szoftverfejlesztési kerete. Szinte minden tech cég valamilyen formában alkalmazza — néha XP praktikákkal kombinálva (Scrumban).</div>
+    `
+  },
+];
+
+// ── RENDER BOARD ─────────────────────────────────────────────────────
+function renderBoard(activeStep, activeRoles) {
+  // Sprint steps
+  document.getElementById('sprintSteps').innerHTML = SPRINT_STEPS.map((s,i) => {
+    const cls = i === activeStep ? 'active' : activeStep > i ? 'done' : '';
+    const c = i === activeStep ? s.color : activeStep > i ? s.color : 'var(--muted)';
+    return `<div class="ss-item ${cls}">
+      <div class="ss-dot" style="border-color:${c};color:${c};${i===activeStep?'color:'+s.color:''}">${s.icon}</div>
+      <div class="ss-label" style="color:${i===activeStep?s.color:'var(--muted)'}">${s.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+
+  // Roles mini
+  document.getElementById('rolesMini').innerHTML = ROLES.map((r,i) => {
+    const on = activeRoles.includes(i);
+    return `<div class="role-chip ${on?'on':''}" style="border-color:${r.color};color:${r.color}">
+      ${r.icon} ${r.label}
+    </div>`;
+  }).join('');
+}
+
+let cur = 0;
+
+function render() {
+  const s = STEPS[cur];
+  renderBoard(s.step, s.roles);
+
+  const el = document.getElementById('content');
+  el.innerHTML = s.render();
+
+  setTimeout(() => {
+    el.querySelectorAll('.msg:not(.show)').forEach((m, i) => {
+      setTimeout(() => m.classList.add('show'), i * 160);
+    });
+  }, 60);
+
+  document.getElementById('bprev').disabled = cur === 0;
+  const bn = document.getElementById('bnext');
+  bn.textContent = cur === STEPS.length - 1 ? '↺ Újra' : 'Következő →';
+  document.getElementById('ctr').textContent = `${cur + 1} / ${STEPS.length}`;
+}
+
+function next() { cur = cur === STEPS.length - 1 ? 0 : cur + 1; render(); }
+function prev() { if (cur > 0) { cur--; render(); } }
+
+render();
+</script>
+</body>
+</html>
