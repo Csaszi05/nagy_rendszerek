@@ -1,0 +1,36 @@
+# Cseréld le a saját domainedre (vagy aldomainedre).
+# Ha Cloudflare Tunnel / külső reverse proxy mögött futtatod,
+# használd a ":80" sort helyette és vedd ki a domain sort.
+
+nagy-rendszerek.pelda.hu {
+	root * /srv
+	file_server
+	encode gzip zstd
+
+	# Tiltás listázásra
+	@hidden {
+		path /Caddyfile /Dockerfile /docker-compose.yml /.git/* /README.md
+	}
+	respond @hidden 404
+
+	# Egyszerű biztonsági fejlécek
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), camera=(), microphone=()"
+		-Server
+	}
+
+	# Cache statikus assetekhez
+	@static path *.css *.js *.woff *.woff2 *.png *.jpg *.svg
+	header @static Cache-Control "public, max-age=86400"
+}
+
+# --- Alternatíva: ha reverse proxy mögött vagy (Nginx Proxy Manager, Traefik, Cloudflare Tunnel),
+# kommenteld ki a fenti blokkot, és használd ezt:
+#
+# :80 {
+# 	root * /srv
+# 	file_server
+# 	encode gzip zstd
+# }

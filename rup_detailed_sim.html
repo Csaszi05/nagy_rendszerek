@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUP — Részletes Szimuláció</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Fira+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg:     #13111e;
+  --surf:   #1a1730;
+  --card:   #211e38;
+  --brd:    #2e2a4a;
+  --brd2:   #3d3870;
+  --text:   #e2deff;
+  --muted:  #6b648f;
+  --dim:    #2a2545;
+
+  --inc:   #f97316;
+  --elab:  #eab308;
+  --cons:  #22c55e;
+  --tran:  #3b82f6;
+
+  --biz:   #a855f7;
+  --req:   #ec4899;
+  --ana:   #f97316;
+  --impl:  #22c55e;
+  --test:  #3b82f6;
+  --dep:   #14b8a6;
+
+  --sup1:  #8b5cf6;
+  --sup2:  #6366f1;
+  --sup3:  #06b6d4;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Readex Pro', sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+body::after {
+  content:'';
+  position:fixed; inset:0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(168,85,247,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(59,130,246,0.05) 0%, transparent 50%);
+  pointer-events:none; z-index:0;
+}
+
+/* ── HEADER ── */
+header {
+  position:relative; z-index:1;
+  padding:1.2rem 1.3rem 0.9rem;
+  border-bottom:1px solid var(--brd2);
+  background:linear-gradient(180deg, rgba(168,85,247,0.06) 0%, transparent 100%);
+}
+
+.hdr-row { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+
+h1 {
+  font-size:1.3rem; font-weight:700;
+  line-height:1.1; letter-spacing:-0.02em;
+}
+
+h1 span { color:var(--inc); }
+h1 em   { font-style:normal; color:var(--cons); }
+
+.tag {
+  font-family:'Fira Mono', monospace;
+  font-size:0.55rem; padding:0.25rem 0.55rem;
+  border-radius:4px;
+  background:rgba(168,85,247,0.12);
+  color:#a855f7;
+  border:1px solid rgba(168,85,247,0.25);
+  white-space:nowrap; margin-top:0.2rem;
+}
+
+header p { font-size:0.7rem; color:var(--muted); margin-top:0.25rem; font-family:'Fira Mono', monospace; }
+
+/* ── MASTER GRID (the big RUP table) ── */
+.master {
+  position:relative; z-index:1;
+  background:var(--surf);
+  border-bottom:1px solid var(--brd2);
+  padding:0.75rem 1.3rem 0.6rem;
+}
+
+.master-title {
+  font-family:'Fira Mono', monospace;
+  font-size:0.55rem; color:var(--muted);
+  text-transform:uppercase; letter-spacing:0.09em;
+  margin-bottom:0.5rem;
+}
+
+/* Phase header */
+.ph-row {
+  display:grid;
+  grid-template-columns: 82px repeat(4, 1fr);
+  gap:2px; margin-bottom:3px;
+}
+
+.ph-cell {
+  padding:0.24rem 0.2rem;
+  text-align:center; border-radius:3px;
+  font-family:'Fira Mono', monospace;
+  font-size:0.52rem; font-weight:500;
+  text-transform:uppercase; letter-spacing:0.03em;
+  color:rgba(255,255,255,0.9);
+  transition:all 0.35s;
+  opacity:0.3;
+}
+.ph-cell.empty { background:transparent !important; }
+.ph-cell.ph-inc  { background:var(--inc); }
+.ph-cell.ph-elab { background:var(--elab); color:rgba(0,0,0,0.8); }
+.ph-cell.ph-cons { background:var(--cons); color:rgba(0,0,0,0.8); }
+.ph-cell.ph-tran { background:var(--tran); }
+.ph-cell.active { opacity:1; }
+.ph-cell.done   { opacity:0.6; }
+
+/* Activity rows */
+.act-section-label {
+  font-family:'Fira Mono', monospace;
+  font-size:0.5rem; color:var(--muted);
+  text-transform:uppercase; letter-spacing:0.07em;
+  margin:4px 0 2px 0;
+  padding-left:2px;
+}
+
+.act-row {
+  display:grid;
+  grid-template-columns: 82px repeat(4, 1fr);
+  gap:2px; margin-bottom:2px;
+}
+
+.act-name {
+  font-family:'Fira Mono', monospace;
+  font-size:0.52rem; color:var(--muted);
+  display:flex; align-items:center;
+  padding-right:4px; justify-content:flex-end;
+  line-height:1.2;
+}
+
+.act-bar {
+  height:12px; border-radius:2px;
+  background:var(--dim);
+  position:relative; overflow:hidden;
+  transition:all 0.4s ease;
+}
+
+.act-fill {
+  position:absolute; left:0; top:0; bottom:0;
+  border-radius:2px;
+  transition:width 0.5s ease, opacity 0.4s;
+}
+
+/* Iteration dots */
+.iter-row-wrap {
+  display:grid;
+  grid-template-columns: 82px repeat(4, 1fr);
+  gap:2px; margin-top:4px;
+}
+
+.iter-phase {
+  display:flex; gap:2px; align-items:center;
+}
+
+.idot {
+  flex:1; height:9px; border-radius:2px;
+  background:var(--dim);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Fira Mono', monospace; font-size:0.4rem;
+  color:transparent;
+  transition:all 0.4s;
+}
+.idot.on { color:rgba(255,255,255,0.9); }
+
+/* Milestone markers */
+.ms-row {
+  display:grid;
+  grid-template-columns: 82px repeat(4, 1fr);
+  gap:2px; margin-top:3px;
+}
+
+.ms-cell {
+  display:flex; justify-content:flex-end;
+  padding-right:2px;
+}
+
+.ms-marker {
+  font-family:'Fira Mono', monospace;
+  font-size:0.48rem;
+  padding:0.1rem 0.3rem;
+  border-radius:2px;
+  opacity:0.25;
+  transition:opacity 0.4s, transform 0.3s;
+  white-space:nowrap;
+}
+.ms-marker.active { opacity:1; transform:scale(1.05); }
+.ms-marker.done   { opacity:0.7; }
+
+/* ── CONTENT ── */
+.content {
+  position:relative; z-index:1;
+  padding:0.9rem 1.3rem;
+  min-height:260px;
+}
+
+.shdr {
+  display:flex; align-items:center; gap:0.55rem;
+  margin-bottom:0.8rem;
+}
+
+.sico {
+  width:34px; height:34px; border-radius:7px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.88rem; flex-shrink:0;
+  border:1px solid var(--brd2); background:var(--card);
+}
+
+.stitle { font-size:0.92rem; font-weight:700; letter-spacing:-0.02em; }
+.ssub   { font-family:'Fira Mono', monospace; font-size:0.56rem; color:var(--muted); margin-top:0.03rem; }
+
+/* chat */
+.chat { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.7rem; }
+
+.msg {
+  display:flex; gap:0.4rem; align-items:flex-start;
+  opacity:0; transform:translateY(6px);
+  transition:opacity 0.3s, transform 0.3s;
+}
+.msg.show { opacity:1; transform:translateY(0); }
+.msg.r { flex-direction:row-reverse; }
+
+.av {
+  width:28px; height:28px; border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.82rem; flex-shrink:0;
+  border:1px solid var(--brd2); background:var(--card);
+}
+
+.bub {
+  max-width:82%; padding:0.45rem 0.65rem;
+  border-radius:8px; font-size:0.75rem; line-height:1.55;
+  border:1px solid var(--brd2); background:var(--card);
+}
+.bub.l  { border-bottom-left-radius:2px; }
+.bub.r2 { border-bottom-right-radius:2px; text-align:right; }
+
+.who {
+  font-family:'Fira Mono', monospace; font-size:0.54rem;
+  font-weight:500; text-transform:uppercase; letter-spacing:0.05em;
+  margin-bottom:0.1rem;
+}
+
+/* info box */
+.ibox {
+  border-radius:7px; padding:0.55rem 0.75rem;
+  font-size:0.74rem; line-height:1.55;
+  margin:0.45rem 0;
+  border:1px solid var(--brd2); background:var(--card);
+  border-left:3px solid #a855f7;
+}
+.ibox strong { font-weight:700; }
+.ibox.inc-b  { border-left-color:var(--inc); }
+.ibox.inc-b strong { color:var(--inc); }
+.ibox.elab-b { border-left-color:var(--elab); }
+.ibox.elab-b strong { color:var(--elab); }
+.ibox.cons-b { border-left-color:var(--cons); }
+.ibox.cons-b strong { color:var(--cons); }
+.ibox.tran-b { border-left-color:var(--tran); }
+.ibox.tran-b strong { color:var(--tran); }
+.ibox.biz-b  { border-left-color:var(--biz); }
+.ibox.biz-b strong { color:var(--biz); }
+
+/* cards grid */
+.cgrid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:0.4rem; margin:0.45rem 0;
+}
+
+.ccard {
+  background:var(--card); border:1px solid var(--brd2);
+  border-radius:7px; padding:0.55rem 0.65rem;
+}
+.ccard .ico { font-size:1.1rem; display:block; margin-bottom:0.2rem; }
+.ccard .ct  { font-size:0.73rem; font-weight:700; margin-bottom:0.08rem; }
+.ccard .cd  { font-size:0.66rem; color:var(--muted); line-height:1.4; font-family:'Fira Mono', monospace; }
+
+/* person cards */
+.person-row { display:flex; flex-direction:column; gap:0.4rem; margin:0.45rem 0; }
+
+.person {
+  background:var(--card); border:1px solid var(--brd2);
+  border-radius:8px; padding:0.6rem 0.7rem;
+  display:flex; align-items:flex-start; gap:0.6rem;
+}
+
+.person-ava {
+  width:40px; height:40px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.3rem; flex-shrink:0;
+  border:2px solid var(--brd2);
+}
+
+.person-name { font-size:0.82rem; font-weight:700; margin-bottom:0.1rem; }
+.person-years { font-family:'Fira Mono', monospace; font-size:0.55rem; color:var(--muted); margin-bottom:0.18rem; }
+.person-contrib {
+  font-size:0.7rem; color:var(--muted); line-height:1.4;
+}
+.person-contrib span {
+  display:inline-block;
+  padding:0.1rem 0.4rem;
+  border-radius:3px;
+  font-family:'Fira Mono', monospace;
+  font-size:0.55rem;
+  margin:0.1rem 0.15rem 0 0;
+  border:1px solid;
+}
+
+/* activities list */
+.actlist { display:flex; flex-direction:column; gap:0.35rem; margin:0.45rem 0; }
+
+.acli {
+  display:flex; align-items:flex-start; gap:0.5rem;
+  padding:0.42rem 0.6rem;
+  background:var(--card); border:1px solid var(--brd2);
+  border-radius:7px; font-size:0.74rem; line-height:1.45;
+}
+.acli-i { flex-shrink:0; font-size:0.88rem; }
+.acli strong { display:block; font-weight:700; font-size:0.75rem; margin-bottom:0.03rem; }
+.acli span   { color:var(--muted); font-size:0.67rem; font-family:'Fira Mono', monospace; }
+
+/* milestone card */
+.mscard {
+  background:var(--card); border:1px solid var(--brd2);
+  border-radius:8px; padding:0.65rem 0.75rem;
+  margin:0.45rem 0; display:flex; gap:0.6rem;
+}
+.msi { font-size:1.3rem; flex-shrink:0; }
+.ms-t { font-size:0.82rem; font-weight:700; margin-bottom:0.1rem; }
+.ms-d { font-size:0.72rem; color:var(--muted); line-height:1.4; }
+.ms-q { font-family:'Fira Mono', monospace; font-size:0.6rem; margin-top:0.15rem; }
+
+/* two-col list */
+.twocol {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:0.35rem; margin:0.45rem 0;
+}
+
+/* sumgrid */
+.sumgrid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+.sbox { background:var(--card); border:1px solid var(--brd2); border-radius:7px; padding:0.6rem; text-align:center; }
+.sbox .ico { font-size:1.1rem; display:block; margin-bottom:0.15rem; }
+.sbox .val { font-size:0.88rem; font-weight:700; }
+.sbox .lbl { font-family:'Fira Mono', monospace; font-size:0.52rem; color:var(--muted); margin-top:0.04rem; }
+
+/* pill */
+.pill {
+  font-family:'Fira Mono', monospace; font-size:0.52rem;
+  padding:0.12rem 0.4rem; border-radius:3px; font-weight:600;
+  white-space:nowrap; border:1px solid;
+  display:inline-block;
+}
+
+/* NAV */
+.nav {
+  position:sticky; bottom:0; z-index:10;
+  background:var(--bg); border-top:1px solid var(--brd2);
+  padding:0.7rem 1.3rem; display:flex; align-items:center; gap:0.5rem;
+}
+
+.btn {
+  font-family:'Fira Mono', monospace; font-size:0.62rem; font-weight:500;
+  padding:0.52rem 1rem; border-radius:6px; cursor:pointer;
+  transition:all 0.18s; text-transform:uppercase; letter-spacing:0.04em;
+}
+
+.btnp { background:transparent; color:var(--muted); border:1px solid var(--brd2); }
+.btnp:hover { color:var(--text); }
+.btnp:disabled { opacity:0.2; cursor:not-allowed; }
+
+.btnn { flex:1; background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3); }
+.btnn:hover { background:rgba(168,85,247,0.25); }
+
+.ctr { font-family:'Fira Mono', monospace; font-size:0.57rem; color:var(--muted); white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <h1><span>RUP</span> —<br>Egységes<br><em>Folyamat</em></h1>
+    <div class="tag">2.6.4 // Unified Process</div>
+  </div>
+  <p>// Rational Unified Process — előadásdiák alapján</p>
+</header>
+
+<!-- MASTER RUP GRID -->
+<div class="master">
+  <div class="master-title">// RUP tevékenységek × fázisok mátrix</div>
+
+  <div class="ph-row" id="phRow">
+    <div class="ph-cell empty"></div>
+    <div class="ph-cell ph-inc"  id="ph0">Előkészítés</div>
+    <div class="ph-cell ph-elab" id="ph1">Kidolgozás</div>
+    <div class="ph-cell ph-cons" id="ph2">Megvalósítás</div>
+    <div class="ph-cell ph-tran" id="ph3">Átadás</div>
+  </div>
+
+  <!-- ALAP TEVÉKENYSÉGEK -->
+  <div class="act-section-label">Alap tevékenységek</div>
+  <div id="actRows"></div>
+
+  <!-- TÁMOGATÓ TEVÉKENYSÉGEK -->
+  <div class="act-section-label" style="margin-top:3px">Támogató tevékenységek</div>
+  <div id="supRows"></div>
+
+  <!-- ITERÁCIÓK -->
+  <div class="iter-row-wrap">
+    <div class="act-name" style="font-size:0.48rem">Iterációk</div>
+    <div class="iter-phase" id="iter0"></div>
+    <div class="iter-phase" id="iter1"></div>
+    <div class="iter-phase" id="iter2"></div>
+    <div class="iter-phase" id="iter3"></div>
+  </div>
+
+  <!-- MÉRFÖLDKÖVEK -->
+  <div class="ms-row">
+    <div></div>
+    <div class="ms-cell"><div class="ms-marker" id="ms0" style="background:rgba(249,115,22,0.15);color:var(--inc);border:1px solid rgba(249,115,22,0.3)">LCO ▼</div></div>
+    <div class="ms-cell"><div class="ms-marker" id="ms1" style="background:rgba(234,179,8,0.12);color:var(--elab);border:1px solid rgba(234,179,8,0.3)">LCA ▼</div></div>
+    <div class="ms-cell"><div class="ms-marker" id="ms2" style="background:rgba(34,197,94,0.12);color:var(--cons);border:1px solid rgba(34,197,94,0.3)">IOC ▼</div></div>
+    <div class="ms-cell"><div class="ms-marker" id="ms3" style="background:rgba(59,130,246,0.12);color:var(--tran);border:1px solid rgba(59,130,246,0.3)">PR ▼</div></div>
+  </div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 16</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+
+<script>
+// ─── ACTIVITY DATA ───────────────────────────────────────────────────
+// vals: intensity per phase [inception, elaboration, construction, transition] 0-10
+const BASE_ACTS = [
+  { name:'Üzleti modell', color:'var(--biz)',  vals:[7, 5, 2, 1] },
+  { name:'Követelmény',   color:'var(--req)',  vals:[8, 6, 2, 1] },
+  { name:'Analízis/Terv', color:'var(--ana)',  vals:[3, 8, 5, 2] },
+  { name:'Implementáció', color:'var(--impl)', vals:[1, 3, 9, 4] },
+  { name:'Tesztelés',     color:'var(--test)', vals:[1, 2, 7, 8] },
+  { name:'Átadás (dep.)', color:'var(--dep)',  vals:[0, 1, 4, 9] },
+];
+
+const SUP_ACTS = [
+  { name:'Konfig.mgmt',   color:'var(--sup1)', vals:[2, 4, 8, 6] },
+  { name:'Projektvezetés',color:'var(--sup2)', vals:[6, 6, 6, 5] },
+  { name:'Környezet',     color:'var(--sup3)', vals:[5, 4, 3, 2] },
+];
+
+const ITERS = [
+  { phase:0, label:'I1' },
+  { phase:1, label:'I2' },
+  { phase:1, label:'I3' },
+  { phase:2, label:'I4' },
+  { phase:2, label:'I5' },
+  { phase:2, label:'I6' },
+  { phase:3, label:'I7' },
+  { phase:3, label:'I8' },
+];
+
+const PHASE_ITERS = [
+  [0],       // inception: I1
+  [1,2],     // elaboration: I2,I3
+  [3,4,5],   // construction: I4,I5,I6
+  [6,7],     // transition: I7,I8
+];
+
+// ─── STEPS ───────────────────────────────────────────────────────────
+const STEPS = [
+  // 1. KI ALKOTTA?
+  {
+    phase:-1, iter:-1, ms:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">👥</div>
+        <div><div class="stitle">A "3 Amigo" — kik alkották?</div>
+        <div class="ssub">// Rational Software Corporation, 1990-es évek</div></div>
+      </div>
+      <div class="person-row">
+        <div class="person">
+          <div class="person-ava" style="border-color:rgba(249,115,22,0.4)">🧔</div>
+          <div>
+            <div class="person-name">Grady Booch <span style="color:var(--muted);font-size:0.7rem">(1955–)</span></div>
+            <div class="person-years">Rational Software → IBM</div>
+            <div class="person-contrib">
+              Módszertana: <span style="color:var(--inc);border-color:rgba(249,115,22,0.3)">Booch Method</span>
+              <span style="color:var(--inc);border-color:rgba(249,115,22,0.3)">OOAD</span>
+              <span style="color:var(--inc);border-color:rgba(249,115,22,0.3)">OO Design Patterns</span>
+            </div>
+          </div>
+        </div>
+        <div class="person">
+          <div class="person-ava" style="border-color:rgba(234,179,8,0.4)">👴</div>
+          <div>
+            <div class="person-name">Ivar Jacobson <span style="color:var(--muted);font-size:0.7rem">(1939–)</span></div>
+            <div class="person-years">Ericsson → Rational → Ivar Jacobson International</div>
+            <div class="person-contrib">
+              Módszertana: <span style="color:var(--elab);border-color:rgba(234,179,8,0.3)">Use Case</span>
+              <span style="color:var(--elab);border-color:rgba(234,179,8,0.3)">OOSE</span>
+            </div>
+          </div>
+        </div>
+        <div class="person">
+          <div class="person-ava" style="border-color:rgba(34,197,94,0.4)">👨‍💼</div>
+          <div>
+            <div class="person-name">James Rumbaugh <span style="color:var(--muted);font-size:0.7rem">(1947–)</span></div>
+            <div class="person-years">GE Research → Rational Software</div>
+            <div class="person-contrib">
+              Módszertana: <span style="color:var(--cons);border-color:rgba(34,197,94,0.3)">OMT</span>
+              <span style="color:var(--cons);border-color:rgba(34,197,94,0.3)">Object Modeling Technique</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox biz-b"><strong>Miért "3 Amigo"?</strong> Mindhárman a Rational Software-hez kerültek, és közösen alkották meg az UML-t (Unified Modeling Language) és a RUP-ot — az addigi három különböző módszertan egységesítéseként.</div>
+    `
+  },
+
+  // 2. MI A RUP?
+  {
+    phase:-1, iter:-1, ms:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">📖</div>
+        <div><div class="stitle">Mi a RUP? — az 5 jellemző</div>
+        <div class="ssub">// az előadásdiák szerint</div></div>
+      </div>
+      <div class="actlist">
+        <div class="acli" style="border-left:3px solid var(--inc)">
+          <div class="acli-i">🔄</div>
+          <div><strong style="color:var(--inc)">Iteratív és inkrementális</strong>
+          <span>Nem egyszer csináljuk végig — kis körökben, iterációkban fejlesztünk, és minden körben valami új funkcionalitás kerül a rendszerbe</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--elab)">
+          <div class="acli-i">🏗️</div>
+          <div><strong style="color:var(--elab)">Architektúra-centrikus</strong>
+          <span>A stabil architektúra a legfontosabb — ezt kell először megcsinálni, mert minden más erre épül</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--req)">
+          <div class="acli-i">🎯</div>
+          <div><strong style="color:var(--req)">Használati eset vezérelt</strong>
+          <span>A középpontban a megrendelővel egyeztetett Use-Case-ek állnak — ők határozzák meg MIT kell csinálni</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--cons)">
+          <div class="acli-i">🧩</div>
+          <div><strong style="color:var(--cons)">Komponensalapú</strong>
+          <span>A rendszer egymással kommunikáló komponensekből épül fel — újrafelhasználható, cserélhető elemek</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--biz)">
+          <div class="acli-i">📐</div>
+          <div><strong style="color:var(--biz)">Modell szemléletű</strong>
+          <span>UML-t használ a rendszer modellezéséhez — vizuálisan ábrázoljuk, mielőtt leírjuk</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // 3. A MÁTRIX MAGYARÁZATA
+  {
+    phase:-1, iter:-1, ms:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">📊</div>
+        <div><div class="stitle">A RUP mátrix — hogyan kell olvasni?</div>
+        <div class="ssub">// a felső ábra magyarázata</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--biz)">Oktató</div>
+            A felső ábra a RUP lényegét mutatja. Vízszintesen a 4 fázis, függőlegesen a tevékenységek. A "púpok" mutatják az intenzitást.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--cons);text-align:right">Tanuló</div>
+            Tehát minden tevékenység minden fázisban jelen van?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--biz)">Oktató</div>
+            Igen! Ez a vízesés modelltől való nagy különbség. Vízesésben előbb CSAK követelmény, majd CSAK tervezés... A RUP-ban minden végig fut, csak más hangsúllyal.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.45s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--cons);text-align:right">Tanuló</div>
+            És alul az iterációk?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.6s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--biz)">Oktató</div>
+            Az iterációk a "mini fejlesztési ciklusok" — minden fázis 1-3 iterációból áll. Az I1, I2... jelölik ezeket. A ▼ jelek a mérföldkövek — döntési pontok.
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // 4. ALAP TEVÉKENYSÉGEK
+  {
+    phase:-1, iter:-1, ms:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">⚙️</div>
+        <div><div class="stitle">Alap tevékenységek — 6 munkafolyamat</div>
+        <div class="ssub">// a "mit csinálunk" kérdés</div></div>
+      </div>
+      <div class="actlist">
+        <div class="acli" style="border-left:3px solid var(--biz)">
+          <div class="acli-i">🏢</div>
+          <div><strong style="color:var(--biz)">1. Üzleti folyamatok modellezése (Business Modeling)</strong>
+          <span>Megértjük a szervezet működését. Milyen folyamatok vannak? Hol segíthet a szoftver?</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--req)">
+          <div class="acli-i">📋</div>
+          <div><strong style="color:var(--req)">2. Követelményelemzés (Requirements)</strong>
+          <span>Use Case-ek kidolgozása az ügyféllel. MIT kell a rendszernek tudnia?</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--ana)">
+          <div class="acli-i">📐</div>
+          <div><strong style="color:var(--ana)">3. Analízis és tervezés (Analysis & Design)</strong>
+          <span>HOGYAN valósítjuk meg? UML diagramok, architektúra, osztályok, komponensek tervezése.</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--impl)">
+          <div class="acli-i">💻</div>
+          <div><strong style="color:var(--impl)">4. Implementáció (Implementation)</strong>
+          <span>A tényleges kódolás. A tervek alapján megírjuk a komponenseket.</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--test)">
+          <div class="acli-i">🧪</div>
+          <div><strong style="color:var(--test)">5. Tesztelés (Test)</strong>
+          <span>Egység-, integrációs-, rendszer- és elfogadási tesztek. Végig fut, nem csak a végén!</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--dep)">
+          <div class="acli-i">🚀</div>
+          <div><strong style="color:var(--dep)">6. Átadás (Deployment)</strong>
+          <span>A szoftver élesítése, telepítése, felhasználók oktatása.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // 5. TÁMOGATÓ TEVÉKENYSÉGEK
+  {
+    phase:-1, iter:-1, ms:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">🛠️</div>
+        <div><div class="stitle">Támogató tevékenységek — 3 háttérfolyamat</div>
+        <div class="ssub">// végig futnak, nem látványosak, de nélkülük nem megy</div></div>
+      </div>
+      <div class="actlist">
+        <div class="acli" style="border-left:3px solid var(--sup1)">
+          <div class="acli-i">🗂️</div>
+          <div><strong style="color:var(--sup1)">Konfiguráció mgmt. és változáskövetés</strong>
+          <span style="display:block;margin-bottom:0.2rem">Configuration & Change Management</span>
+          <span>Verziókezelés (Git), változások nyomon követése, ki mikor mit módosított. Ha valami elromlik — vissza lehet állni.</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--sup2)">
+          <div class="acli-i">📊</div>
+          <div><strong style="color:var(--sup2)">Projektvezetés (Project Management)</strong>
+          <span>Tervezés, ütemezés, erőforrások kezelése, kockázatkezelés. Ki mit csinál mikor és mennyiért?</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--sup3)">
+          <div class="acli-i">🖥️</div>
+          <div><strong style="color:var(--sup3)">Fejlesztői környezet biztosítása (Environment)</strong>
+          <span>A csapat rendelkezik-e a megfelelő eszközökkel? IDE, build eszközök, CI/CD, tesztkörnyezet beüzemelése.</span></div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Alap vs Támogató különbség:</strong> Az alap tevékenységek közvetlenül a szoftver létrehozásáról szólnak. A támogató tevékenységek azt biztosítják, hogy a csapat hatékonyan tudjon dolgozni — infrastruktúra, folyamatok, szervezés.</div>
+    `
+  },
+
+  // 6. INCEPTION FÁZIS
+  {
+    phase:0, iter:0, ms:0,
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(249,115,22,0.4)">🚀</div>
+        <div><div class="stitle">Előkészítés (Inception)</div>
+        <div class="ssub">// I1 — megéri-e egyáltalán?</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">💼</div>
+          <div class="bub l"><div class="who" style="color:var(--inc)">Ügyfél</div>
+            Egy webshopot szeretnénk fejleszteni — mobilon és weben is működjön, legyen fizetési lehetőség.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">👩‍💼</div>
+          <div class="bub r2"><div class="who" style="color:var(--sup2);text-align:right">Projektvezető</div>
+            Az Inception fázisban 3 kérdést kell megválaszolni: Mit kell csinálni? Megvalósítható? Megéri?
+          </div>
+        </div>
+      </div>
+      <div class="actlist">
+        <div class="acli"><div class="acli-i">🏢</div><div><strong>Üzleti modell (nagy hangsúly)</strong><span>Milyen üzleti folyamatok vannak? Hol segít a szoftver?</span></div></div>
+        <div class="acli"><div class="acli-i">📋</div><div><strong>Követelmény (nagy hangsúly)</strong><span>Főbb use case-ek összegyűjtése az ügyféllel</span></div></div>
+        <div class="acli"><div class="acli-i">📐</div><div><strong>Analízis/Tervezés (kis hangsúly)</strong><span>Csak vázlatos architektúra elképzelés</span></div></div>
+        <div class="acli"><div class="acli-i">💻</div><div><strong>Implementáció/Tesztelés (minimális)</strong><span>Esetleg kis proof-of-concept prototípus</span></div></div>
+      </div>
+      <div class="mscard" style="border-color:rgba(249,115,22,0.3)">
+        <div class="msi">🎯</div>
+        <div>
+          <div class="ms-t" style="color:var(--inc)">LCO — Életciklus Célkitűzés Mérföldkő</div>
+          <div class="ms-d">Mindenki egyetért a projekt hatókörével és céljaival. Az üzleti eset indokolja a folytatást.</div>
+          <div class="ms-q" style="color:var(--inc)">"Worth doing?" — Megéri csinálni?</div>
+        </div>
+      </div>
+    `
+  },
+
+  // 7. ELABORATION FÁZIS
+  {
+    phase:1, iter:1, ms:1,
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(234,179,8,0.4)">🏗️</div>
+        <div><div class="stitle">Kidolgozás (Elaboration)</div>
+        <div class="ssub">// I2-I3 — architektúra és kockázatok kezelése</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🧔</div>
+          <div class="bub l"><div class="who" style="color:var(--elab)">Főarchitekt</div>
+            Az Elaboration fázis a RUP szíve. Ide koncentráljuk az architektúra kialakítását és a legtöbb analízist/tervezést.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--cons);text-align:right">Tanuló</div>
+            Miért itt és nem a Megvalósítás fázisban?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">🧔</div>
+          <div class="bub l"><div class="who" style="color:var(--elab)">Főarchitekt</div>
+            Mert ha az architektúra rossz, azt a Megvalósítás közben nagyon drágán kell javítani. Jobb most 2 hét, mint később 2 hónap újraírás.
+          </div>
+        </div>
+      </div>
+      <div class="actlist">
+        <div class="acli"><div class="acli-i">📋</div><div><strong>Követelmény (közepes)</strong><span>Use case-ek 80%-a részletesen kidolgozva</span></div></div>
+        <div class="acli"><div class="acli-i">📐</div><div><strong>Analízis/Tervezés (CSÚCS)</strong><span>Stabil architektúra, UML modellek, komponenstervek</span></div></div>
+        <div class="acli"><div class="acli-i">🧪</div><div><strong>Tesztelés (növekszik)</strong><span>Architektúra prototípus tesztelése — teljesítmény, biztonság</span></div></div>
+      </div>
+      <div class="mscard" style="border-color:rgba(234,179,8,0.3)">
+        <div class="msi">🏗️</div>
+        <div>
+          <div class="ms-t" style="color:var(--elab)">LCA — Életciklus Architektúra Mérföldkő</div>
+          <div class="ms-d">Stabil, tesztelt architektúra. A nagy kockázatok kezelve. Biztonságos a tömeges fejlesztés megkezdése.</div>
+          <div class="ms-q" style="color:var(--elab)">"Right thing?" — Jó az architektúra?</div>
+        </div>
+      </div>
+    `
+  },
+
+  // 8. CONSTRUCTION FÁZIS
+  {
+    phase:2, iter:3, ms:2,
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(34,197,94,0.4)">💻</div>
+        <div><div class="stitle">Megvalósítás (Construction)</div>
+        <div class="ssub">// I4-I6 — tömeges fejlesztés iterációkban</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👩‍💻</div>
+          <div class="bub l"><div class="who" style="color:var(--cons)">Fejlesztő csapat</div>
+            Az architektúra stabil, most következik a tényleges fejlesztés. 3 iterációban, párhuzamosan.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">💼</div>
+          <div class="bub r2"><div class="who" style="color:var(--inc);text-align:right">Ügyfél</div>
+            Mikor látok valami működő rendszert?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👩‍💻</div>
+          <div class="bub l"><div class="who" style="color:var(--cons)">Fejlesztő csapat</div>
+            Minden iteráció végén — az I4 után látod a terméklistát, I5 után a kosarat és fizetést, I6 után a teljes rendszert.
+          </div>
+        </div>
+      </div>
+      <div class="actlist">
+        <div class="acli"><div class="acli-i">💻</div><div><strong>Implementáció (CSÚCS)</strong><span>A fő fejlesztési fázis — komponensek megírása iterációkban</span></div></div>
+        <div class="acli"><div class="acli-i">🧪</div><div><strong>Tesztelés (nagy)</strong><span>Egységtesztek, integrációs tesztek, rendszertesztek folyamatosan</span></div></div>
+        <div class="acli"><div class="acli-i">📐</div><div><strong>Analízis/Tervezés (közepes)</strong><span>Részletes tervek az aktuális iteráció komponenseihez</span></div></div>
+        <div class="acli"><div class="acli-i">🚀</div><div><strong>Átadás (növekszik)</strong><span>Belső telepítések, béta előkészítés</span></div></div>
+      </div>
+      <div class="mscard" style="border-color:rgba(34,197,94,0.3)">
+        <div class="msi">✅</div>
+        <div>
+          <div class="ms-t" style="color:var(--cons)">IOC — Kezdeti Működőképesség Mérföldkő</div>
+          <div class="ms-d">Minden tervezett funkció implementálva és tesztelve. Béta verzió készen áll a felhasználói tesztelésre.</div>
+          <div class="ms-q" style="color:var(--cons)">"Done right?" — Jól van megcsinálva?</div>
+        </div>
+      </div>
+    `
+  },
+
+  // 9. TRANSITION FÁZIS
+  {
+    phase:3, iter:6, ms:3,
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,0.4)">📦</div>
+        <div><div class="stitle">Átadás (Transition)</div>
+        <div class="ssub">// I7-I8 — élesítés és finomítás</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🧪</div>
+          <div class="bub l"><div class="who" style="color:var(--tran)">Béta tesztelő</div>
+            A fizetésnél ha a hálózat megszakad, elvész a visszaigazolás. Ez komoly probléma.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">👩‍💻</div>
+          <div class="bub r2"><div class="who" style="color:var(--cons);text-align:right">Fejlesztő</div>
+            I7-ben javítjuk — retry logika és idempotens tranzakció ID. Ez a Transition fázis: béta hibák javítása.
+          </div>
+        </div>
+      </div>
+      <div class="actlist">
+        <div class="acli"><div class="acli-i">🧪</div><div><strong>Tesztelés (CSÚCS)</strong><span>Elfogadási tesztek, béta tesztelés, teljesítménymérés éles körülmények közt</span></div></div>
+        <div class="acli"><div class="acli-i">🚀</div><div><strong>Átadás (CSÚCS)</strong><span>Élesítés, telepítés, felhasználói oktatás, dokumentáció</span></div></div>
+        <div class="acli"><div class="acli-i">💻</div><div><strong>Implementáció (közepes)</strong><span>Béta hibák javítása, finomhangolás</span></div></div>
+        <div class="acli"><div class="acli-i">🗂️</div><div><strong>Konfig.mgmt (fontos)</strong><span>Verziókezelés, éles és teszt környezet szétválasztása</span></div></div>
+      </div>
+      <div class="mscard" style="border-color:rgba(59,130,246,0.3)">
+        <div class="msi">🎉</div>
+        <div>
+          <div class="ms-t" style="color:var(--tran)">PR — Termék Kiadás Mérföldkő</div>
+          <div class="ms-d">A rendszer éles, a felhasználók elégedettek, a karbantartás megkezdődik.</div>
+          <div class="ms-q" style="color:var(--tran)">"Done?" — Kész van?</div>
+        </div>
+      </div>
+    `
+  },
+
+  // 10. A 4 MÉRFÖLDKŐ ÖSSZEFOGLALVA
+  {
+    phase:-1, iter:7, ms:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">🏁</div>
+        <div><div class="stitle">A 4 mérföldkő — döntési pontok</div>
+        <div class="ssub">// minden fázis végén: folytatjuk vagy leállunk?</div></div>
+      </div>
+      <div class="actlist">
+        <div class="acli" style="border-left:3px solid var(--inc)">
+          <div class="acli-i">🎯</div>
+          <div>
+            <strong style="color:var(--inc)">LCO — Life Cycle Objective (Előkészítés végén)</strong>
+            <span>"Megéri csinálni?" — Mindenki egyetért a célokkal és hatókörrel? Folytatjuk?</span>
+          </div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--elab)">
+          <div class="acli-i">🏗️</div>
+          <div>
+            <strong style="color:var(--elab)">LCA — Life Cycle Architecture (Kidolgozás végén)</strong>
+            <span>"Jó az architektúra?" — Stabil, tesztelt? A kockázatok kezelve? Elkezdhető a tömeges fejlesztés?</span>
+          </div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--cons)">
+          <div class="acli-i">✅</div>
+          <div>
+            <strong style="color:var(--cons)">IOC — Initial Operational Capability (Megvalósítás végén)</strong>
+            <span>"Jól van megcsinálva?" — Minden funkció kész és tesztelve? Béta tesztelésre kész?</span>
+          </div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--tran)">
+          <div class="acli-i">🎉</div>
+          <div>
+            <strong style="color:var(--tran)">PR — Product Release (Átadás végén)</strong>
+            <span>"Kész van?" — A rendszer éles? A felhasználók elégedettek? A projekt lezárult?</span>
+          </div>
+        </div>
+      </div>
+      <div class="ibox inc-b"><strong>Ha egy mérföldkő nem teljesül</strong> — nem lépnek tovább! Visszamennek és megjavítják, vagy leállítják a projektet. Ez a RUP "kapuőr" rendszere.</div>
+    `
+  },
+
+  // 11. ITERÁCIÓ BELÜLRŐL
+  {
+    phase:2, iter:4, ms:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">🔄</div>
+        <div><div class="stitle">Egy iteráció belülről — I5</div>
+        <div class="ssub">// minden iteráció = mini vízesés</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--biz)">Oktató</div>
+            Minden egyes iteráció önmagában egy kis fejlesztési ciklus — van benne követelmény, tervezés, implementáció, tesztelés.
+          </div>
+        </div>
+      </div>
+      <div class="actlist">
+        <div class="acli"><div class="acli-i">1️⃣</div><div><strong>Iteráció tervezése (1-2 nap)</strong><span>Mit csinálunk ebben az iterációban? Melyik use case-eket?</span></div></div>
+        <div class="acli"><div class="acli-i">2️⃣</div><div><strong>Követelmény finomítás (2-3 nap)</strong><span>Az aktuális use case-ek részletezése</span></div></div>
+        <div class="acli"><div class="acli-i">3️⃣</div><div><strong>Analízis és tervezés (3-5 nap)</strong><span>Részletes terv az iteráció komponenseihez</span></div></div>
+        <div class="acli"><div class="acli-i">4️⃣</div><div><strong>Implementáció (1-2 hét)</strong><span>Kódolás a tervek alapján</span></div></div>
+        <div class="acli"><div class="acli-i">5️⃣</div><div><strong>Tesztelés (párhuzamos)</strong><span>Egységtesztek írása közben, integrációs tesztek végén</span></div></div>
+        <div class="acli"><div class="acli-i">6️⃣</div><div><strong>Iteráció lezárása (1-2 nap)</strong><span>Eredmények bemutatása az ügyfélnek, visszajelzés gyűjtése</span></div></div>
+      </div>
+      <div class="ibox cons-b"><strong>Az iteráció végén az ügyfél látja az eredményt</strong> — és visszajelezhet. Ez az inkrementális fejlesztés lényege: mindig van valami látható, kézzelfogható eredmény.</div>
+    `
+  },
+
+  // 12. UML KAPCSOLAT
+  {
+    phase:-1, iter:-1, ms:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">📐</div>
+        <div><div class="stitle">RUP és UML kapcsolata</div>
+        <div class="ssub">// az előadásdiák szerint: UML-hez jól illeszkedő</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🧔</div>
+          <div class="bub l"><div class="who" style="color:var(--elab)">Grady Booch</div>
+            A RUP és az UML ugyanattól a csapattól jött — szándékosan úgy terveztük, hogy kéz a kézben járjanak.
+          </div>
+        </div>
+      </div>
+      <div class="cgrid">
+        <div class="ccard">
+          <div class="ico">🎯</div>
+          <div class="ct">Use Case diagram</div>
+          <div class="cd">Követelményelemzés fázisban — mit akar a felhasználó?</div>
+        </div>
+        <div class="ccard">
+          <div class="ico">🏗️</div>
+          <div class="ct">Komponens diagram</div>
+          <div class="cd">Elaboration — hogyan épül fel a rendszer?</div>
+        </div>
+        <div class="ccard">
+          <div class="ico">📦</div>
+          <div class="ct">Osztálydiagram</div>
+          <div class="cd">Analízis/Tervezés — az adatstruktúrák és kapcsolataik</div>
+        </div>
+        <div class="ccard">
+          <div class="ico">🔄</div>
+          <div class="ct">Szekvenciadiagram</div>
+          <div class="cd">Implementáció előtt — hogyan kommunikálnak az objektumok?</div>
+        </div>
+        <div class="ccard">
+          <div class="ico">🚀</div>
+          <div class="ct">Telepítési diagram</div>
+          <div class="cd">Átadás — hol fut a szoftver a valóságban?</div>
+        </div>
+        <div class="ccard">
+          <div class="ico">📊</div>
+          <div class="ct">Aktivitásdiagram</div>
+          <div class="cd">Üzleti modellezés — folyamatok ábrázolása</div>
+        </div>
+      </div>
+      <div class="ibox biz-b"><strong>A 3 Amigo UML-t is alkotta:</strong> Pontosan azért illeszkedik ennyire jól, mert ugyanaz a csapat csinálta mindkettőt — a RUP megmondja MIKOR és MIRE használd az UML diagramokat.</div>
+    `
+  },
+
+  // 13. BEST PRACTICES
+  {
+    phase:-1, iter:-1, ms:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">⭐</div>
+        <div><div class="stitle">Best Practices — bevált megoldások</div>
+        <div class="ssub">// "korábbi módszertanoktól átvesz bevált megoldásokat"</div></div>
+      </div>
+      <div class="actlist">
+        <div class="acli" style="border-left:3px solid var(--inc)">
+          <div class="acli-i">🔄</div>
+          <div><strong>Iteratív fejlesztés</strong><span>Átvéve: Spirál modell (Boehm) — kis körökben, kockázatkezeléssel</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--req)">
+          <div class="acli-i">🎯</div>
+          <div><strong>Követelmény kezelés Use Case-ekkel</strong><span>Átvéve: Jacobson OOSE módszertana — a felhasználó szemszögéből</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--ana)">
+          <div class="acli-i">📐</div>
+          <div><strong>Vizuális modellezés (UML)</strong><span>Átvéve: Booch Method + OMT — egységesítve UML-lé</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--impl)">
+          <div class="acli-i">🧩</div>
+          <div><strong>Komponens alapú architektúra</strong><span>Átvéve: COM, CORBA tapasztalatokból — újrafelhasználható egységek</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--test)">
+          <div class="acli-i">✅</div>
+          <div><strong>Folyamatos minőségellenőrzés</strong><span>Tesztelés végig, nem csak a végén — modern XP/TDD előfutára</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--sup1)">
+          <div class="acli-i">🗂️</div>
+          <div><strong>Változáskezelés</strong><span>Verziókezelés, konfiguráció menedzsment mint önálló munkafolyamat</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // 14. ESZKÖZTÁMOGATÁS
+  {
+    phase:-1, iter:-1, ms:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">🛠️</div>
+        <div><div class="stitle">Sok eszközzel támogatott</div>
+        <div class="ssub">// "sok cég állt mögé" — ez is előny volt</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">💼</div>
+          <div class="bub l"><div class="who" style="color:var(--inc)">Vállalatirányító</div>
+            Miért választottuk a RUP-ot az ezredfordulón? Mert az IBM megvette a Rational-t — és az összes eszközük (Rose, ClearCase, RequisitePro) együtt működött.
+          </div>
+        </div>
+      </div>
+      <div class="cgrid">
+        <div class="ccard">
+          <div class="ico">🌹</div>
+          <div class="ct">IBM Rational Rose</div>
+          <div class="cd">UML modellező eszköz — kódgenerálással</div>
+        </div>
+        <div class="ccard">
+          <div class="ico">📦</div>
+          <div class="ct">ClearCase</div>
+          <div class="cd">Konfiguráció és verziókezelés</div>
+        </div>
+        <div class="ccard">
+          <div class="ico">📋</div>
+          <div class="ct">RequisitePro</div>
+          <div class="cd">Követelmény kezelés, use case nyomkövetés</div>
+        </div>
+        <div class="ccard">
+          <div class="ico">🧪</div>
+          <div class="ct">Rational Robot</div>
+          <div class="cd">Automatizált tesztelési eszköz</div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Ma hogyan él tovább?</strong> IBM megvette a Rational Software-t 2003-ban. A RUP elvei beépültek az Eclipse Process Framework-be (EPF), és az OpenUP-ba — egy könnyebb, nyílt változatba. Az agilis módszerek sok elvét a RUP-ból merítették.</div>
+    `
+  },
+
+  // 15. RUP VS WATERFALL VS AGILE
+  {
+    phase:-1, iter:-1, ms:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">📊</div>
+        <div><div class="stitle">RUP a többi módszer közt</div>
+        <div class="ssub">// hol helyezkedik el?</div></div>
+      </div>
+      <div class="actlist">
+        <div class="acli" style="border-left:3px solid #64748b">
+          <div class="acli-i">🌊</div>
+          <div><strong>Vízesés modell</strong>
+          <span>Lineáris, fázisok egymás után. Tesztelés csak a végén. RUP-ban ez NEM így van — minden fázisban minden tevékenység jelen van.</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--biz)">
+          <div class="acli-i">🏗️</div>
+          <div><strong style="color:var(--biz)">RUP — a középút</strong>
+          <span>Iteratív mint az agilis, de strukturált és dokumentált mint a vízesés. Nagy csapatoknak, komplex rendszereknek, ahol formális folyamat szükséges.</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--cons)">
+          <div class="acli-i">🏃</div>
+          <div><strong>Agilis (Scrum)</strong>
+          <span>Gyorsabb, kevesebb dokumentáció, kisebb csapatok. A RUP-ból vette át az iteratív szemléletet, de leegyszerűsítette.</span></div>
+        </div>
+      </div>
+      <div class="cgrid">
+        <div class="ccard" style="border-color:rgba(249,115,22,0.3)">
+          <div class="ico">✅</div>
+          <div class="ct" style="color:var(--inc)">RUP előnyei</div>
+          <div class="cd">Strukturált, jól dokumentált, nagy csapatoknak skálázható, UML integráció, eszköztámogatás</div>
+        </div>
+        <div class="ccard" style="border-color:rgba(239,68,68,0.3)">
+          <div class="ico">❌</div>
+          <div class="ct" style="color:#ef4444">RUP hátrányai</div>
+          <div class="cd">Nehéz megtanulni, sok dokumentum, rugalmatlanabb mint az agilis, kis csapatoknak túl nehéz</div>
+        </div>
+      </div>
+    `
+  },
+
+  // 16. ÖSSZEFOGLALÁS
+  {
+    phase:-1, iter:7, ms:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">∑</div>
+        <div><div class="stitle">Összefoglalás — amit meg kell jegyezni</div>
+        <div class="ssub">// az előadásdiák alapján</div></div>
+      </div>
+      <div class="sumgrid">
+        <div class="sbox"><span class="ico">👥</span><div class="val">3 Amigo</div><div class="lbl">Booch, Jacobson, Rumbaugh</div></div>
+        <div class="sbox"><span class="ico">🏗️</span><div class="val">4 fázis</div><div class="lbl">Inc→Elab→Cons→Trans</div></div>
+        <div class="sbox"><span class="ico">⚙️</span><div class="val">6+3</div><div class="lbl">alap + támogató tev.</div></div>
+        <div class="sbox"><span class="ico">🏁</span><div class="val">4 mérföldkő</div><div class="lbl">LCO→LCA→IOC→PR</div></div>
+      </div>
+      <div class="actlist">
+        <div class="acli" style="border-left:3px solid var(--inc)">
+          <div class="acli-i">1️⃣</div>
+          <div><strong style="color:var(--inc)">Iteratív + Inkrementális + Architektúra-centrikus + Use Case vezérelt</strong>
+          <span>A 4 fő jellemző az előadásdiákból</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--elab)">
+          <div class="acli-i">2️⃣</div>
+          <div><strong style="color:var(--elab)">Alap vs Támogató tevékenységek különbsége</strong>
+          <span>Alap: mit csinálunk (modellezés, követelmény, analízis, impl, teszt, átadás). Támogató: hogyan csináljuk (konfig, projektvezetés, környezet)</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--cons)">
+          <div class="acli-i">3️⃣</div>
+          <div><strong style="color:var(--cons)">A "púp diagram" logikája</strong>
+          <span>Minden tevékenység minden fázisban jelen van — csak más intenzitással. Ez a vízesestől való nagy különbség.</span></div>
+        </div>
+        <div class="acli" style="border-left:3px solid var(--tran)">
+          <div class="acli-i">4️⃣</div>
+          <div><strong style="color:var(--tran)">UML-hez illeszkedik + best practice alapú</strong>
+          <span>Nem találta fel a spanyolviaszt — a bevált megoldásokat foglalja egységes rendszerbe</span></div>
+        </div>
+      </div>
+    `
+  },
+];
+
+// ── GRID RENDER ──────────────────────────────────────────────────────
+function renderGrid(activePhase, activeIter, activeMilestone) {
+  // Phase headers
+  ['ph0','ph1','ph2','ph3'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.classList.remove('active','done');
+    if (activePhase === i) el.classList.add('active');
+    else if (activePhase > i) el.classList.add('done');
+    else if (activePhase === -1) el.classList.remove('active','done');
+  });
+
+  // Activity rows
+  function makeRows(acts, containerId) {
+    const maxH = 12;
+    document.getElementById(containerId).innerHTML = acts.map(act => {
+      const segs = act.vals.map((v, pi) => {
+        const h = Math.max(2, Math.round((v / 10) * maxH));
+        const isActive = pi === activePhase;
+        const isDone   = activePhase > pi;
+        const base = activePhase === -1 ? 0.45 : (isActive ? 1 : (isDone ? 0.55 : 0.15));
+        return `<div class="act-bar" style="flex:1">
+          <div class="act-fill" style="width:100%;height:${h}px;margin-top:${maxH-h}px;background:${act.color};opacity:${base};${isActive?'box-shadow:0 0 5px '+act.color:''}"></div>
+        </div>`;
+      }).join('<div style="width:2px"></div>');
+      return `<div class="act-row">
+        <div class="act-name">${act.name}</div>
+        ${segs}
+      </div>`;
+    }).join('');
+  }
+
+  makeRows(BASE_ACTS, 'actRows');
+  makeRows(SUP_ACTS, 'supRows');
+
+  // Iteration dots
+  const PHASE_COUNTS = [1, 2, 3, 2];
+  const PHASE_LABELS = [['I1'], ['I2','I3'], ['I4','I5','I6'], ['I7','I8']];
+  const PHASE_COLORS = ['var(--inc)', 'var(--elab)', 'var(--cons)', 'var(--tran)'];
+
+  PHASE_COUNTS.forEach((count, pi) => {
+    const cont = document.getElementById('iter' + pi);
+    cont.innerHTML = '';
+    for (let i = 0; i < count; i++) {
+      const globalIdx = PHASE_LABELS[pi].indexOf ? ITERS.findIndex(it => it.phase === pi && it.label === PHASE_LABELS[pi][i]) : -1;
+      const isActive = pi === activePhase && (activeIter - [0,1,3,6][pi]) === i;
+      const isDone   = activePhase > pi || (activePhase === pi && (activeIter - [0,1,3,6][pi]) > i);
+      const opacity  = activePhase === -1 ? 0.3 : (isDone ? 0.8 : (isActive ? 1 : 0.2));
+      const bg       = (isActive || isDone) ? PHASE_COLORS[pi] : 'var(--dim)';
+      const label    = PHASE_LABELS[pi][i];
+      cont.innerHTML += `<div class="idot on" style="background:${bg};opacity:${opacity}">${label}</div>`;
+    }
+  });
+
+  // Milestones
+  ['ms0','ms1','ms2','ms3'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.classList.remove('active','done');
+    if (activeMilestone === i) el.classList.add('active');
+    else if (activeMilestone > i || (activePhase > i && activeMilestone !== i)) el.classList.add('done');
+  });
+}
+
+let cur = 0;
+
+function render() {
+  const s = STEPS[cur];
+  renderGrid(s.phase, s.iter, s.ms);
+
+  const el = document.getElementById('content');
+  el.innerHTML = s.render();
+
+  setTimeout(() => {
+    el.querySelectorAll('.msg:not(.show)').forEach((m, i) => {
+      setTimeout(() => m.classList.add('show'), i * 160);
+    });
+  }, 60);
+
+  document.getElementById('bprev').disabled = cur === 0;
+  const bn = document.getElementById('bnext');
+  bn.textContent = cur === STEPS.length - 1 ? '↺ Újra' : 'Következő →';
+  document.getElementById('ctr').textContent = `${cur + 1} / ${STEPS.length}`;
+}
+
+function next() { cur = cur === STEPS.length - 1 ? 0 : cur + 1; render(); }
+function prev() { if (cur > 0) { cur--; render(); } }
+
+render();
+</script>
+</body>
+</html>

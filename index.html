@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nagy Rendszerek — Tananyag</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  --bg:     #0f1923;
+  --surf:   #162030;
+  --card:   #1d2d40;
+  --card-h: #25395a;
+  --brd:    #263d55;
+  --brd2:   #2e4d6a;
+  --text:   #ddeeff;
+  --muted:  #7a96b5;
+  --dim:    #1a2d40;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Nunito', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(59,130,246,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(139,92,246,0.06) 0%, transparent 50%);
+  pointer-events: none; z-index: 0;
+}
+
+.wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 60px 24px 80px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.eyebrow {
+  display: inline-block;
+  padding: 6px 14px;
+  background: var(--card);
+  border: 1px solid var(--brd);
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: clamp(36px, 6vw, 56px);
+  font-weight: 900;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  font-size: 17px;
+  color: var(--muted);
+  max-width: 620px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 40px 0 20px;
+  padding-left: 4px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--brd) 0%, transparent 100%);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 18px;
+}
+
+.card {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--brd);
+  border-radius: 16px;
+  padding: 24px;
+  text-decoration: none;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.25s ease;
+  overflow: hidden;
+  min-height: 180px;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent);
+  opacity: 0.7;
+  transition: opacity 0.25s ease;
+}
+
+.card:hover {
+  background: var(--card-h);
+  border-color: var(--brd2);
+  transform: translateY(-3px);
+}
+
+.card:hover::before { opacity: 1; }
+
+.card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.card-title {
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.3px;
+}
+
+.card-desc {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.card-cta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 4px;
+}
+
+.card-cta svg {
+  transition: transform 0.25s ease;
+}
+
+.card:hover .card-cta svg {
+  transform: translateX(4px);
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, rgba(59,130,246,0.10) 0%, rgba(139,92,246,0.10) 100%);
+  border: 1px solid color-mix(in srgb, #60a5fa 30%, transparent);
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 40px;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.notice-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #60a5fa 18%, transparent);
+  border: 1px solid color-mix(in srgb, #60a5fa 35%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.notice strong {
+  color: #93c5fd;
+  font-weight: 800;
+}
+
+footer {
+  margin-top: 80px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  padding-top: 32px;
+  border-top: 1px solid var(--brd);
+}
+
+footer a {
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--brd2);
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="eyebrow">Egyetem · Szoftvertechnológia</span>
+    <h1>Nagy Rendszerek<br>tananyag &amp; szimulációk</h1>
+    <p class="subtitle">Interaktív szimulációk és vizualizációk a tantárgy fő témáihoz. Kattints bármelyik kártyára, hogy megnyisd.</p>
+  </header>
+
+  <div class="notice">
+    <div class="notice-icon">📱</div>
+    <div><strong>Tipp:</strong> ezek a tananyagok telefonon olvashatóbbak — érdemes mobilon megnyitni őket a kényelmesebb böngészéshez.</div>
+  </div>
+
+  <div class="section-title">Folyamatmodellek</div>
+  <div class="grid">
+
+    <a class="card" href="spiral_model.html" style="--accent:#f59e0b;">
+      <div class="card-icon">🌀</div>
+      <div class="card-title">Spirál Modell</div>
+      <div class="card-desc">Iteratív fejlesztés kockázatkezeléssel — Boehm modellje négy fázisban.</div>
+      <div class="card-cta">Megnyitás <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </a>
+
+    <a class="card" href="rad_simulation.html" style="--accent:#10b981;">
+      <div class="card-icon">⚡</div>
+      <div class="card-title">RAD — Gyors Alkalmazásfejlesztés</div>
+      <div class="card-desc">Rapid Application Development: gyors prototípus és időboxolt fejlesztés.</div>
+      <div class="card-cta">Megnyitás <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </a>
+
+    <a class="card" href="concurrent_model.html" style="--accent:#3b82f6;">
+      <div class="card-icon">🔀</div>
+      <div class="card-title">Konkurens Folyamat Modell</div>
+      <div class="card-desc">Párhuzamosan futó tevékenységek és állapotaik a fejlesztés során.</div>
+      <div class="card-cta">Megnyitás <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </a>
+
+    <a class="card" href="rup_simulation.html" style="--accent:#8b5cf6;">
+      <div class="card-icon">📐</div>
+      <div class="card-title">RUP — Egységes Folyamat</div>
+      <div class="card-desc">Rational Unified Process áttekintő szimuláció: fázisok és diszciplínák.</div>
+      <div class="card-cta">Megnyitás <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </a>
+
+    <a class="card" href="rup_detailed_sim.html" style="--accent:#a855f7;">
+      <div class="card-icon">🔍</div>
+      <div class="card-title">RUP — Részletes Szimuláció</div>
+      <div class="card-desc">Mélyebb bontás: iterációk, milestone-ok, artefaktumok és szerepkörök.</div>
+      <div class="card-cta">Megnyitás <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </a>
+
+  </div>
+
+  <div class="section-title">Fejlesztési módszertanok</div>
+  <div class="grid">
+
+    <a class="card" href="agile_principles_sim.html" style="--accent:#22c55e;">
+      <div class="card-icon">🌱</div>
+      <div class="card-title">Agilis Elvek</div>
+      <div class="card-desc">Az Agile Manifesto 12 alapelve interaktív szimulációban bemutatva.</div>
+      <div class="card-cta">Megnyitás <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </a>
+
+    <a class="card" href="component_based_dev.html" style="--accent:#06b6d4;">
+      <div class="card-icon">🧩</div>
+      <div class="card-title">Komponens Alapú Fejlesztés</div>
+      <div class="card-desc">Újrafelhasználható komponensekre épülő szoftverépítés gyakorlata.</div>
+      <div class="card-cta">Megnyitás <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </a>
+
+    <a class="card" href="aop_simulation.html" style="--accent:#ec4899;">
+      <div class="card-icon">🎯</div>
+      <div class="card-title">Aspektus Orientált Fejlesztés</div>
+      <div class="card-desc">AOP — keresztmetszeti szempontok elválasztása az üzleti logikától.</div>
+      <div class="card-cta">Megnyitás <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </a>
+
+  </div>
+
+  <div class="section-title">Formális megközelítések</div>
+  <div class="grid">
+
+    <a class="card" href="formal_methods_sim.html" style="--accent:#e11d48;">
+      <div class="card-icon">∑</div>
+      <div class="card-title">Formális Módszerek</div>
+      <div class="card-desc">Matematikailag precíz szoftverspecifikáció és -ellenőrzés szimulációja.</div>
+      <div class="card-cta">Megnyitás <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </a>
+
+  </div>
+
+  <footer>
+    A felelősséget vállalja: Császár Marcell
+  </footer>
+
+</div>
+</body>
+</html>

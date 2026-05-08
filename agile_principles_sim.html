@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agilis Elvek Szimuláció</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap');
+
+:root {
+  --bg:    #0f1923;
+  --surf:  #162030;
+  --card:  #1d2d40;
+  --brd:   #263d55;
+  --brd2:  #2e4d6a;
+  --text:  #ddeeff;
+  --muted: #5a7a96;
+  --dim:   #1a2d40;
+
+  --a1: #f59e0b;  /* megrendelő */
+  --a2: #10b981;  /* flexibilitás */
+  --a3: #3b82f6;  /* működő szoftver */
+  --a4: #ec4899;  /* együttműködés */
+  --a5: #8b5cf6;  /* motiváció */
+  --a6: #06b6d4;  /* kommunikáció */
+  --a7: #22c55e;  /* haladás mérése */
+  --a8: #f97316;  /* fenntartható */
+  --a9: #e11d48;  /* minőség */
+  --a10:#a855f7;  /* egyszerűség */
+  --a11:#14b8a6;  /* önszervezés */
+  --a12:#6366f1;  /* retrospektív */
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Nunito', sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(245,158,11,0.05) 0%, transparent 45%),
+    radial-gradient(ellipse at 100% 100%, rgba(59,130,246,0.05) 0%, transparent 45%);
+  pointer-events:none; z-index:0;
+}
+
+/* ── HEADER ── */
+header {
+  position:relative; z-index:1;
+  padding:1.2rem 1.3rem 0.85rem;
+  border-bottom:1px solid var(--brd2);
+  background:linear-gradient(180deg, rgba(245,158,11,0.05) 0%, transparent 100%);
+}
+
+.hdr-row { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+
+h1 {
+  font-size:1.45rem; font-weight:900;
+  line-height:1.05; letter-spacing:-0.02em;
+}
+h1 em { font-style:normal; color:var(--a1); }
+
+.tag {
+  font-family:'Fira Code', monospace; font-size:0.55rem;
+  padding:0.25rem 0.55rem; border-radius:4px;
+  background:rgba(245,158,11,0.12); color:var(--a1);
+  border:1px solid rgba(245,158,11,0.25); white-space:nowrap; margin-top:0.2rem;
+}
+
+header p { font-size:0.7rem; color:var(--muted); margin-top:0.25rem; font-family:'Fira Code', monospace; }
+
+/* ── ELVEK TRACKER (top) ── */
+.tracker {
+  position:relative; z-index:1;
+  background:var(--surf);
+  border-bottom:1px solid var(--brd2);
+  padding:0.7rem 1.3rem;
+}
+
+.tr-title {
+  font-family:'Fira Code', monospace; font-size:0.54rem;
+  color:var(--muted); text-transform:uppercase; letter-spacing:0.08em;
+  margin-bottom:0.5rem;
+}
+
+.tr-grid {
+  display:grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap:3px;
+}
+
+.tr-dot {
+  height:28px;
+  border-radius:5px;
+  background:var(--dim);
+  border:1px solid var(--brd);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Fira Code', monospace; font-size:0.5rem;
+  color:var(--muted);
+  transition:all 0.4s ease;
+  cursor:default;
+  position:relative;
+}
+
+.tr-dot.active {
+  border-width:2px;
+  transform:scaleY(1.08);
+}
+
+.tr-dot.done {
+  opacity:0.7;
+}
+
+.tr-dot .tr-num {
+  font-size:0.6rem; font-weight:800;
+}
+
+/* ── CONTENT ── */
+.content {
+  position:relative; z-index:1;
+  padding:0.9rem 1.3rem;
+  min-height:290px;
+}
+
+/* step header */
+.shdr {
+  display:flex; align-items:center; gap:0.6rem;
+  margin-bottom:0.85rem;
+}
+
+.sico {
+  width:38px; height:38px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.1rem; flex-shrink:0;
+  border:2px solid var(--brd2); background:var(--card);
+}
+
+.stitle { font-size:0.95rem; font-weight:800; letter-spacing:-0.02em; }
+.ssub   { font-family:'Fira Code', monospace; font-size:0.56rem; color:var(--muted); margin-top:0.04rem; }
+
+/* ── PRINCIPLE CARD (big, main) ── */
+.principle-card {
+  border-radius:12px; padding:1rem 1.1rem;
+  margin-bottom:0.75rem;
+  border:2px solid;
+  position:relative;
+  overflow:hidden;
+}
+
+.principle-card::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:3px;
+  border-radius:12px 12px 0 0;
+}
+
+.pc-num {
+  font-family:'Fira Code', monospace; font-size:0.58rem;
+  font-weight:600; text-transform:uppercase; letter-spacing:0.06em;
+  margin-bottom:0.3rem; opacity:0.8;
+}
+
+.pc-elv {
+  font-size:1rem; font-weight:900; line-height:1.3;
+  letter-spacing:-0.02em; margin-bottom:0.5rem;
+}
+
+.pc-explain {
+  font-size:0.78rem; line-height:1.6;
+  color:rgba(220,238,255,0.85);
+}
+
+.pc-example {
+  margin-top:0.6rem;
+  background:rgba(0,0,0,0.2);
+  border-radius:7px; padding:0.5rem 0.65rem;
+  font-size:0.72rem; line-height:1.5;
+  font-family:'Fira Code', monospace;
+  color:rgba(220,238,255,0.7);
+  border-left:2px solid;
+}
+
+/* chat bubbles */
+.chat { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.7rem; }
+
+.msg {
+  display:flex; gap:0.4rem; align-items:flex-start;
+  opacity:0; transform:translateY(6px);
+  transition:opacity 0.3s, transform 0.3s;
+}
+.msg.show { opacity:1; transform:translateY(0); }
+.msg.r { flex-direction:row-reverse; }
+
+.av {
+  width:30px; height:30px; border-radius:7px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.9rem; flex-shrink:0;
+  border:1px solid var(--brd2); background:var(--card);
+}
+
+.bub {
+  max-width:83%; padding:0.5rem 0.7rem;
+  border-radius:9px; font-size:0.77rem; line-height:1.55;
+  border:1px solid var(--brd2); background:var(--card);
+}
+.bub.l  { border-bottom-left-radius:2px; }
+.bub.r2 { border-bottom-right-radius:2px; text-align:right; }
+
+.who {
+  font-family:'Fira Code', monospace; font-size:0.55rem;
+  font-weight:600; text-transform:uppercase; letter-spacing:0.05em;
+  margin-bottom:0.1rem;
+}
+
+/* GOOD vs BAD */
+.vs-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.45rem; margin:0.5rem 0; }
+
+.vs-box {
+  border-radius:8px; padding:0.6rem 0.7rem;
+  border:1px solid; font-size:0.73rem; line-height:1.5;
+}
+
+.vs-box .vs-hdr {
+  font-family:'Fira Code', monospace; font-size:0.57rem;
+  font-weight:600; text-transform:uppercase; letter-spacing:0.05em;
+  margin-bottom:0.3rem;
+}
+
+.bad-box {
+  background:rgba(239,68,68,0.07);
+  border-color:rgba(239,68,68,0.25);
+}
+.bad-box .vs-hdr { color:#ef4444; }
+
+.good-box {
+  background:rgba(34,197,94,0.07);
+  border-color:rgba(34,197,94,0.25);
+}
+.good-box .vs-hdr { color:#22c55e; }
+
+/* INFO BOX */
+.ibox {
+  border-radius:8px; padding:0.58rem 0.75rem;
+  font-size:0.74rem; line-height:1.55; margin:0.45rem 0;
+  border:1px solid var(--brd2); background:var(--card);
+  border-left:3px solid var(--a1);
+}
+.ibox strong { font-weight:700; }
+
+/* METHODS LIST */
+.methods-grid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:0.4rem; margin:0.5rem 0;
+}
+
+.method-card {
+  background:var(--card); border:1px solid var(--brd2);
+  border-radius:9px; padding:0.6rem 0.7rem;
+  transition:all 0.2s;
+}
+
+.method-card .mc-icon { font-size:1.2rem; display:block; margin-bottom:0.2rem; }
+.method-card .mc-name { font-size:0.82rem; font-weight:800; margin-bottom:0.08rem; }
+.method-card .mc-full { font-family:'Fira Code', monospace; font-size:0.55rem; color:var(--muted); margin-bottom:0.2rem; }
+.method-card .mc-desc { font-size:0.68rem; color:rgba(200,220,240,0.75); line-height:1.4; }
+
+/* CHECKLIST */
+.cklist { display:flex; flex-direction:column; gap:0.35rem; margin:0.5rem 0; }
+
+.cli {
+  display:flex; align-items:flex-start; gap:0.5rem;
+  padding:0.42rem 0.65rem;
+  background:var(--card); border:1px solid var(--brd2);
+  border-radius:8px; font-size:0.75rem; line-height:1.45;
+}
+.cli-i { flex-shrink:0; font-size:0.88rem; }
+.cli strong { display:block; font-weight:700; font-size:0.76rem; margin-bottom:0.03rem; }
+.cli span   { color:var(--muted); font-size:0.68rem; font-family:'Fira Code', monospace; }
+
+/* SUMGRID */
+.sumgrid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.5rem 0; }
+.sbox {
+  background:var(--card); border:1px solid var(--brd2);
+  border-radius:8px; padding:0.6rem; text-align:center;
+}
+.sbox .ico { font-size:1.2rem; display:block; margin-bottom:0.15rem; }
+.sbox .val { font-size:0.88rem; font-weight:800; }
+.sbox .lbl { font-family:'Fira Code', monospace; font-size:0.52rem; color:var(--muted); margin-top:0.04rem; }
+
+/* NAV */
+.nav {
+  position:sticky; bottom:0; z-index:10;
+  background:var(--bg); border-top:1px solid var(--brd2);
+  padding:0.7rem 1.3rem; display:flex; align-items:center; gap:0.5rem;
+}
+
+.btn {
+  font-family:'Fira Code', monospace; font-size:0.63rem; font-weight:600;
+  padding:0.52rem 1rem; border-radius:7px; cursor:pointer;
+  transition:all 0.18s; text-transform:uppercase; letter-spacing:0.04em;
+}
+
+.btnp { background:transparent; color:var(--muted); border:1px solid var(--brd2); }
+.btnp:hover { color:var(--text); border-color:var(--brd2); }
+.btnp:disabled { opacity:0.2; cursor:not-allowed; }
+
+.btnn { flex:1; background:rgba(245,158,11,0.15); color:var(--a1); border:1px solid rgba(245,158,11,0.3); }
+.btnn:hover { background:rgba(245,158,11,0.25); }
+
+.ctr { font-family:'Fira Code', monospace; font-size:0.57rem; color:var(--muted); white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <h1>Agilis<br><em>Elvek</em></h1>
+    <div class="tag">12 elv + módszerek</div>
+  </div>
+  <p>// Az Agile Manifesto 12 alapelve — érthetően</p>
+</header>
+
+<!-- TRACKER -->
+<div class="tracker">
+  <div class="tr-title">// 12 agilis elv — haladás</div>
+  <div class="tr-grid" id="trackerGrid"></div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 16</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+
+<script>
+const PRINCIPLES = [
+  {
+    num:1, color:'var(--a1)',
+    elv:'A megrendelő maradéktalan kielégítése az első rendű szempont',
+    icon:'🤝',
+    explain:'Minden döntésnél az ügyfél igénye az első. Nem a technológia, nem a fejlesztő kényelme, nem a menedzser terve — hanem az, amit az ügyfél valóban akar és amitől boldog lesz.',
+    example:'❌ Rossz: "Szerintünk ezt kellett volna akarnia"\n✅ Jó:  "Megkérdeztük, ezt akarja, megcsináljuk"',
+    scenario: {
+      bad:  'A csapat 3 hónapig fejleszt, majd bemutatja az ügyfélnek — aki azt mondja: "Ez nem az amit kértem."',
+      good: 'Minden 2 hétben bemutatják a kész részt az ügyfélnek. Ha elcsúszik az irány, azonnal korrigálnak.'
+    }
+  },
+  {
+    num:2, color:'var(--a2)',
+    elv:'Flexibilitás a követelmények változásával szemben',
+    icon:'🔄',
+    explain:'Az ügyfél változtathat az elképzelésein — és ez RENDBEN VAN. A jó csapat nem sóhajtozik emiatt, hanem rugalmasan alkalmazkodik. A változás versenyelőny, nem probléma.',
+    example:'❌ Rossz: "Azt mondta X-et, most meg Y-t akar!"\n✅ Jó:  "Megváltozott az igény, frissítjük a backlogot"',
+    scenario: {
+      bad:  'Vízesés modell: a követelmények az elején "befagynak". Ha az ügyfél változtat — drága módosítási kérelem, hosszú egyeztetés.',
+      good: 'Agilis: a backlog mindig módosítható. A következő sprintbe bekerül az új igény, semmi bürokratikus procedúra.'
+    }
+  },
+  {
+    num:3, color:'var(--a3)',
+    elv:'Működő szoftver gyors átadása (inkremensek)',
+    icon:'🚀',
+    explain:'Nem évek múlva adjuk át az egész rendszert — hanem heteken, hónapokon belül átadunk valamit ami MÁR MŰKÖDIK. Kis részletekben, folyamatosan. Az ügyfél már hamar látja az eredményt.',
+    example:'❌ Rossz: 12 hónap fejlesztés → 1 big bang átadás\n✅ Jó:  2 hetente 1 működő inkrementum átadása',
+    scenario: {
+      bad:  '"Az egész rendszer 1 év múlva lesz kész. Addig nem láthat semmit."',
+      good: '"2 hét múlva megvan a bejelentkezés, 4 hét múlva a termékoldal, 6 hét múlva a kosár..."'
+    }
+  },
+  {
+    num:4, color:'var(--a4)',
+    elv:'Az üzleti szakembereknek és a fejlesztőknek napi kapcsolatban kell lenniük',
+    icon:'💬',
+    explain:'Nem elég hetente egyszer meeting — az ügyfél oldala (product owner, üzleti szakértő) és a fejlesztők NAPONTA kommunikálnak. Kérdések azonnal megválaszolhatók, félreértések azonnal kiderülnek.',
+    example:'❌ Rossz: Fejlesztők 3 hónapig izoláltan dolgoznak\n✅ Jó:  Napi standup, product owner elérhető',
+    scenario: {
+      bad:  'Fejlesztő: "Nem tudtam mit akar, ezért kitaláltam." — 2 hét munka szemétbe.',
+      good: 'Fejlesztő: "Gyors kérdés: a kedvezmény az összegből vagy a darabszámból számítódjon?" — 2 perces chat, megvan a válasz.'
+    }
+  },
+  {
+    num:5, color:'var(--a5)',
+    elv:'Motivált szakembereket gyűjts a projekt köré, teremtsd meg a feltételeket',
+    icon:'🔥',
+    explain:'Egy motivált, jól felszerelt csapat 10× jobban teljesít mint egy demotivált. A vezető feladata: megteremteni a feltételeket és MEGBÍZNI a csapatban — nem mikromenedzselni.',
+    example:'❌ Rossz: Nyomás, micromanagement, rossz eszközök\n✅ Jó:  Autonómia, jó eszközök, bizalom',
+    scenario: {
+      bad:  '"Megmondom pontosan mit csináljatok és hogyan. Minden lépésnél jóvá kell hagynom."',
+      good: '"Íme a cél. Ti tudjátok a legjobban hogyan kell megcsinálni. Szóljatok ha kell valami."'
+    }
+  },
+  {
+    num:6, color:'var(--a6)',
+    elv:'Szorgalmazd a szemtől-szembeni párbeszédet a teamen belül',
+    icon:'🗣️',
+    explain:'A legjobb kommunikáció személyesen, arcot látva történik. Egy 5 perces személyes egyeztetés felér 20 emailváltással. Ez az oka a daily standup meetingeknek.',
+    example:'❌ Rossz: 50 emailből álló thread egy egyszerű kérdésről\n✅ Jó:  "Gyere oda 5 percre, elmagyarázom"',
+    scenario: {
+      bad:  'Egy bug okát 3 napon át emailben próbálják kideríteni. Végül: "legközelebb személyesen nézzük meg" — 15 perc alatt megvan.',
+      good: 'Daily standup: 15 perc. Mindenki tudja ki min dolgozik, mi az akadály, kinek kell segítség.'
+    }
+  },
+  {
+    num:7, color:'var(--a7)',
+    elv:'A haladás legjobb mértéke a működő szoftver',
+    icon:'📊',
+    explain:'Nem az elkészített dokumentumok száma, nem a "85%-ban kész" becslések — hanem a TÉNYLEGESEN MŰKÖDŐ funkcionalitás méri a haladást. Ha nem fut, nem kész.',
+    example:'❌ Rossz: "Az analízis 100%, a tervezés 80%, összesen 70%"\n✅ Jó:  "3 use case teljesen kész és tesztelt, működik"',
+    scenario: {
+      bad:  'PM: "A projekt 75%-ban kész." Ügyfél: "Mutasd meg!" — semmi nem működik, csak dokumentumok vannak.',
+      good: 'PM: "Megmutatom amit átadhatunk most." — demó a ténylegesen működő részekről.'
+    }
+  },
+  {
+    num:8, color:'var(--a8)',
+    elv:'Fenntartható fejlődés — állandó ütem a fejlesztésben',
+    icon:'♻️',
+    explain:'A túlóra és a sprint végén összeomlott csapat nem fenntartható. A jó agilis csapat állandó, stabil tempóban dolgozik — nem szaladnak ki a lelkükből a határidő előtt, majd összecsuklanak utána.',
+    example:'❌ Rossz: 3 hetes death march → 1 hetes kiégés\n✅ Jó:  Állandó, fenntartható sprint-tempó',
+    scenario: {
+      bad:  '"Sprint végén mindenki túlórázott, hétvégén is jöttek be. A következő sprintre már alig van energia."',
+      good: '"Minden sprint ugyanolyan tempóban fut. Ha túl sok kerül bele, a backlogba tesszük a többit."'
+    }
+  },
+  {
+    num:9, color:'var(--a9)',
+    elv:'A kiváló műszaki színvonalra és a jó tervre folyamatosan ügyelni kell',
+    icon:'⭐',
+    explain:'A gyorsaság nem menti fel a csapatot a minőség alól. A technikai adósság (technical debt) felhalmozódik, és később sokkal drágábban kell megfizetni. Jobb egyből jól csinálni.',
+    example:'❌ Rossz: "Majd refaktorálunk, most gyorsan kell"\n✅ Jó:  Folyamatos code review, clean code',
+    scenario: {
+      bad:  '"Gyorsan kell, csináljuk meg ahogy lehet." — 6 hónap múlva senki nem érti a kódot, minden változtatás bugot hoz.',
+      good: '"Megcsináljuk gyorsan, DE rendesen. Code review kötelező minden PR-re."'
+    }
+  },
+  {
+    num:10, color:'var(--a10)',
+    elv:'Egyszerűség — csak az igazán fontos feladat elvégzése',
+    icon:'✂️',
+    explain:'Ne fejlesszük le azt amit senki nem fog használni. A YAGNI elv: "You Aren\'t Gonna Need It" — ne találjuk fel a jövőt, csak azt csináljuk meg ami most kell. Az egyszerűség erény.',
+    example:'❌ Rossz: "Majd egyszer kellhet, fejlesszük le most"\n✅ Jó:  "Ez kell most? Ha igen, megcsináljuk."',
+    scenario: {
+      bad:  'Fejlesztő: "Legyen benne multi-currency support, AI ajánló, AR try-on feature..." — az ügyfél csak egy egyszerű webshopot akart.',
+      good: 'PO: "Most a kosár kell. A wishlist ráér. Az AI ajánló meg nem is volt a tervben."'
+    }
+  },
+  {
+    num:11, color:'var(--a11)',
+    elv:'Az önszerveződő, aktív teamektől származnak a legjobb megoldások',
+    icon:'🧠',
+    explain:'Ne a menedzser mondja meg pontosan hogyan kell megoldani a feladatot. A csapat — aki a legjobban ismeri a technológiát és a problémát — találja ki a legjobb megoldást. Bizalom és autonómia kell.',
+    example:'❌ Rossz: "Pontosan így csináljátok, lépésről lépésre"\n✅ Jó:  "A cél ez. Hogyan csináljátok, ti döntsétek"',
+    scenario: {
+      bad:  'Manager: "Ezt az algoritmust használjátok, ezt az architektúrát, ilyen neveket adjatok a változóknak..."',
+      good: 'Manager: "A célunk az, hogy a keresés 200ms alatt válaszoljon. Hogyan oldjátok meg — ti tudjátok."'
+    }
+  },
+  {
+    num:12, color:'var(--a12)',
+    elv:'Rendszeres időközönként a teamnek önvizsgálatot kell tartani',
+    icon:'🪞',
+    explain:'A Retrospektíva! Rendszeresen megállunk és megkérdezzük: Mi ment jól? Mi nem ment jól? Mit csináljunk másképp? Ez a folyamatos tanulás és fejlődés alapja.',
+    example:'❌ Rossz: "Nincs időnk erre, mindig sürgős valami"\n✅ Jó:  Sprint végi retro — 1 óra, minden sprintnél',
+    scenario: {
+      bad:  '"Ugyanazokat a hibákat csináljuk újra és újra, mert soha nem állunk meg elemezni mi ment rosszul."',
+      good: 'Retro: "Mi ment jól?" "Mi nem ment?" "Mit csinálunk másképp a következő sprintben?" — 3 konkrét akciópont.'
+    }
+  },
+];
+
+const METHODS = [
+  { icon:'⚡', name:'XP', full:'Extreme Programming', desc:'Pár programozás, TDD, folyamatos integráció. Extrém gyors fejlesztés magas minőséggel.', color:'var(--a1)' },
+  { icon:'🌊', name:'ASD', full:'Adaptive Software Dev.', desc:'Spekuláció → Együttműködés → Tanulás ciklus. Kaotikus, komplex projektekre.', color:'var(--a2)' },
+  { icon:'💨', name:'DSDM', full:'Dynamic Software Dev.', desc:'Timeboxing, MoSCoW prioritizálás. Üzleti fókusz, rögzített határidők.', color:'var(--a3)' },
+  { icon:'🎯', name:'FDD', full:'Feature Driven Dev.', desc:'Feature-lista alapú fejlesztés. Nagy csapatoknak jó, clear deliverables.', color:'var(--a4)' },
+  { icon:'🏉', name:'Scrum', full:'Scrum', desc:'Sprint, backlog, standup, retro. Ma a legelterjedtebb agilis keret.', color:'var(--a5)' },
+  { icon:'🃏', name:'Kanban', full:'Kanban', desc:'Vizuális tábla, WIP limit, folyamatos áramlás. Sprintek nélkül.', color:'var(--a6)' },
+  { icon:'💎', name:'Crystal', full:'Crystal Methods', desc:'Csapatméret szerint skálázódik (Clear, Yellow, Orange...). Emberközpontú.', color:'var(--a7)' },
+  { icon:'📐', name:'AM', full:'Agile Modeling', desc:'Csak annyit modellezz amennyi kell. UML eszközök agilis szellemben.', color:'var(--a8)' },
+];
+
+// ── STEPS DEFINITION ─────────────────────────────────────────────────
+// Step 0: bevezető
+// Step 1-12: elvek
+// Step 13: módszerek intro
+// Step 14: módszerek részlet
+// Step 15: összefoglalás
+
+function makeElvStep(p) {
+  return {
+    elvIdx: p.num - 1,
+    render: () => `
+      <div class="shdr">
+        <div class="sico" style="border-color:${p.color.replace('var(','').replace(')','')};font-size:1.2rem">${p.icon}</div>
+        <div>
+          <div class="stitle">${p.num}. elv</div>
+          <div class="ssub">// agilis alapelv az Agile Manifestóból</div>
+        </div>
+      </div>
+
+      <div class="principle-card" style="background:rgba(${hexToRgb(p.color)},0.06);border-color:rgba(${hexToRgb(p.color)},0.3)">
+        <div class="pc-num" style="color:${p.color}">${p.num}. AGILIS ELV</div>
+        <div class="pc-elv">${p.elv}</div>
+        <div class="pc-explain">${p.explain}</div>
+        <div class="pc-example" style="border-color:${p.color}">${p.example.replace(/\n/g,'<br>')}</div>
+      </div>
+
+      <div class="vs-grid">
+        <div class="vs-box bad-box">
+          <div class="vs-hdr">❌ Nélküle (régi módszer)</div>
+          ${p.scenario.bad}
+        </div>
+        <div class="vs-box good-box">
+          <div class="vs-hdr">✅ Agilis szemlélettel</div>
+          ${p.scenario.good}
+        </div>
+      </div>
+    `
+  };
+}
+
+// Color helper - returns rgb values from css var
+function hexToRgb(cssVar) {
+  const map = {
+    'var(--a1)':'245,158,11',
+    'var(--a2)':'16,185,129',
+    'var(--a3)':'59,130,246',
+    'var(--a4)':'236,72,153',
+    'var(--a5)':'139,92,246',
+    'var(--a6)':'6,182,212',
+    'var(--a7)':'34,197,94',
+    'var(--a8)':'249,115,22',
+    'var(--a9)':'225,29,72',
+    'var(--a10)':'168,85,247',
+    'var(--a11)':'20,184,166',
+    'var(--a12)':'99,102,241',
+  };
+  return map[cssVar] || '255,255,255';
+}
+
+const STEPS = [
+  // ── 0. BEVEZETŐ ──────────────────────────────────────────────────
+  {
+    elvIdx: -1,
+    render: () => `
+      <div class="shdr">
+        <div class="sico">🌀</div>
+        <div>
+          <div class="stitle">Mi az Agilis szemlélet?</div>
+          <div class="ssub">// Agile Manifesto, 2001 — 17 fejlesztő Utah-ban</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--a1)">Oktató</div>
+            2001-ben 17 szoftverfejlesztő összegyűlt Utah-ban és megírta az Agile Manifestót. 4 értéket és 12 alapelvet fektettek le.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--a3);text-align:right">Tanuló</div>
+            Mi volt addig a probléma?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--a1)">Oktató</div>
+            A hagyományos (vízesés) módszereknél a projektek 70%-a késett, 50%-a megbukott, és az ügyfelek ritkán kapták meg amit valóban akartak.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.45s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--a3);text-align:right">Tanuló</div>
+            Mennyi alapelvet kell megjegyezni?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.6s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--a1)">Oktató</div>
+            12-t — de ne szárazon tanuld! Most mindegyiket egy konkrét példán keresztül mutatjuk meg.
+          </div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--a1)"><strong>A 12 elv mögötti logika:</strong> Az első 6 elv az ügyfél-fejlesztő kapcsolatról és a csapatdinamikáról szól. A második 6 elv a fejlesztési folyamat minőségéről és fenntarthatóságáról.</div>
+    `
+  },
+
+  // ── 1-12. ELVEK ──────────────────────────────────────────────────
+  ...PRINCIPLES.map(p => makeElvStep(p)),
+
+  // ── 13. MÓDSZEREK INTRO ──────────────────────────────────────────
+  {
+    elvIdx: 12,
+    render: () => `
+      <div class="shdr">
+        <div class="sico">🗺️</div>
+        <div>
+          <div class="stitle">Agilis elveket követő módszerek</div>
+          <div class="ssub">// 8 módszer — mind a 12 elvet követi, más hangsúllyal</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--a1)">Oktató</div>
+            A 12 agilis elv egy iránytű — de nem mondja meg pontosan hogyan dolgozz. Erre születtek a konkrét módszerek.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--a3);text-align:right">Tanuló</div>
+            Melyiket érdemes megtanulni?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--a1)">Oktató</div>
+            A Scrum és Kanban a legelterjedtebb — szinte minden cég valamelyiket (vagy kombinációjukat) használja. Az XP-t is érdemes ismerni mint fejlesztési gyakorlat.
+          </div>
+        </div>
+      </div>
+      <div class="methods-grid" id="methodsGrid">
+        ${METHODS.map(m => `
+          <div class="method-card" style="border-left:3px solid ${m.color}">
+            <span class="mc-icon">${m.icon}</span>
+            <div class="mc-name" style="color:${m.color}">${m.name}</div>
+            <div class="mc-full">${m.full}</div>
+            <div class="mc-desc">${m.desc}</div>
+          </div>
+        `).join('')}
+      </div>
+    `
+  },
+
+  // ── 14. SCRUM KIEMELVE ────────────────────────────────────────────
+  {
+    elvIdx: 12,
+    render: () => `
+      <div class="shdr">
+        <div class="sico">🏉</div>
+        <div>
+          <div class="stitle">Scrum — a legelterjedtebb agilis keret</div>
+          <div class="ssub">// hogyan valósítja meg a 12 elvet?</div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--a1)">
+          <div class="cli-i">📋</div>
+          <div><strong>Product Backlog</strong>
+          <span>A teendők priorizált listája — rugalmas, bármikor módosítható (2. elv: flexibilitás)</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--a3)">
+          <div class="cli-i">🏃</div>
+          <div><strong>Sprint (2 hét)</strong>
+          <span>Mini fejlesztési ciklus, végén működő szoftver (3. elv: inkremensek)</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--a6)">
+          <div class="cli-i">☀️</div>
+          <div><strong>Daily Standup (15 perc)</strong>
+          <span>Napi kommunikáció — mit csináltam, mit csinálok, mi az akadály (4. és 6. elv)</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--a7)">
+          <div class="cli-i">🖥️</div>
+          <div><strong>Sprint Review</strong>
+          <span>Demó az ügyfélnek — működő szoftver bemutatása (7. elv: haladás mértéke)</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--a12)">
+          <div class="cli-i">🪞</div>
+          <div><strong>Retrospektív</strong>
+          <span>Mi ment jól? Mi nem? Mit változtatunk? (12. elv: önvizsgálat)</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--a11)">
+          <div class="cli-i">👥</div>
+          <div><strong>Önszerveződő csapat</strong>
+          <span>A csapat dönti el hogyan valósítja meg a feladatokat (11. elv: önszervezés)</span></div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--a5)"><strong>A Scrum nem az összes agilis elv:</strong> A Scrum egy keret (framework), nem módszertan. A technikai praktikákhoz (TDD, CI/CD, pair programming) az XP-t érdemes mellé venni.</div>
+    `
+  },
+
+  // ── 15. ÖSSZEFOGLALÁS ─────────────────────────────────────────────
+  {
+    elvIdx: 12,
+    render: () => `
+      <div class="shdr">
+        <div class="sico">∑</div>
+        <div>
+          <div class="stitle">A 12 elv — összefoglalás</div>
+          <div class="ssub">// csoportosítva, hogy könnyebb legyen megjegyezni</div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--a1)">
+          <div class="cli-i">🤝</div>
+          <div><strong style="color:var(--a1)">Ügyfél fókusz (1-4. elv)</strong>
+          <span>Kielégítés, flexibilitás, gyors átadás, napi kapcsolat</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--a5)">
+          <div class="cli-i">🔥</div>
+          <div><strong style="color:var(--a5)">Csapat és kommunikáció (5-6. elv)</strong>
+          <span>Motivált szakemberek, szemtől-szembeni párbeszéd</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--a7)">
+          <div class="cli-i">📊</div>
+          <div><strong style="color:var(--a7)">Haladás és tempó (7-8. elv)</strong>
+          <span>Működő szoftver mér, fenntartható fejlődési ütem</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--a9)">
+          <div class="cli-i">⭐</div>
+          <div><strong style="color:var(--a9)">Minőség és egyszerűség (9-10. elv)</strong>
+          <span>Műszaki kiválóság folyamatosan, csak ami kell</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--a11)">
+          <div class="cli-i">🧠</div>
+          <div><strong style="color:var(--a11)">Csapat autonómia és tanulás (11-12. elv)</strong>
+          <span>Önszerveződő csapat, rendszeres retrospektív</span></div>
+        </div>
+      </div>
+      <div class="sumgrid">
+        <div class="sbox"><span class="ico">📜</span><div class="val">12 elv</div><div class="lbl">Agile Manifesto, 2001</div></div>
+        <div class="sbox"><span class="ico">🛠️</span><div class="val">8 módszer</div><div class="lbl">Scrum, XP, Kanban...</div></div>
+        <div class="sbox"><span class="ico">🎯</span><div class="val">1 fókusz</div><div class="lbl">Működő szoftver, elégedett ügyfél</div></div>
+        <div class="sbox"><span class="ico">💡</span><div class="val">1 kulcsszó</div><div class="lbl">Rugalmasság + Együttműködés</div></div>
+      </div>
+    `
+  },
+];
+
+// ── TRACKER RENDER ───────────────────────────────────────────────────
+const COLORS = [
+  'var(--a1)','var(--a2)','var(--a3)','var(--a4)',
+  'var(--a5)','var(--a6)','var(--a7)','var(--a8)',
+  'var(--a9)','var(--a10)','var(--a11)','var(--a12)',
+];
+
+function renderTracker(activeElvIdx) {
+  document.getElementById('trackerGrid').innerHTML = PRINCIPLES.map((p, i) => {
+    const isActive = i === activeElvIdx;
+    const isDone   = i < activeElvIdx;
+    const color    = COLORS[i];
+    let style = '';
+    if (isActive) {
+      style = `background:rgba(${hexToRgb(color)},0.18);border-color:${color};color:${color};font-weight:800;`;
+    } else if (isDone) {
+      style = `background:rgba(${hexToRgb(color)},0.1);border-color:rgba(${hexToRgb(color)},0.4);color:${color};`;
+    } else {
+      style = `background:var(--dim);border-color:var(--brd);color:var(--muted);`;
+    }
+
+    const glow = isActive ? `box-shadow:0 0 8px rgba(${hexToRgb(color)},0.4);` : '';
+
+    return `<div class="tr-dot" style="${style}${glow}">
+      <span class="tr-num">${isDone ? '✓' : p.num}</span>
+    </div>`;
+  }).join('');
+}
+
+let cur = 0;
+
+function render() {
+  const s = STEPS[cur];
+  renderTracker(s.elvIdx);
+
+  const el = document.getElementById('content');
+  el.innerHTML = s.render();
+
+  setTimeout(() => {
+    el.querySelectorAll('.msg:not(.show)').forEach((m, i) => {
+      setTimeout(() => m.classList.add('show'), i * 160);
+    });
+  }, 60);
+
+  document.getElementById('bprev').disabled = cur === 0;
+  const bn = document.getElementById('bnext');
+  bn.textContent = cur === STEPS.length - 1 ? '↺ Újra' : 'Következő →';
+  document.getElementById('ctr').textContent = `${cur + 1} / ${STEPS.length}`;
+}
+
+function next() { cur = cur === STEPS.length - 1 ? 0 : cur + 1; render(); }
+function prev() { if (cur > 0) { cur--; render(); } }
+
+render();
+</script>
+</body>
+</html>

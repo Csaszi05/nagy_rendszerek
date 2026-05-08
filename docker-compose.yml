@@ -1,0 +1,19 @@
+services:
+  web:
+    build: .
+    image: nagy-rendszerek:latest
+    container_name: nagy-rendszerek
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Caddy automatikus HTTPS tanúsítványok perzisztálása
+      - caddy_data:/data
+      - caddy_config:/config
+      # Élő szerkesztéshez (opcionális): a HTML-ek frissülnek konténer újraépítés nélkül
+      - ./:/srv:ro
+
+volumes:
+  caddy_data:
+  caddy_config:

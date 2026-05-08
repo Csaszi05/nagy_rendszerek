@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aspektus Orientált Fejlesztés</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Fira+Code:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg:      #0e0a1a;
+  --surface: #130f22;
+  --card:    #1a1430;
+  --border:  #251d42;
+  --border2: #352855;
+  --text:    #ddd4ff;
+  --muted:   #5a4e80;
+  --dim:     #2a2045;
+
+  --core:    #e8d5ff;   /* core logic - light purple */
+  --log:     #ff9f43;   /* logging aspect - orange */
+  --sec:     #ff4d6d;   /* security aspect - red */
+  --perf:    #00d4aa;   /* performance aspect - teal */
+  --err:     #ff6b6b;   /* error handling - salmon */
+  --weave:   #a78bfa;   /* weaving - purple */
+  --join:    #fbbf24;   /* joinpoint - yellow */
+  --advice:  #34d399;   /* advice - green */
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Lexend', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(ellipse at 80% 10%, rgba(167,139,250,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 10% 90%, rgba(0,212,170,0.04) 0%, transparent 50%);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ── HEADER ── */
+header {
+  position:relative; z-index:1;
+  padding:1.3rem 1.3rem 0.9rem;
+  border-bottom:1px solid var(--border2);
+}
+
+.hdr-row { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+
+h1 {
+  font-size:1.4rem;
+  font-weight:800;
+  line-height:1.1;
+  letter-spacing:-0.03em;
+}
+
+h1 em { font-style:normal; color:var(--weave); }
+
+.tag {
+  font-family:'Fira Code', monospace;
+  font-size:0.55rem;
+  padding:0.25rem 0.55rem;
+  border-radius:4px;
+  background:rgba(167,139,250,0.12);
+  color:var(--weave);
+  border:1px solid rgba(167,139,250,0.25);
+  white-space:nowrap;
+  margin-top:0.2rem;
+}
+
+header p {
+  font-size:0.72rem;
+  color:var(--muted);
+  margin-top:0.3rem;
+  font-family:'Fira Code', monospace;
+}
+
+/* ── CODE WEAVING VISUALIZER ── */
+.weaver {
+  position:relative; z-index:1;
+  background:var(--surface);
+  border-bottom:1px solid var(--border2);
+  padding:0.8rem 1.3rem;
+}
+
+.wv-title {
+  font-family:'Fira Code', monospace;
+  font-size:0.56rem;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:0.09em;
+  margin-bottom:0.55rem;
+}
+
+.wv-layers {
+  display:flex;
+  flex-direction:column;
+  gap:0.3rem;
+}
+
+.wv-layer {
+  display:flex;
+  align-items:center;
+  gap:0.5rem;
+}
+
+.wv-label {
+  font-family:'Fira Code', monospace;
+  font-size:0.58rem;
+  width:68px;
+  flex-shrink:0;
+  text-align:right;
+  color:var(--muted);
+}
+
+.wv-track {
+  flex:1;
+  height:20px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:4px;
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+}
+
+.wv-seg {
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'Fira Code', monospace;
+  font-size:0.52rem;
+  font-weight:500;
+  transition:all 0.5s ease;
+  white-space:nowrap;
+  overflow:hidden;
+}
+
+.wv-active {
+  box-shadow: 0 0 8px currentColor;
+}
+
+.wv-icon {
+  font-size:0.75rem;
+  margin-left:0.4rem;
+  flex-shrink:0;
+  transition:all 0.3s;
+}
+
+/* ── CONTENT ── */
+.content {
+  position:relative; z-index:1;
+  padding:1rem 1.3rem;
+  min-height:280px;
+}
+
+/* step header */
+.shdr {
+  display:flex; align-items:center; gap:0.6rem;
+  margin-bottom:0.85rem;
+}
+
+.sico {
+  width:34px; height:34px;
+  border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.9rem;
+  flex-shrink:0;
+  border:1px solid var(--border2);
+  background:var(--card);
+}
+
+.stitle { font-size:0.95rem; font-weight:700; letter-spacing:-0.02em; color:var(--core); }
+.ssub   { font-family:'Fira Code', monospace; font-size:0.57rem; color:var(--muted); margin-top:0.04rem; }
+
+/* chat */
+.chat { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.75rem; }
+
+.msg {
+  display:flex; gap:0.45rem; align-items:flex-start;
+  opacity:0; transform:translateY(6px);
+  transition:opacity 0.3s, transform 0.3s;
+}
+.msg.show { opacity:1; transform:translateY(0); }
+.msg.r { flex-direction:row-reverse; }
+
+.av {
+  width:28px; height:28px;
+  border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.85rem;
+  flex-shrink:0;
+  border:1px solid var(--border2);
+  background:var(--card);
+}
+
+.bub {
+  max-width:82%;
+  padding:0.48rem 0.68rem;
+  border-radius:8px;
+  font-size:0.76rem;
+  line-height:1.55;
+  border:1px solid var(--border2);
+  background:var(--card);
+}
+.bub.l  { border-bottom-left-radius:2px; }
+.bub.r2 { border-bottom-right-radius:2px; text-align:right; }
+
+.who {
+  font-family:'Fira Code', monospace;
+  font-size:0.55rem;
+  font-weight:500;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+  margin-bottom:0.1rem;
+}
+
+/* CODE BLOCK */
+.codeblock {
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:7px;
+  overflow:hidden;
+  margin:0.5rem 0;
+}
+
+.cb-hdr {
+  font-family:'Fira Code', monospace;
+  font-size:0.56rem;
+  color:var(--muted);
+  padding:0.32rem 0.7rem;
+  border-bottom:1px solid var(--border);
+  background:var(--card);
+  display:flex; align-items:center; gap:0.4rem;
+  text-transform:uppercase; letter-spacing:0.07em;
+}
+
+.cb-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+
+.cb-body {
+  padding:0.65rem 0.8rem;
+  font-family:'Fira Code', monospace;
+  font-size:0.65rem;
+  line-height:1.85;
+}
+
+.kw   { color:var(--weave); }
+.fn   { color:var(--advice); }
+.str  { color:var(--log); }
+.cmt  { color:var(--muted); }
+.ann  { color:var(--join); }
+.asp  { color:var(--perf); }
+.bad  { color:var(--err); text-decoration:line-through; opacity:0.7; }
+.hl   { background:rgba(167,139,250,0.12); border-radius:2px; padding:0 2px; }
+
+/* BEFORE/AFTER */
+.ba-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0.4rem;
+  margin:0.5rem 0;
+}
+
+/* ASPECT PILL */
+.aspect-pills {
+  display:flex; flex-wrap:wrap; gap:0.35rem;
+  margin:0.5rem 0;
+}
+
+.apill {
+  display:flex; align-items:center; gap:0.3rem;
+  padding:0.28rem 0.6rem;
+  border-radius:20px;
+  font-family:'Fira Code', monospace;
+  font-size:0.58rem;
+  font-weight:500;
+  border:1px solid;
+  transition:all 0.3s;
+}
+
+/* WEAVE ANIMATION */
+.weave-visual {
+  background:var(--card);
+  border:1px solid var(--border2);
+  border-radius:8px;
+  padding:0.75rem;
+  margin:0.5rem 0;
+  position:relative;
+  overflow:hidden;
+}
+
+.wv-title2 {
+  font-family:'Fira Code', monospace;
+  font-size:0.56rem;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:0.07em;
+  margin-bottom:0.6rem;
+}
+
+.flow-row {
+  display:flex;
+  align-items:center;
+  gap:0.3rem;
+  margin-bottom:0.35rem;
+  font-size:0.72rem;
+  flex-wrap:wrap;
+}
+
+.fblock {
+  padding:0.25rem 0.5rem;
+  border-radius:5px;
+  font-family:'Fira Code', monospace;
+  font-size:0.6rem;
+  font-weight:500;
+  border:1px solid;
+  white-space:nowrap;
+}
+
+.farrow { color:var(--muted); font-size:0.75rem; }
+
+/* INFO BOX */
+.ibox {
+  border-radius:7px;
+  padding:0.55rem 0.75rem;
+  font-size:0.74rem;
+  line-height:1.55;
+  margin:0.5rem 0;
+  border:1px solid var(--border2);
+  background:var(--card);
+  border-left:3px solid var(--weave);
+}
+.ibox strong { color:var(--weave); }
+.ibox.log-b  { border-left-color:var(--log); }
+.ibox.log-b strong { color:var(--log); }
+.ibox.sec-b  { border-left-color:var(--sec); }
+.ibox.sec-b strong { color:var(--sec); }
+.ibox.perf-b { border-left-color:var(--perf); }
+.ibox.perf-b strong { color:var(--perf); }
+.ibox.ok-b   { border-left-color:var(--advice); }
+.ibox.ok-b strong { color:var(--advice); }
+.ibox.join-b { border-left-color:var(--join); }
+.ibox.join-b strong { color:var(--join); }
+
+/* CHECKLIST */
+.cklist { display:flex; flex-direction:column; gap:0.35rem; margin:0.5rem 0; }
+
+.cli {
+  display:flex; align-items:flex-start; gap:0.5rem;
+  padding:0.42rem 0.65rem;
+  background:var(--card);
+  border:1px solid var(--border2);
+  border-radius:7px;
+  font-size:0.75rem;
+  line-height:1.45;
+}
+.cli-i { flex-shrink:0; font-size:0.88rem; }
+.cli strong { display:block; font-weight:600; font-size:0.76rem; margin-bottom:0.03rem; }
+.cli span   { color:var(--muted); font-size:0.68rem; font-family:'Fira Code', monospace; }
+
+/* SUMGRID */
+.sumgrid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:0.4rem; margin:0.5rem 0;
+}
+
+.sbox {
+  background:var(--card);
+  border:1px solid var(--border2);
+  border-radius:7px;
+  padding:0.6rem;
+  text-align:center;
+}
+.sbox .ico { font-size:1.2rem; display:block; margin-bottom:0.2rem; }
+.sbox .val { font-size:0.9rem; font-weight:700; color:var(--weave); }
+.sbox .lbl { font-family:'Fira Code', monospace; font-size:0.53rem; color:var(--muted); margin-top:0.05rem; }
+
+/* NAV */
+.nav {
+  position:sticky; bottom:0; z-index:10;
+  background:var(--bg);
+  border-top:1px solid var(--border2);
+  padding:0.72rem 1.3rem;
+  display:flex; align-items:center; gap:0.55rem;
+}
+
+.btn {
+  font-family:'Fira Code', monospace;
+  font-size:0.63rem;
+  font-weight:500;
+  padding:0.52rem 1rem;
+  border-radius:6px;
+  cursor:pointer;
+  transition:all 0.18s;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+}
+
+.btnp {
+  background:transparent; color:var(--muted);
+  border:1px solid var(--border2);
+}
+.btnp:hover { color:var(--text); border-color:var(--border2); }
+.btnp:disabled { opacity:0.2; cursor:not-allowed; }
+
+.btnn {
+  flex:1;
+  background:rgba(167,139,250,0.12);
+  color:var(--weave);
+  border:1px solid rgba(167,139,250,0.3);
+}
+.btnn:hover { background:rgba(167,139,250,0.2); }
+
+.ctr {
+  font-family:'Fira Code', monospace;
+  font-size:0.57rem; color:var(--muted);
+  white-space:nowrap;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <h1>Aspektus<br><em>Orientált</em><br>Fejlesztés</h1>
+    <div class="tag">AOP // Banki App</div>
+  </div>
+  <p>// keresztbe vágó problémák szétválasztása</p>
+</header>
+
+<!-- WEAVER VISUALIZER -->
+<div class="weaver">
+  <div class="wv-title">// Kód rétegek — aspektusok szövése</div>
+  <div class="wv-layers" id="weaverVis"></div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 13</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+
+<script>
+
+// Weaver state per step
+// Each layer: { label, segs: [{w, color, text, active}] }
+function makeWeaver(state) {
+  // state: 'none' | 'core' | 'log' | 'sec' | 'perf' | 'all' | 'weaving'
+  const layers = [
+    {
+      label: 'Core logika',
+      icon: '⚙️',
+      segs: state === 'none' ? [
+        { w:'100%', color:'rgba(232,213,255,0.08)', text:'(üres)', tc:'var(--muted)' }
+      ] : [
+        { w:'30%', color:'rgba(232,213,255,0.15)', text:'rendelés()', tc:'var(--core)' },
+        { w:'25%', color:'rgba(232,213,255,0.12)', text:'fizet()', tc:'var(--core)' },
+        { w:'25%', color:'rgba(232,213,255,0.12)', text:'átutal()', tc:'var(--core)' },
+        { w:'20%', color:'rgba(232,213,255,0.10)', text:'lekérdez()', tc:'var(--core)' },
+      ],
+      show: true
+    },
+    {
+      label: 'Naplózás',
+      icon: '📋',
+      segs: (state === 'log' || state === 'all' || state === 'weaving') ? [
+        { w:'100%', color:'rgba(255,159,67,0.18)', text:'@Before @After minden metódus', tc:'var(--log)', active: state==='log' }
+      ] : [
+        { w:'100%', color:'rgba(255,159,67,0.04)', text:'nincs bekapcsolva', tc:'var(--muted)' }
+      ],
+      show: state !== 'none' && state !== 'core'
+    },
+    {
+      label: 'Biztonság',
+      icon: '🔐',
+      segs: (state === 'sec' || state === 'all' || state === 'weaving') ? [
+        { w:'100%', color:'rgba(255,77,109,0.18)', text:'@Around jogosultság ellenőrzés', tc:'var(--sec)', active: state==='sec' }
+      ] : [
+        { w:'100%', color:'rgba(255,77,109,0.04)', text:'nincs bekapcsolva', tc:'var(--muted)' }
+      ],
+      show: state !== 'none' && state !== 'core' && state !== 'log'
+    },
+    {
+      label: 'Teljesítmény',
+      icon: '⚡',
+      segs: (state === 'perf' || state === 'all' || state === 'weaving') ? [
+        { w:'100%', color:'rgba(0,212,170,0.15)', text:'@Around időmérés + cache', tc:'var(--perf)', active: state==='perf' }
+      ] : [
+        { w:'100%', color:'rgba(0,212,170,0.04)', text:'nincs bekapcsolva', tc:'var(--muted)' }
+      ],
+      show: state !== 'none' && state !== 'core' && state !== 'log' && state !== 'sec'
+    },
+    {
+      label: 'Szőtt kód',
+      icon: '🔀',
+      segs: state === 'weaving' ? [
+        { w:'18%', color:'rgba(255,77,109,0.25)', text:'SEC', tc:'var(--sec)' },
+        { w:'22%', color:'rgba(232,213,255,0.2)', text:'rendelés()', tc:'var(--core)' },
+        { w:'15%', color:'rgba(255,159,67,0.22)', text:'LOG', tc:'var(--log)' },
+        { w:'18%', color:'rgba(0,212,170,0.2)', text:'PERF', tc:'var(--perf)' },
+        { w:'27%', color:'rgba(232,213,255,0.15)', text:'fizet()...', tc:'var(--core)' },
+      ] : [
+        { w:'100%', color:'rgba(167,139,250,0.06)', text:'szövés után látható', tc:'var(--muted)' }
+      ],
+      show: state === 'weaving' || state === 'all'
+    },
+  ];
+  return layers.filter(l => l.show);
+}
+
+const STEPS = [
+  // ── 1. PROBLÉMA FELVETÉS ─────────────────────────────────────────
+  {
+    weaverState: 'none',
+    render: () => `
+      <div class="shdr">
+        <div class="sico">🤔</div>
+        <div><div class="stitle">A probléma — ismétlődő kód mindenhol</div>
+        <div class="ssub">// cross-cutting concerns</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">😤</div>
+          <div class="bub l"><div class="who" style="color:var(--err)">Fejlesztő</div>
+            Nézd meg ezt a kódot! Minden egyes metódusban ugyanaz a naplózás, jogosultság-ellenőrzés és teljesítménymérés van bemásolva. Ez nem normális.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🧑‍💼</div>
+          <div class="bub r2"><div class="who" style="color:var(--weave);text-align:right">Vezető fejlesztő</div>
+            Igen, ezt hívják "cross-cutting concern"-nek — olyan dolog, ami keresztülmetsz az egész kódon. Az OOP nem tud jól kezelni ilyet.
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">😤</div>
+          <div class="bub l"><div class="who" style="color:var(--err)">Fejlesztő</div>
+            Mi a megoldás?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.45s">
+          <div class="av">🧑‍💼</div>
+          <div class="bub r2"><div class="who" style="color:var(--weave);text-align:right">Vezető fejlesztő</div>
+            Aspektus orientált programozás — AOP! Ezeket a "keresztbe vágó" dolgokat kiemeljük és külön kezeljük.
+          </div>
+        </div>
+      </div>
+      <div class="ibox"><strong>A lényeg:</strong> Az OOP jól szervezi az üzleti logikát osztályokba — de a naplózás, biztonság, tranzakció-kezelés mindenhol megjelenik, és ezt az OOP nem tudja szépen megoldani.</div>
+    `
+  },
+
+  // ── 2. A BAJ SZEMLÉLTETVE ─────────────────────────────────────────
+  {
+    weaverState: 'core',
+    render: () => `
+      <div class="shdr">
+        <div class="sico">💢</div>
+        <div><div class="stitle">A probléma kódban</div>
+        <div class="ssub">// ugyanaz ismételve minden metódusban</div></div>
+      </div>
+      <div class="codeblock">
+        <div class="cb-hdr"><div class="cb-dot" style="background:var(--err)"></div>BankService.java — ELŐTTE (AOP nélkül)</div>
+        <div class="cb-body">
+<span class="kw">void</span> <span class="fn">rendelesLead</span>(Rendeles r) {
+  <span class="bad">log.info("rendelesLead START " + r.getId());</span>  <span class="cmt">// ← copy-paste</span>
+  <span class="bad">if (!auth.hasPermission("ORDER")) throw ...;</span>  <span class="cmt">// ← copy-paste</span>
+  <span class="bad">long t0 = System.currentTimeMillis();</span>         <span class="cmt">// ← copy-paste</span>
+
+  <span class="fn">uzletiLogika</span>(r);  <span class="cmt">// ← ez az egyetlen fontos sor!</span>
+
+  <span class="bad">log.info("rendelesLead END " + (now()-t0));</span>  <span class="cmt">// ← copy-paste</span>
+  <span class="bad">metrics.record("rendelesLead", now()-t0);</span>    <span class="cmt">// ← copy-paste</span>
+}
+
+<span class="kw">void</span> <span class="fn">fizetesIndit</span>(Fizetes f) {
+  <span class="bad">log.info("fizetesIndit START " + f.getId());</span> <span class="cmt">// ← MEGINT!</span>
+  <span class="bad">if (!auth.hasPermission("PAY")) throw ...;</span>   <span class="cmt">// ← MEGINT!</span>
+  <span class="bad">long t0 = System.currentTimeMillis();</span>        <span class="cmt">// ← MEGINT!</span>
+  <span class="fn">fizetesLogika</span>(f);
+  <span class="bad">...</span>  <span class="cmt">// és így tovább minden metódusban</span>
+}
+        </div>
+      </div>
+      <div class="ibox log-b"><strong>A probléma számokban:</strong> Ha 50 metódusod van, és mindegyikbe 5 sor "infrastrukturális" kódot másolsz — ez 250 sor duplikáció. Ha egyszer változtatni kell, 50 helyen kell módosítani.</div>
+    `
+  },
+
+  // ── 3. AOP ALAPFOGALMAK ───────────────────────────────────────────
+  {
+    weaverState: 'core',
+    render: () => `
+      <div class="shdr">
+        <div class="sico">📖</div>
+        <div><div class="stitle">AOP alapfogalmak</div>
+        <div class="ssub">// amit tudni kell előtte</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--join)">
+          <div class="cli-i">📍</div>
+          <div><strong style="color:var(--join)">Join Point (Csatlakozási pont)</strong>
+          <span>Egy konkrét pont a kód futásában — pl. egy metódus meghívása, egy kivétel dobása. Ide "akaszkodik be" az aspektus.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--weave)">
+          <div class="cli-i">🎯</div>
+          <div><strong style="color:var(--weave)">Pointcut (Metszéspontkifejezés)</strong>
+          <span>Meghatározza MELYIK join point-okra vonatkozzon az aspektus. Pl: "minden public metódus a Service csomagban".</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--advice)">
+          <div class="cli-i">💉</div>
+          <div><strong style="color:var(--advice)">Advice (Tanács)</strong>
+          <span>A ténylegesen futtatandó kód az aspektusban. @Before, @After, @Around — mikor fusson az extra kód?</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--log)">
+          <div class="cli-i">🧩</div>
+          <div><strong style="color:var(--log)">Aspect (Aspektus)</strong>
+          <span>A pointcut + advice együttese. Egy önálló modul, ami a cross-cutting concern-t tartalmazza.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--perf)">
+          <div class="cli-i">🔀</div>
+          <div><strong style="color:var(--perf)">Weaving (Szövés)</strong>
+          <span>Az a folyamat, amikor az aspektusokat "beleszövik" a core kódba — fordítási időben vagy futás közben.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 4. NAPLÓZÁS ASPEKTUS ──────────────────────────────────────────
+  {
+    weaverState: 'log',
+    render: () => `
+      <div class="shdr">
+        <div class="sico">📋</div>
+        <div><div class="stitle">1. aspektus — Naplózás</div>
+        <div class="ssub">// @Before + @After — egyszer megírva, mindenhol fut</div></div>
+      </div>
+      <div class="codeblock">
+        <div class="cb-hdr"><div class="cb-dot" style="background:var(--log)"></div>LoggingAspect.java</div>
+        <div class="cb-body">
+<span class="ann">@Aspect</span>
+<span class="kw">public class</span> <span class="asp">LoggingAspect</span> {
+
+  <span class="cmt">// Pointcut: minden Service csomag metódusa</span>
+  <span class="ann">@Pointcut</span>(<span class="str">"execution(* hu.bank.service.*.*(..))"</span>)
+  <span class="kw">public void</span> <span class="fn">serviceMetodusok</span>() {}
+
+  <span class="cmt">// Advice: MINDEN ilyen metódus ELŐTT fut</span>
+  <span class="ann">@Before</span>(<span class="str">"serviceMetodusok()"</span>)
+  <span class="kw">public void</span> <span class="fn">logStart</span>(JoinPoint jp) {
+    log.info(<span class="str">"START: "</span> + jp.getSignature().getName());
+  }
+
+  <span class="cmt">// Advice: MINDEN ilyen metódus UTÁN fut</span>
+  <span class="ann">@AfterReturning</span>(<span class="str">"serviceMetodusok()"</span>)
+  <span class="kw">public void</span> <span class="fn">logEnd</span>(JoinPoint jp) {
+    log.info(<span class="str">"END: "</span> + jp.getSignature().getName());
+  }
+}
+        </div>
+      </div>
+      <div class="ibox log-b"><strong>Ez az egyetlen naplózó kódfájl</strong> — és automatikusan naplóz minden metódust a service csomagban. Nem kell semmit copy-paste-elni. Ha változtatni kell, <em>1 helyen</em> változtatod.</div>
+    `
+  },
+
+  // ── 5. BIZTONSÁG ASPEKTUS ─────────────────────────────────────────
+  {
+    weaverState: 'sec',
+    render: () => `
+      <div class="shdr">
+        <div class="sico">🔐</div>
+        <div><div class="stitle">2. aspektus — Biztonság</div>
+        <div class="ssub">// @Around — metódus "köré tekeredik"</div></div>
+      </div>
+      <div class="codeblock">
+        <div class="cb-hdr"><div class="cb-dot" style="background:var(--sec)"></div>SecurityAspect.java</div>
+        <div class="cb-body">
+<span class="ann">@Aspect</span>
+<span class="kw">public class</span> <span class="asp">SecurityAspect</span> {
+
+  <span class="cmt">// Csak az @Secured annotációval jelölt metódusokra</span>
+  <span class="ann">@Around</span>(<span class="str">"@annotation(secured)"</span>)
+  <span class="kw">public</span> Object <span class="fn">checkPermission</span>(
+      ProceedingJoinPoint pjp,
+      Secured secured) <span class="kw">throws</span> Throwable {
+
+    <span class="cmt">// Ellenőrzés ELŐTTE</span>
+    <span class="kw">if</span> (!currentUser.<span class="fn">hasRole</span>(secured.role())) {
+      <span class="kw">throw new</span> AccessDeniedException(<span class="str">"Nincs jogosultság!"</span>);
+    }
+
+    <span class="cmt">// Az eredeti metódus futtatása</span>
+    Object result = pjp.<span class="fn">proceed</span>();
+
+    <span class="cmt">// Audit log UTÁNA</span>
+    audit.<span class="fn">log</span>(currentUser, pjp.getSignature());
+    <span class="kw">return</span> result;
+  }
+}
+        </div>
+      </div>
+      <div class="ibox sec-b"><strong>@Around</strong> = a metódus "köré tekeredik". Az aspektus dönti el, hogy az eredeti metódus egyáltalán lefusson-e. Ha nincs jogosultság — le sem fut, kivételt dob.</div>
+    `
+  },
+
+  // ── 6. TELJESÍTMÉNY ASPEKTUS ──────────────────────────────────────
+  {
+    weaverState: 'perf',
+    render: () => `
+      <div class="shdr">
+        <div class="sico">⚡</div>
+        <div><div class="stitle">3. aspektus — Teljesítménymérés</div>
+        <div class="ssub">// @Around időmérés + automatikus cache</div></div>
+      </div>
+      <div class="codeblock">
+        <div class="cb-hdr"><div class="cb-dot" style="background:var(--perf)"></div>PerformanceAspect.java</div>
+        <div class="cb-body">
+<span class="ann">@Aspect</span>
+<span class="kw">public class</span> <span class="asp">PerformanceAspect</span> {
+
+  <span class="ann">@Around</span>(<span class="str">"execution(* hu.bank.service.*.*(..))"</span>)
+  <span class="kw">public</span> Object <span class="fn">measureTime</span>(ProceedingJoinPoint pjp)
+      <span class="kw">throws</span> Throwable {
+
+    <span class="kw">long</span> start = System.<span class="fn">currentTimeMillis</span>();
+
+    <span class="kw">try</span> {
+      Object result = pjp.<span class="fn">proceed</span>(); <span class="cmt">// eredeti metódus</span>
+      <span class="kw">long</span> elapsed = System.<span class="fn">currentTimeMillis</span>() - start;
+
+      metrics.<span class="fn">record</span>(pjp.getSignature().<span class="fn">getName</span>(), elapsed);
+
+      <span class="cmt">// Ha lassú (> 500ms) → figyelmeztetés</span>
+      <span class="kw">if</span> (elapsed > <span class="str">500</span>) {
+        log.warn(<span class="str">"LASSÚ METÓDUS: "</span> + elapsed + <span class="str">"ms"</span>);
+      }
+      <span class="kw">return</span> result;
+    } <span class="kw">catch</span> (Exception e) {
+      metrics.<span class="fn">recordError</span>(pjp.getSignature().<span class="fn">getName</span>());
+      <span class="kw">throw</span> e;
+    }
+  }
+}
+        </div>
+      </div>
+      <div class="ibox perf-b"><strong>Ez az aspektus automatikusan méri</strong> minden service metódus futási idejét, rögzíti a mérőszámokat, és figyelmeztet, ha valami lassú — mindezt a core kód érintése nélkül.</div>
+    `
+  },
+
+  // ── 7. SZÖVÉS (WEAVING) ───────────────────────────────────────────
+  {
+    weaverState: 'weaving',
+    render: () => `
+      <div class="shdr">
+        <div class="sico">🔀</div>
+        <div><div class="stitle">Weaving — az aspektusok beleszövése</div>
+        <div class="ssub">// hogyan kerül össze a core + aspektusok?</div></div>
+      </div>
+      <div class="weave-visual">
+        <div class="wv-title2">// Szövés folyamata — rendelesLead() metódus hívásánál</div>
+        <div class="flow-row">
+          <div class="fblock" style="border-color:rgba(255,77,109,0.4);color:var(--sec);background:rgba(255,77,109,0.08)">🔐 SEC @Around START</div>
+          <div class="farrow">→</div>
+          <div class="fblock" style="border-color:rgba(255,159,67,0.4);color:var(--log);background:rgba(255,159,67,0.08)">📋 LOG @Before</div>
+          <div class="farrow">→</div>
+          <div class="fblock" style="border-color:rgba(0,212,170,0.4);color:var(--perf);background:rgba(0,212,170,0.08)">⚡ PERF @Around START</div>
+        </div>
+        <div class="flow-row" style="margin-left:1rem">
+          <div class="farrow" style="transform:rotate(90deg);margin-right:0.3rem">→</div>
+          <div class="fblock" style="border-color:rgba(232,213,255,0.4);color:var(--core);background:rgba(232,213,255,0.1);font-size:0.68rem">⚙️ rendelesLead() — EREDETI KÓD FUT</div>
+        </div>
+        <div class="flow-row" style="flex-direction:row-reverse">
+          <div class="fblock" style="border-color:rgba(255,77,109,0.4);color:var(--sec);background:rgba(255,77,109,0.08)">🔐 SEC @Around END</div>
+          <div class="farrow">←</div>
+          <div class="fblock" style="border-color:rgba(255,159,67,0.4);color:var(--log);background:rgba(255,159,67,0.08)">📋 LOG @After</div>
+          <div class="farrow">←</div>
+          <div class="fblock" style="border-color:rgba(0,212,170,0.4);color:var(--perf);background:rgba(0,212,170,0.08)">⚡ PERF @Around END</div>
+        </div>
+      </div>
+      <div class="ibox"><strong>A core kód nem tud az aspektusokról!</strong> A <code style="color:var(--core)">rendelesLead()</code> metódus pontosan ugyanúgy néz ki mint korábban — csak az üzleti logikát tartalmazza. Az aspektusok kívülről "tekerednek köré".</div>
+    `
+  },
+
+  // ── 8. UTÁNI KÓD ─────────────────────────────────────────────────
+  {
+    weaverState: 'weaving',
+    render: () => `
+      <div class="shdr">
+        <div class="sico">✨</div>
+        <div><div class="stitle">A core kód AOP után</div>
+        <div class="ssub">// tiszta, csak az üzleti logika</div></div>
+      </div>
+      <div class="ba-grid">
+        <div class="codeblock">
+          <div class="cb-hdr"><div class="cb-dot" style="background:var(--err)"></div>ELŐTTE</div>
+          <div class="cb-body" style="font-size:0.58rem">
+<span class="bad">log.info("START...");</span>
+<span class="bad">auth.check("ORDER");</span>
+<span class="bad">long t0 = now();</span>
+
+<span class="fn">uzletiLogika</span>(r);
+
+<span class="bad">log.info("END...");</span>
+<span class="bad">metrics.rec(now()-t0);</span>
+          </div>
+        </div>
+        <div class="codeblock" style="border-color:rgba(52,211,153,0.3)">
+          <div class="cb-hdr"><div class="cb-dot" style="background:var(--advice)"></div>UTÁNA</div>
+          <div class="cb-body" style="font-size:0.58rem">
+<span class="ann">@Secured</span>(<span class="str">role="ORDER"</span>)
+<span class="kw">public void</span> <span class="fn">rendelesLead</span>(...) {
+
+  <span class="fn">uzletiLogika</span>(r);  <span class="cmt">// ← csak ez!</span>
+
+}
+          </div>
+        </div>
+      </div>
+      <div class="ibox ok-b"><strong>A core kód 80%-kal rövidebb lett</strong> — és csak az üzleti logikát tartalmazza. A naplózás, biztonság, teljesítménymérés automatikusan történik az aspektusok révén.</div>
+    `
+  },
+
+  // ── 9. JOINTPOINT TÍPUSOK ─────────────────────────────────────────
+  {
+    weaverState: 'all',
+    render: () => `
+      <div class="shdr">
+        <div class="sico">📍</div>
+        <div><div class="stitle">Join Point típusok</div>
+        <div class="ssub">// hova lehet "beakaszkodni"?</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--join)">
+          <div class="cli-i">📞</div>
+          <div><strong style="color:var(--join)">Method execution</strong>
+          <span>execution(* Service.*(..)) — metódus végrehajtásakor</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--join)">
+          <div class="cli-i">📲</div>
+          <div><strong style="color:var(--join)">Method call</strong>
+          <span>call(* Service.*(..)) — metódus hívásakor (a hívó oldalán)</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--join)">
+          <div class="cli-i">🏗️</div>
+          <div><strong style="color:var(--join)">Constructor</strong>
+          <span>execution(BankAccount.new(..)) — objektum létrehozásakor</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--join)">
+          <div class="cli-i">📦</div>
+          <div><strong style="color:var(--join)">Field access</strong>
+          <span>get(* BankAccount.balance) — mező olvasásakor/írásakor</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--join)">
+          <div class="cli-i">💥</div>
+          <div><strong style="color:var(--join)">Exception handler</strong>
+          <span>handler(SQLException) — kivétel kezelésekor</span></div>
+        </div>
+      </div>
+      <div class="ibox join-b"><strong>Advice típusok:</strong> @Before (előtte) / @After (utána) / @AfterReturning (sikeres visszatérés után) / @AfterThrowing (kivétel esetén) / @Around (köré tekeredik — legkomplexebb)</div>
+    `
+  },
+
+  // ── 10. VALÓS ESET: TRANZAKCIÓ ────────────────────────────────────
+  {
+    weaverState: 'all',
+    render: () => `
+      <div class="shdr">
+        <div class="sico">💳</div>
+        <div><div class="stitle">Valós eset — Tranzakció kezelés</div>
+        <div class="ssub">// a Spring @Transactional is AOP!</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🙋</div>
+          <div class="bub l"><div class="who" style="color:var(--log)">Tanuló</div>
+            Hol találkoztam már AOP-pal anélkül, hogy tudtam volna?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🧑‍💼</div>
+          <div class="bub r2"><div class="who" style="color:var(--weave);text-align:right">Vezető fejlesztő</div>
+            Például a Spring @Transactional annotáció! Ez tiszta AOP — egy aspektus nyit és zár tranzakciót a metódus köré.
+          </div>
+        </div>
+      </div>
+      <div class="codeblock">
+        <div class="cb-hdr"><div class="cb-dot" style="background:var(--weave)"></div>TransactionAspect — a @Transactional mögött ez van</div>
+        <div class="cb-body">
+<span class="cmt">// Amit TE írsz:</span>
+<span class="ann">@Transactional</span>
+<span class="kw">public void</span> <span class="fn">atutalasFeldolgoz</span>(Atutalas a) {
+  szamla.<span class="fn">terhel</span>(a.getForrás(), a.getÖsszeg());
+  szamla.<span class="fn">jóváír</span>(a.getCél(), a.getÖsszeg());
+}
+
+<span class="cmt">// Amit a Spring AspectJ VALÓJÁBAN futtat:</span>
+<span class="asp">TransactionAspect</span>.<span class="fn">begin</span>();  <span class="cmt">// @Around START</span>
+<span class="kw">try</span> {
+  szamla.<span class="fn">terhel</span>(...); szamla.<span class="fn">jóváír</span>(...);
+  <span class="asp">TransactionAspect</span>.<span class="fn">commit</span>();
+} <span class="kw">catch</span> (Exception e) {
+  <span class="asp">TransactionAspect</span>.<span class="fn">rollback</span>(); <span class="cmt">// hiba esetén visszagörget</span>
+  <span class="kw">throw</span> e;
+}
+        </div>
+      </div>
+      <div class="ibox"><strong>Más ismert AOP alapú megoldások:</strong> Spring Security (@PreAuthorize), Spring Cache (@Cacheable), JPA lazy loading, Hibernate interceptors, Spring Retry (@Retryable)</div>
+    `
+  },
+
+  // ── 11. ELŐNYÖK/HÁTRÁNYOK ─────────────────────────────────────────
+  {
+    weaverState: 'all',
+    render: () => `
+      <div class="shdr">
+        <div class="sico">⚖️</div>
+        <div><div class="stitle">Előnyök és hátrányok</div>
+        <div class="ssub">// mikor érdemes AOP-ot használni?</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-color:rgba(52,211,153,0.3)">
+          <div class="cli-i">✅</div>
+          <div><strong style="color:var(--advice)">Separation of Concerns</strong>
+          <span>Az üzleti logika és az infrastrukturális kód teljesen szét van választva</span></div>
+        </div>
+        <div class="cli" style="border-color:rgba(52,211,153,0.3)">
+          <div class="cli-i">✅</div>
+          <div><strong style="color:var(--advice)">DRY — Don't Repeat Yourself</strong>
+          <span>Naplózás, biztonság, mérés egyszer megírva — mindenhol automatikusan fut</span></div>
+        </div>
+        <div class="cli" style="border-color:rgba(52,211,153,0.3)">
+          <div class="cli-i">✅</div>
+          <div><strong style="color:var(--advice)">Könnyen módosítható</strong>
+          <span>Ha a naplózási formátum változik — 1 helyen változtatod, 50 metódusban érvényesül</span></div>
+        </div>
+        <div class="cli" style="border-color:rgba(255,107,107,0.3)">
+          <div class="cli-i">❌</div>
+          <div><strong style="color:var(--err)">Nehezebb debugolni</strong>
+          <span>A kód "láthatatlanul" fut — nem látod a forrásból, hogy mikor fut extra kód</span></div>
+        </div>
+        <div class="cli" style="border-color:rgba(255,107,107,0.3)">
+          <div class="cli-i">❌</div>
+          <div><strong style="color:var(--err)">Tanulási görbe</strong>
+          <span>A pointcut kifejezések bonyolultak lehetnek, a szövés megértése időt igényel</span></div>
+        </div>
+        <div class="cli" style="border-color:rgba(255,159,67,0.3)">
+          <div class="cli-i">⚠️</div>
+          <div><strong style="color:var(--log)">Teljesítmény overhead</strong>
+          <span>Runtime szövésnél kis teljesítményveszteség — általában elhanyagolható</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 12. ÖSSZEFOGLALÁS ────────────────────────────────────────────
+  {
+    weaverState: 'weaving',
+    render: () => `
+      <div class="shdr">
+        <div class="sico">∑</div>
+        <div><div class="stitle">Összefoglalás</div>
+        <div class="ssub">// az AOP 5 kulcsfogalma</div></div>
+      </div>
+      <div class="sumgrid">
+        <div class="sbox"><span class="ico">🧩</span><div class="val">Aspect</div><div class="lbl">a cross-cutting modul</div></div>
+        <div class="sbox"><span class="ico">📍</span><div class="val">Join Point</div><div class="lbl">beakaszkodási pont</div></div>
+        <div class="sbox"><span class="ico">🎯</span><div class="val">Pointcut</div><div class="lbl">melyik join pointra?</div></div>
+        <div class="sbox"><span class="ico">💉</span><div class="val">Advice</div><div class="lbl">mit futtasson?</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--log)">
+          <div class="cli-i">📋</div>
+          <div><strong>Naplózás aspektus</strong><span>@Before + @After — minden metódus automatikusan naplózva</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--sec)">
+          <div class="cli-i">🔐</div>
+          <div><strong>Biztonsági aspektus</strong><span>@Around — jogosultság ellenőrzés, audit log</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--perf)">
+          <div class="cli-i">⚡</div>
+          <div><strong>Teljesítmény aspektus</strong><span>@Around — időmérés, lassú metódusok jelzése</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--weave)">
+          <div class="cli-i">🔀</div>
+          <div><strong>Weaving</strong><span>Az aspektusok beleszövése a core kódba — fordítási időben vagy futás közben</span></div>
+        </div>
+      </div>
+      <div class="ibox ok-b"><strong>Ma ahol AOP-ot látod:</strong> Spring Framework (@Transactional, @Cacheable, @PreAuthorize), Python dekorátorok (@decorator), .NET attributes, Java EE interceptors — mindenhol ott van, csak más neve van.</div>
+    `
+  },
+];
+
+// ── WEAVER RENDER ────────────────────────────────────────────────────
+function renderWeaver(state) {
+  const layers = makeWeaver(state);
+  document.getElementById('weaverVis').innerHTML = layers.map(layer => `
+    <div class="wv-layer">
+      <div class="wv-label">${layer.label}</div>
+      <div class="wv-track">
+        ${layer.segs.map(s => `
+          <div class="wv-seg ${s.active ? 'wv-active' : ''}"
+               style="width:${s.w};background:${s.color};color:${s.tc}">
+            ${s.text}
+          </div>
+        `).join('')}
+      </div>
+      <div class="wv-icon">${layer.icon}</div>
+    </div>
+  `).join('');
+}
+
+let cur = 0;
+
+function render() {
+  const s = STEPS[cur];
+  renderWeaver(s.weaverState);
+
+  const el = document.getElementById('content');
+  el.innerHTML = s.render();
+
+  setTimeout(() => {
+    el.querySelectorAll('.msg:not(.show)').forEach((m, i) => {
+      setTimeout(() => m.classList.add('show'), i * 165);
+    });
+  }, 60);
+
+  document.getElementById('bprev').disabled = cur === 0;
+  const bn = document.getElementById('bnext');
+  bn.textContent = cur === STEPS.length - 1 ? '↺ Újra' : 'Következő →';
+  document.getElementById('ctr').textContent = `${cur + 1} / ${STEPS.length}`;
+}
+
+function next() { cur = cur === STEPS.length - 1 ? 0 : cur + 1; render(); }
+function prev() { if (cur > 0) { cur--; render(); } }
+
+render();
+</script>
+</body>
+</html>

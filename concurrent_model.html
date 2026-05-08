@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Konkurens Folyamat Modell</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --bg: #080c14;
+  --surface: #0d1220;
+  --card: #111827;
+  --border: #1e2d45;
+  --text: #e2eaf8;
+  --muted: #4a6080;
+  --dim: #2a3f5f;
+
+  --anal:  #f59e0b;
+  --plan:  #10b981;
+  --model: #8b5cf6;
+  --impl:  #ef4444;
+  --test:  #3b82f6;
+  --depl:  #ec4899;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 10% 0%, rgba(245,158,11,0.04) 0%, transparent 45%),
+    radial-gradient(ellipse at 90% 100%, rgba(59,130,246,0.05) 0%, transparent 45%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* HEADER */
+header {
+  position: relative;
+  z-index: 1;
+  padding: 1.4rem 1.3rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.hdr-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+h1 {
+  font-size: 1.45rem;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+h1 span { color: var(--anal); }
+
+.badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 5px;
+  background: rgba(245,158,11,0.12);
+  color: var(--anal);
+  border: 1px solid rgba(245,158,11,0.25);
+  white-space: nowrap;
+  margin-top: 0.25rem;
+}
+
+header p {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.35rem;
+}
+
+/* LIVE BOARD — the concurrent lanes */
+.board {
+  position: relative;
+  z-index: 1;
+  padding: 0.9rem 1.3rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.board-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.6rem;
+}
+
+.lanes { display: flex; flex-direction: column; gap: 0.38rem; }
+
+.lane {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lane-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  width: 62px;
+  flex-shrink: 0;
+  text-align: right;
+  color: var(--muted);
+}
+
+.lane-track {
+  flex: 1;
+  height: 22px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.lane-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(.4,0,.2,1), opacity 0.4s;
+  display: flex;
+  align-items: center;
+  padding-left: 0.4rem;
+}
+
+.lane-fill span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.55rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0.9;
+}
+
+.state-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-left: 0.4rem;
+  transition: background 0.4s;
+}
+
+/* state label */
+.state-lbl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.55rem;
+  width: 55px;
+  flex-shrink: 0;
+  text-align: left;
+}
+
+/* CONTENT */
+.content {
+  position: relative;
+  z-index: 1;
+  padding: 1rem 1.3rem;
+  min-height: 260px;
+}
+
+/* Step header */
+.step-hdr {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.step-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.step-hdr-text .title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.step-hdr-text .sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--muted);
+  margin-top: 0.05rem;
+}
+
+/* DIALOGUE */
+.chat { display: flex; flex-direction: column; gap: 0.55rem; margin-bottom: 0.75rem; }
+
+.cm {
+  display: flex; gap: 0.45rem; align-items: flex-end;
+  opacity: 0; transform: translateY(7px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.cm.show { opacity: 1; transform: translateY(0); }
+.cm.r { flex-direction: row-reverse; }
+
+.av2 {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+.bub {
+  max-width: 80%;
+  padding: 0.5rem 0.7rem;
+  border-radius: 9px;
+  font-size: 0.77rem;
+  line-height: 1.5;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+.bub.l { border-bottom-left-radius: 2px; }
+.bub.r2 { border-bottom-right-radius: 2px; text-align: right; }
+
+.who2 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.56rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.12rem;
+}
+
+/* STATE TABLE */
+.state-table {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  overflow: hidden;
+  margin: 0.5rem 0;
+}
+
+.st-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.75rem;
+}
+
+.st-row:last-child { border-bottom: none; }
+
+.st-act { font-weight: 600; flex: 1; }
+.st-team { color: var(--muted); font-size: 0.7rem; flex: 1; }
+
+.pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.56rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 20px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.p-active  { background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid rgba(16,185,129,0.25); }
+.p-wait    { background: rgba(74,96,128,0.15);  color: var(--muted); border: 1px solid var(--border); }
+.p-block   { background: rgba(239,68,68,0.12);  color: var(--impl); border: 1px solid rgba(239,68,68,0.25); }
+.p-done    { background: rgba(59,130,246,0.12); color: var(--test); border: 1px solid rgba(59,130,246,0.25); }
+.p-review  { background: rgba(139,92,246,0.12); color: var(--model); border: 1px solid rgba(139,92,246,0.25); }
+
+/* INFO BOX */
+.ibox {
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  margin: 0.55rem 0;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-left: 3px solid var(--anal);
+  color: #c8d8f0;
+}
+
+.ibox strong { color: var(--anal); }
+.ibox.green { border-left-color: var(--plan); }
+.ibox.green strong { color: var(--plan); }
+.ibox.purple { border-left-color: var(--model); }
+.ibox.purple strong { color: var(--model); }
+.ibox.red { border-left-color: var(--impl); }
+.ibox.red strong { color: var(--impl); }
+.ibox.blue { border-left-color: var(--test); }
+.ibox.blue strong { color: var(--test); }
+
+/* COMPARISON */
+.comp-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+
+.comp-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+}
+
+.comp-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--muted);
+  margin-bottom: 0.2rem;
+}
+
+.comp-bar-wrap {
+  background: var(--bg);
+  border-radius: 3px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.comp-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s ease;
+}
+
+/* EVENTS LOG */
+.event-log {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0.5rem 0;
+}
+
+.ev-hdr {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--muted);
+  padding: 0.4rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ev-item {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.4rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.72rem;
+  align-items: flex-start;
+}
+
+.ev-item:last-child { border-bottom: none; }
+
+.ev-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 0.05rem;
+}
+
+.ev-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 0.3rem; }
+
+/* SUMMARY */
+.sum-boxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin: 0.5rem 0;
+}
+
+.sbox {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.65rem 0.7rem;
+  text-align: center;
+}
+
+.sbox .ico { font-size: 1.3rem; display: block; margin-bottom: 0.2rem; }
+.sbox .val { font-size: 0.95rem; font-weight: 700; }
+.sbox .lbl { font-family: 'JetBrains Mono', monospace; font-size: 0.56rem; color: var(--muted); margin-top: 0.05rem; }
+
+/* NAV */
+.nav {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 0.75rem 1.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.55rem 1rem;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.18s;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.btn-p {
+  background: transparent;
+  color: var(--muted);
+}
+.btn-p:hover { color: var(--text); border-color: var(--dim); }
+.btn-p:disabled { opacity: 0.2; cursor: not-allowed; }
+
+.btn-n {
+  background: var(--anal);
+  color: #000;
+  border-color: var(--anal);
+  flex: 1;
+}
+.btn-n:hover { filter: brightness(1.1); }
+.btn-n:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.ctr {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* utils */
+.mt { margin-top: 0.5rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <h1>Konkurens<br><span>Modell</span></h1>
+    <div class="badge">PROJEKT: Webshop v2</div>
+  </div>
+  <p>Több csapat egyszerre dolgozik — különböző állapotokban</p>
+</header>
+
+<!-- LIVE BOARD -->
+<div class="board">
+  <div class="board-title">// Élő folyamat tábla</div>
+  <div class="lanes" id="laneBoard"></div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="nav">
+  <button class="btn btn-p" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 12</span>
+  <button class="btn btn-n" id="bnext" onclick="next()">Következő →</button>
+</div>
+
+<script>
+// ─── LANE STATE MODEL ───────────────────────────────────────────────
+// States: idle, active, waiting, blocked, review, done
+// Each step defines the state of each activity lane
+
+const ACTIVITIES = [
+  { id: 'anal',  label: 'Analízis',   color: 'var(--anal)',  emoji: '📋' },
+  { id: 'plan',  label: 'Tervezés',   color: 'var(--plan)',  emoji: '🗓️' },
+  { id: 'model', label: 'Modellezés', color: 'var(--model)', emoji: '🧩' },
+  { id: 'impl',  label: 'Implement.', color: 'var(--impl)',  emoji: '💻' },
+  { id: 'test',  label: 'Tesztelés',  color: 'var(--test)',  emoji: '🧪' },
+  { id: 'depl',  label: 'Átadás',     color: 'var(--depl)',  emoji: '🚀' },
+];
+
+const STATE_LABELS = {
+  idle:    { text: 'várakozik', color: 'var(--muted)',  dot: '#2a3f5f' },
+  active:  { text: 'AKTÍV',    color: 'var(--plan)',   dot: '#10b981' },
+  waiting: { text: 'függőben', color: 'var(--anal)',   dot: '#f59e0b' },
+  blocked: { text: 'BLOKKOLT', color: 'var(--impl)',   dot: '#ef4444' },
+  review:  { text: 'review',   color: 'var(--model)',  dot: '#8b5cf6' },
+  done:    { text: 'kész ✓',   color: 'var(--test)',   dot: '#3b82f6' },
+};
+
+// Each step: { lanes: {id: {state, pct}}, content }
+const STEPS = [
+  // ─── INTRO ───────────────────────────────────────────────────────
+  {
+    lanes: {
+      anal:  { state: 'idle', pct: 0 },
+      plan:  { state: 'idle', pct: 0 },
+      model: { state: 'idle', pct: 0 },
+      impl:  { state: 'idle', pct: 0 },
+      test:  { state: 'idle', pct: 0 },
+      depl:  { state: 'idle', pct: 0 },
+    },
+    render: () => `
+      <div class="step-hdr">
+        <div class="step-icon" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.2)">🔀</div>
+        <div class="step-hdr-text">
+          <div class="title">Mi az a konkurens modell?</div>
+          <div class="sub">// Az alapgondolat</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="cm show">
+          <div class="av2">👨‍🏫</div>
+          <div class="bub l">
+            <div class="who2" style="color:var(--anal)">Oktató</div>
+            A hagyományos modellekben az aktivitások egymás UTÁN futnak. Analízis → Tervezés → Modellezés... és így tovább.
+          </div>
+        </div>
+        <div class="cm show" style="transition-delay:.15s">
+          <div class="av2">🙋</div>
+          <div class="bub l">
+            <div class="who2" style="color:var(--plan)">Tanuló</div>
+            És a konkurens modellnél?
+          </div>
+        </div>
+        <div class="cm show" style="transition-delay:.3s">
+          <div class="av2">👨‍🏫</div>
+          <div class="bub l">
+            <div class="who2" style="color:var(--anal)">Oktató</div>
+            Egyszerre, <strong>párhuzamosan</strong> futnak! Minden aktivitásnak van egy <strong>állapota</strong> — és ezek az állapotok folyamatosan változnak.
+          </div>
+        </div>
+      </div>
+      <div class="ibox">
+        <strong>Kulcsgondolat:</strong> Nem várjuk meg, amíg az analízis 100%-ban kész — amint elég információ van, a tervezés már el tud indulni. Közben az analízis folytatódik!
+      </div>
+    `
+  },
+
+  // ─── ÁLLAPOTOK MAGYARÁZATA ────────────────────────────────────────
+  {
+    lanes: {
+      anal:  { state: 'active',  pct: 30 },
+      plan:  { state: 'idle',    pct: 0 },
+      model: { state: 'idle',    pct: 0 },
+      impl:  { state: 'idle',    pct: 0 },
+      test:  { state: 'idle',    pct: 0 },
+      depl:  { state: 'idle',    pct: 0 },
+    },
+    render: () => `
+      <div class="step-hdr">
+        <div class="step-icon" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.2)">📊</div>
+        <div class="step-hdr-text">
+          <div class="title">Az aktivitás állapotai</div>
+          <div class="sub">// Minden aktivitás ezek valamelyikében van</div>
+        </div>
+      </div>
+      <div class="state-table">
+        <div class="st-row"><div class="st-act">⬜ Várakozik</div><div class="st-team">Még nem indult</div><div class="pill p-wait">idle</div></div>
+        <div class="st-row"><div class="st-act">🟢 Aktív</div><div class="st-team">Jelenleg folyamatban</div><div class="pill p-active">active</div></div>
+        <div class="st-row"><div class="st-act">🟡 Függőben</div><div class="st-team">Vár egy másik csapatra</div><div class="pill p-wait" style="background:rgba(245,158,11,0.12);color:var(--anal);border-color:rgba(245,158,11,0.25)">waiting</div></div>
+        <div class="st-row"><div class="st-act">🔴 Blokkolt</div><div class="st-team">Nem tud haladni</div><div class="pill p-block">blocked</div></div>
+        <div class="st-row"><div class="st-act">🟣 Review</div><div class="st-team">Jóváhagyásra vár</div><div class="pill p-review">review</div></div>
+        <div class="st-row"><div class="st-act">🔵 Kész</div><div class="st-team">Befejezve</div><div class="pill p-done">done</div></div>
+      </div>
+      <div class="ibox">
+        <strong>Figyeld a felső táblát!</strong> Az analízis már elindult (aktív, 30%). A többi aktivitás még várakozik — hamarosan ők is elindulnak.
+      </div>
+    `
+  },
+
+  // ─── ANALÍZIS + TERVEZÉS PÁRHUZAM ────────────────────────────────
+  {
+    lanes: {
+      anal:  { state: 'active',  pct: 60 },
+      plan:  { state: 'active',  pct: 25 },
+      model: { state: 'idle',    pct: 0 },
+      impl:  { state: 'idle',    pct: 0 },
+      test:  { state: 'idle',    pct: 0 },
+      depl:  { state: 'idle',    pct: 0 },
+    },
+    render: () => `
+      <div class="step-hdr">
+        <div class="step-icon" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.2)">⚡</div>
+        <div class="step-hdr-text">
+          <div class="title">Analízis + Tervezés egyszerre</div>
+          <div class="sub">// Miért nem kell megvárni a végét?</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="cm show">
+          <div class="av2">👩‍💼</div>
+          <div class="bub l">
+            <div class="who2" style="color:var(--anal)">Analízis csapat</div>
+            Az első 3 funkció követelménye kész. A többin még dolgozunk.
+          </div>
+        </div>
+        <div class="cm show r" style="transition-delay:.15s">
+          <div class="av2">👨‍💻</div>
+          <div class="bub r2">
+            <div class="who2" style="color:var(--plan);text-align:right">Tervezési csapat</div>
+            Tökéletes! Mi már elkezdjük megtervezni azt a 3 funkciót. Nem kell az összes többi!
+          </div>
+        </div>
+        <div class="cm show" style="transition-delay:.3s">
+          <div class="av2">👩‍💼</div>
+          <div class="bub l">
+            <div class="who2" style="color:var(--anal)">Analízis csapat</div>
+            Igen, ha kész a következő batch, szólunk!
+          </div>
+        </div>
+      </div>
+      <div class="ibox green">
+        <strong>Vízesés modellnél:</strong> A tervezés csak akkor indulhat, ha az analízis 100%-ban kész. Ez heteket jelent várakozással. A konkurens modellnél ez a várakozás megszűnik!
+      </div>
+    `
+  },
+
+  // ─── 3 CSAPAT EGYSZERRE ──────────────────────────────────────────
+  {
+    lanes: {
+      anal:  { state: 'active',  pct: 85 },
+      plan:  { state: 'active',  pct: 55 },
+      model: { state: 'active',  pct: 20 },
+      impl:  { state: 'idle',    pct: 0 },
+      test:  { state: 'idle',    pct: 0 },
+      depl:  { state: 'idle',    pct: 0 },
+    },
+    render: () => `
+      <div class="step-hdr">
+        <div class="step-icon" style="background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.2)">🧩</div>
+        <div class="step-hdr-text">
+          <div class="title">3 csapat párhuzamosan</div>
+          <div class="sub">// Hét 3 — mindenki dolgozik</div>
+        </div>
+      </div>
+      <div class="state-table">
+        <div class="st-row">
+          <div class="st-act">📋 Analízis csapat</div>
+          <div class="st-team">Utolsó funkciók feltárása</div>
+          <div class="pill p-active">aktív 85%</div>
+        </div>
+        <div class="st-row">
+          <div class="st-act">🗓️ Tervezési csapat</div>
+          <div class="st-team">Architektúra tervezés</div>
+          <div class="pill p-active">aktív 55%</div>
+        </div>
+        <div class="st-row">
+          <div class="st-act">🧩 Modellező csapat</div>
+          <div class="st-team">UML diagramok készítése</div>
+          <div class="pill p-active">aktív 20%</div>
+        </div>
+        <div class="st-row">
+          <div class="st-act">💻 Fejlesztő csapat</div>
+          <div class="st-team">Várja a terveket</div>
+          <div class="pill p-wait">várakozik</div>
+        </div>
+      </div>
+      <div class="ibox purple">
+        <strong>Ez a konkurens modell lényege:</strong> Miközben az analízis a 85%-nál jár, a tervezés már 55%, a modellezés 20%. Párhuzamosan haladnak — senki sem üresedik ki.
+      </div>
+    `
+  },
+
+  // ─── BLOKKOLÁS HELYZET ───────────────────────────────────────────
+  {
+    lanes: {
+      anal:  { state: 'done',    pct: 100 },
+      plan:  { state: 'review',  pct: 90 },
+      model: { state: 'blocked', pct: 45 },
+      impl:  { state: 'idle',    pct: 0 },
+      test:  { state: 'idle',    pct: 0 },
+      depl:  { state: 'idle',    pct: 0 },
+    },
+    render: () => `
+      <div class="step-hdr">
+        <div class="step-icon" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.2)">🚨</div>
+        <div class="step-hdr-text">
+          <div class="title">Blokkolás — mi történik?</div>
+          <div class="sub">// Egy csapat megakadt</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="cm show">
+          <div class="av2">🧩</div>
+          <div class="bub l">
+            <div class="who2" style="color:var(--impl)">Modellező csapat</div>
+            Probléma! Az adatbázis struktúra nem egyezik meg azzal, amit a tervezési csapat tervezett. Nem tudunk haladni.
+          </div>
+        </div>
+        <div class="cm show r" style="transition-delay:.15s">
+          <div class="av2">🗓️</div>
+          <div class="bub r2">
+            <div class="who2" style="color:var(--plan);text-align:right">Tervezési csapat</div>
+            Átadom a tervet review-ra. Nézzük meg együtt, mi a probléma.
+          </div>
+        </div>
+        <div class="cm show" style="transition-delay:.3s">
+          <div class="av2">🧩</div>
+          <div class="bub l">
+            <div class="who2" style="color:var(--impl)">Modellező csapat</div>
+            Köszönöm — addig a többi diagramon dolgozunk, ami nem függ ettől.
+          </div>
+        </div>
+      </div>
+      <div class="ibox red">
+        <strong>Fontos!</strong> A blokkolt csapat nem áll le teljesen — átáll más feladatokra. A blokkolás látható az állapot táblán, ezért a projektmenedzser azonnal tud reagálni.
+      </div>
+    `
+  },
+
+  // ─── REVIEW FELOLDÁS ─────────────────────────────────────────────
+  {
+    lanes: {
+      anal:  { state: 'done',   pct: 100 },
+      plan:  { state: 'done',   pct: 100 },
+      model: { state: 'active', pct: 75 },
+      impl:  { state: 'active', pct: 15 },
+      test:  { state: 'idle',   pct: 0 },
+      depl:  { state: 'idle',   pct: 0 },
+    },
+    render: () => `
+      <div class="step-hdr">
+        <div class="step-icon" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.2)">✅</div>
+        <div class="step-hdr-text">
+          <div class="title">Review kész — blokk feloldva</div>
+          <div class="sub">// Hét 5 — fejlesztés is elindul</div>
+        </div>
+      </div>
+      <div class="event-log">
+        <div class="ev-hdr">// Eseménynapló</div>
+        <div class="ev-item">
+          <div class="ev-time">H5 / 09:15</div>
+          <div class="ev-dot" style="background:var(--plan)"></div>
+          <div>Tervezési terv review-ja lezárva ✓ — jóváhagyva</div>
+        </div>
+        <div class="ev-item">
+          <div class="ev-time">H5 / 09:30</div>
+          <div class="ev-dot" style="background:var(--model)"></div>
+          <div>Modellezés blokk feloldva — folytatódik az adatbázis diagram</div>
+        </div>
+        <div class="ev-item">
+          <div class="ev-time">H5 / 10:00</div>
+          <div class="ev-dot" style="background:var(--impl)"></div>
+          <div>Fejlesztő csapat elindul — első modul kódolása megkezdve</div>
+        </div>
+        <div class="ev-item">
+          <div class="ev-time">H5 / 10:30</div>
+          <div class="ev-dot" style="background:var(--anal)"></div>
+          <div>Analízis lezárva ✓ — minden követelmény dokumentálva</div>
+        </div>
+      </div>
+      <div class="ibox green">
+        <strong>Most 3 csapat dolgozik egyszerre:</strong> Modellezés (75%), Implementáció (15%) és a tervezés épp lezárult. A projekt gyorsul!
+      </div>
+    `
+  },
+
+  // ─── CSÚCS PÁRHUZAMOSSÁG ─────────────────────────────────────────
+  {
+    lanes: {
+      anal:  { state: 'done',   pct: 100 },
+      plan:  { state: 'done',   pct: 100 },
+      model: { state: 'review', pct: 95 },
+      impl:  { state: 'active', pct: 50 },
+      test:  { state: 'active', pct: 20 },
+      depl:  { state: 'idle',   pct: 0 },
+    },
+    render: () => `
+      <div class="step-hdr">
+        <div class="step-icon" style="background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.2)">🚀</div>
+        <div class="step-hdr-text">
+          <div class="title">Csúcs párhuzamosság</div>
+          <div class="sub">// Hét 7 — 3 aktív + 1 review</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="cm show">
+          <div class="av2">🧪</div>
+          <div class="bub l">
+            <div class="who2" style="color:var(--test)">Tesztelő csapat</div>
+            Nem kell megvárnunk, amíg az összes fejlesztés kész — az elkészült modulokat már teszteljük!
+          </div>
+        </div>
+        <div class="cm show r" style="transition-delay:.15s">
+          <div class="av2">💻</div>
+          <div class="bub r2">
+            <div class="who2" style="color:var(--impl);text-align:right">Fejlesztő csapat</div>
+            Pontosan. Ha kész egy modul, átadjuk tesztelésre. Nem kell az egész rendszerre várni.
+          </div>
+        </div>
+      </div>
+      <div class="state-table">
+        <div class="st-row"><div class="st-act">📋 Analízis</div><div class="st-team">—</div><div class="pill p-done">kész ✓</div></div>
+        <div class="st-row"><div class="st-act">🗓️ Tervezés</div><div class="st-team">—</div><div class="pill p-done">kész ✓</div></div>
+        <div class="st-row"><div class="st-act">🧩 Modellezés</div><div class="st-team">Végső review</div><div class="pill p-review">review</div></div>
+        <div class="st-row"><div class="st-act">💻 Implementáció</div><div class="st-team">Modul 3/6</div><div class="pill p-active">aktív 50%</div></div>
+        <div class="st-row"><div class="st-act">🧪 Tesztelés</div><div class="st-team">Modul 1-2 tesztelve</div><div class="pill p-active">aktív 20%</div></div>
+      </div>
+    `
+  },
+
+  // ─── VISSZACSATOLÁS ──────────────────────────────────────────────
+  {
+    lanes: {
+      anal:  { state: 'done',    pct: 100 },
+      plan:  { state: 'active',  pct: 30 },
+      model: { state: 'done',    pct: 100 },
+      impl:  { state: 'active',  pct: 65 },
+      test:  { state: 'blocked', pct: 35 },
+      depl:  { state: 'idle',    pct: 0 },
+    },
+    render: () => `
+      <div class="step-hdr">
+        <div class="step-icon" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.2)">🔄</div>
+        <div class="step-hdr-text">
+          <div class="title">Visszacsatolás — aktivitások újraindulnak</div>
+          <div class="sub">// A konkurens modell nem lineáris!</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="cm show">
+          <div class="av2">🧪</div>
+          <div class="bub l">
+            <div class="who2" style="color:var(--impl)">Tesztelő csapat</div>
+            A 4. modul tesztelésénél kiderült: a kosár funkció nem kezeli jól a kuponkódokat. Ez tervezési hiba.
+          </div>
+        </div>
+        <div class="cm show r" style="transition-delay:.15s">
+          <div class="av2">🗓️</div>
+          <div class="bub r2">
+            <div class="who2" style="color:var(--plan);text-align:right">Tervezési csapat</div>
+            Rendben — újraindítjuk a tervezést erre a részre. Ez csak 2 napot vesz igénybe.
+          </div>
+        </div>
+      </div>
+      <div class="ibox">
+        <strong>Visszacsatolás a konkurens modellben:</strong> A tesztelés nem csak a végén van — végig fut. Ha hibát talál, az érintett aktivitás (pl. tervezés) visszaáll aktív állapotba és kijavítja. Ez sokkal gyorsabb, mint a végén mindent újracsinálni!
+      </div>
+    `
+  },
+
+  // ─── VÍZESÉS VS KONKURENS ────────────────────────────────────────
+  {
+    lanes: {
+      anal:  { state: 'done',   pct: 100 },
+      plan:  { state: 'done',   pct: 100 },
+      model: { state: 'done',   pct: 100 },
+      impl:  { state: 'active', pct: 80 },
+      test:  { state: 'active', pct: 55 },
+      depl:  { state: 'idle',   pct: 0 },
+    },
+    render: () => `
+      <div class="step-hdr">
+        <div class="step-icon" style="background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.2)">📊</div>
+        <div class="step-hdr-text">
+          <div class="title">Vízesés vs Konkurens — idő</div>
+          <div class="sub">// Ugyanaz a projekt, más modellel</div>
+        </div>
+      </div>
+      <div class="comp-row">
+        <div class="comp-item">
+          <div class="comp-label">🌊 Vízesés modell — 20 hét</div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-bottom:0.3rem">Anal.(4) → Terv.(3) → Model.(3) → Impl.(6) → Teszt.(3) → Átadás(1)</div>
+          <div class="comp-bar-wrap">
+            <div class="comp-bar" style="width:100%;background:linear-gradient(90deg,var(--impl),rgba(239,68,68,0.5))"></div>
+          </div>
+        </div>
+        <div class="comp-item">
+          <div class="comp-label">🔀 Konkurens modell — 12 hét</div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-bottom:0.3rem">Párhuzamos futás — 40% időmegtakarítás</div>
+          <div class="comp-bar-wrap">
+            <div class="comp-bar" style="width:60%;background:linear-gradient(90deg,var(--plan),rgba(16,185,129,0.5))"></div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox green">
+        <strong>~40% időmegtakarítás</strong> — mert a csapatok nem ücsörögnek és nem várják egymást. A párhuzamos munka a kulcs.
+      </div>
+    `
+  },
+
+  // ─── ÁTADÁS KÖZELEG ──────────────────────────────────────────────
+  {
+    lanes: {
+      anal:  { state: 'done',   pct: 100 },
+      plan:  { state: 'done',   pct: 100 },
+      model: { state: 'done',   pct: 100 },
+      impl:  { state: 'done',   pct: 100 },
+      test:  { state: 'active', pct: 85 },
+      depl:  { state: 'active', pct: 20 },
+    },
+    render: () => `
+      <div class="step-hdr">
+        <div class="step-icon" style="background:rgba(236,72,153,0.12);border:1px solid rgba(236,72,153,0.2)">🏁</div>
+        <div class="step-hdr-text">
+          <div class="title">Átadás előkészítése</div>
+          <div class="sub">// Hét 11 — majdnem kész</div>
+        </div>
+      </div>
+      <div class="event-log">
+        <div class="ev-hdr">// Záró eseménynapló</div>
+        <div class="ev-item">
+          <div class="ev-time">H11 / Hétfő</div>
+          <div class="ev-dot" style="background:var(--impl)"></div>
+          <div>Utolsó modul (6/6) fejlesztés befejezve ✓</div>
+        </div>
+        <div class="ev-item">
+          <div class="ev-time">H11 / Kedd</div>
+          <div class="ev-dot" style="background:var(--test)"></div>
+          <div>Integrációs tesztelés megkezdve — 3 rendszer együtt</div>
+        </div>
+        <div class="ev-item">
+          <div class="ev-time">H11 / Szerda</div>
+          <div class="ev-dot" style="background:var(--depl)"></div>
+          <div>Szerver előkészítés, SSL tanúsítvány telepítve</div>
+        </div>
+        <div class="ev-item">
+          <div class="ev-time">H11 / Csütörtök</div>
+          <div class="ev-dot" style="background:var(--plan)"></div>
+          <div>Felhasználói oktatás anyag elkészítve</div>
+        </div>
+      </div>
+      <div class="ibox blue">
+        <strong>Megjegyzés:</strong> A deployment már hét 11-ben elkezdődött — nem kell megvárni a tesztelés végét. A biztosan kész részeket már élesítik!
+      </div>
+    `
+  },
+
+  // ─── KÉSZ ────────────────────────────────────────────────────────
+  {
+    lanes: {
+      anal:  { state: 'done', pct: 100 },
+      plan:  { state: 'done', pct: 100 },
+      model: { state: 'done', pct: 100 },
+      impl:  { state: 'done', pct: 100 },
+      test:  { state: 'done', pct: 100 },
+      depl:  { state: 'done', pct: 100 },
+    },
+    render: () => `
+      <div class="step-hdr">
+        <div class="step-icon" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3)">🎉</div>
+        <div class="step-hdr-text">
+          <div class="title">Projekt lezárva — 12 hét</div>
+          <div class="sub">// Összefoglalás</div>
+        </div>
+      </div>
+      <div class="sum-boxes">
+        <div class="sbox"><span class="ico">⏱️</span><div class="val">12 hét</div><div class="lbl">vs 20 vízesés</div></div>
+        <div class="sbox"><span class="ico">🔀</span><div class="val">6 csapat</div><div class="lbl">párhuzamosan</div></div>
+        <div class="sbox"><span class="ico">🔄</span><div class="val">3× visszacsatolás</div><div class="lbl">menet közben javítva</div></div>
+        <div class="sbox"><span class="ico">📉</span><div class="val">−40%</div><div class="lbl">időmegtakarítás</div></div>
+      </div>
+      <div class="state-table mt">
+        <div class="st-row"><div class="st-act">🔑 Lényeg</div><div class="st-team">Aktivitások párhuzamosan futnak</div><div class="pill p-active">✓</div></div>
+        <div class="st-row"><div class="st-act">📊 Állapotok</div><div class="st-team">Minden aktivitásnak van state-je</div><div class="pill p-active">✓</div></div>
+        <div class="st-row"><div class="st-act">🔄 Visszacsatolás</div><div class="st-team">Bármely aktivitás újraindulhat</div><div class="pill p-active">✓</div></div>
+        <div class="st-row"><div class="st-act">👁️ Láthatóság</div><div class="st-team">A tábla mindig mutatja az állapotot</div><div class="pill p-active">✓</div></div>
+      </div>
+    `
+  },
+
+  // ─── MIKOR HASZNÁLJUK ────────────────────────────────────────────
+  {
+    lanes: {
+      anal:  { state: 'done', pct: 100 },
+      plan:  { state: 'done', pct: 100 },
+      model: { state: 'done', pct: 100 },
+      impl:  { state: 'done', pct: 100 },
+      test:  { state: 'done', pct: 100 },
+      depl:  { state: 'done', pct: 100 },
+    },
+    render: () => `
+      <div class="step-hdr">
+        <div class="step-icon" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.2)">🎯</div>
+        <div class="step-hdr-text">
+          <div class="title">Mikor érdemes használni?</div>
+          <div class="sub">// Előnyök és hátrányok</div>
+        </div>
+      </div>
+      <div class="state-table">
+        <div class="st-row"><div class="st-act">✅ Nagy csapatok</div><div class="st-team" style="flex:2">Ahol több csapat egyszerre dolgozhat</div></div>
+        <div class="st-row"><div class="st-act">✅ Hosszú projektek</div><div class="st-team" style="flex:2">Az időmegtakarítás itt a legnagyobb</div></div>
+        <div class="st-row"><div class="st-act">✅ Moduláris rendszer</div><div class="st-team" style="flex:2">Ha a részek egymástól függetlenek</div></div>
+        <div class="st-row"><div class="st-act">❌ Kis csapat (1-3 fő)</div><div class="st-team" style="flex:2">Nem tudnak párhuzamosan dolgozni</div></div>
+        <div class="st-row"><div class="st-act">❌ Szigorú sorrend</div><div class="st-team" style="flex:2">Ha B csak A után indulhat el</div></div>
+      </div>
+      <div class="ibox mt">
+        <strong>Ma hogyan jelenik meg?</strong> A modern Agilis/Scrum csapatok öntudatlanul is konkurens modellt alkalmaznak — a fejlesztők, tesztelők és devopsok egyszerre dolgoznak ugyanazon a sprinten.
+      </div>
+    `
+  },
+];
+
+// ─── BOARD RENDER ──────────────────────────────────────────────────
+function renderBoard(lanes) {
+  const board = document.getElementById('laneBoard');
+  board.innerHTML = ACTIVITIES.map(act => {
+    const ls = lanes[act.id];
+    const st = STATE_LABELS[ls.state];
+    const pct = ls.pct;
+    return `
+      <div class="lane">
+        <div class="lane-name">${act.label}</div>
+        <div class="lane-track">
+          <div class="lane-fill" style="width:${pct}%;background:${act.color};opacity:0.18">
+            ${pct > 20 ? `<span style="color:${act.color}">${pct}%</span>` : ''}
+          </div>
+        </div>
+        <div class="state-dot" style="background:${st.dot}"></div>
+        <div class="state-lbl" style="color:${st.color}">${st.text}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── MAIN ──────────────────────────────────────────────────────────
+let cur = 0;
+
+function render() {
+  const s = STEPS[cur];
+  renderBoard(s.lanes);
+
+  const el = document.getElementById('content');
+  el.innerHTML = s.render();
+
+  setTimeout(() => {
+    el.querySelectorAll('.cm:not(.show)').forEach((m, i) => {
+      setTimeout(() => m.classList.add('show'), i * 160);
+    });
+  }, 60);
+
+  document.getElementById('bprev').disabled = cur === 0;
+  const bn = document.getElementById('bnext');
+  if (cur === STEPS.length - 1) { bn.textContent = '↺ Újra'; }
+  else { bn.textContent = 'Következő →'; }
+  document.getElementById('ctr').textContent = `${cur + 1} / ${STEPS.length}`;
+}
+
+function next() {
+  cur = cur === STEPS.length - 1 ? 0 : cur + 1;
+  render();
+}
+
+function prev() {
+  if (cur > 0) { cur--; render(); }
+}
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Formális Módszerek Szimuláció</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg:      #020408;
+  --surface: #060c14;
+  --card:    #0a1220;
+  --border:  #0f2040;
+  --border2: #1a3560;
+  --text:    #c8dff8;
+  --muted:   #3a5878;
+  --dim:     #1a2d45;
+
+  --ok:      #00e5a0;
+  --warn:    #ffb800;
+  --err:     #ff3b5c;
+  --info:    #4da6ff;
+  --proof:   #bf80ff;
+  --spec:    #00cfcf;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* scanline overlay */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,229,160,0.012) 2px,
+    rgba(0,229,160,0.012) 4px
+  );
+  pointer-events:none;
+  z-index:0;
+}
+
+body::after {
+  content:'';
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(0,207,207,0.05) 0%, transparent 60%);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ── HEADER ── */
+header {
+  position:relative; z-index:1;
+  padding:1.3rem 1.3rem 0.9rem;
+  border-bottom:1px solid var(--border2);
+  background: linear-gradient(180deg, rgba(0,207,207,0.04) 0%, transparent 100%);
+}
+
+.hdr-top {
+  display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem;
+}
+
+h1 {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:1.15rem;
+  font-weight:600;
+  line-height:1.2;
+  letter-spacing:-0.01em;
+  color: var(--spec);
+}
+
+h1 span { color:var(--ok); }
+
+.sys-tag {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.55rem;
+  padding:0.25rem 0.55rem;
+  border-radius:3px;
+  background:rgba(255,56,92,0.12);
+  color:var(--err);
+  border:1px solid rgba(255,56,92,0.25);
+  white-space:nowrap;
+  margin-top:0.2rem;
+  letter-spacing:0.05em;
+}
+
+header p {
+  font-size:0.72rem;
+  color:var(--muted);
+  margin-top:0.3rem;
+  font-family:'IBM Plex Mono', monospace;
+}
+
+/* ── PROOF STATUS BAR ── */
+.proof-bar {
+  position:relative; z-index:1;
+  background:var(--surface);
+  border-bottom:1px solid var(--border2);
+  padding:0.7rem 1.3rem;
+}
+
+.pb-title {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.55rem;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  margin-bottom:0.5rem;
+}
+
+.proof-steps {
+  display:flex;
+  gap:0.3rem;
+  flex-wrap:wrap;
+}
+
+.ps {
+  display:flex;
+  align-items:center;
+  gap:0.3rem;
+  padding:0.25rem 0.5rem;
+  border-radius:4px;
+  border:1px solid var(--border);
+  background:var(--card);
+  transition:all 0.35s ease;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.58rem;
+}
+
+.ps-dot {
+  width:6px; height:6px;
+  border-radius:50%;
+  background:var(--muted);
+  transition:background 0.3s;
+  flex-shrink:0;
+}
+
+.ps.st-pending { border-color:var(--border); }
+.ps.st-active  { border-color:rgba(77,166,255,0.4); background:rgba(77,166,255,0.05); }
+.ps.st-active .ps-dot { background:var(--info); box-shadow:0 0 5px var(--info); }
+.ps.st-proved  { border-color:rgba(0,229,160,0.35); background:rgba(0,229,160,0.04); }
+.ps.st-proved .ps-dot { background:var(--ok); }
+.ps.st-proved .ps-lbl { color:var(--ok); }
+.ps.st-fail    { border-color:rgba(255,56,92,0.4); background:rgba(255,56,92,0.05); }
+.ps.st-fail .ps-dot { background:var(--err); animation:blink 0.8s infinite; }
+.ps.st-fail .ps-lbl { color:var(--err); }
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.ps-lbl { color:var(--muted); }
+
+/* ── CONTENT ── */
+.content {
+  position:relative; z-index:1;
+  padding:1rem 1.3rem;
+  min-height:290px;
+}
+
+/* step header */
+.shdr {
+  display:flex; align-items:center; gap:0.6rem;
+  margin-bottom:0.85rem;
+}
+
+.sico {
+  width:34px; height:34px;
+  border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.9rem;
+  flex-shrink:0;
+  border:1px solid var(--border2);
+  background:var(--card);
+  font-family:'IBM Plex Mono', monospace;
+  font-weight:600;
+  color:var(--spec);
+  font-size:0.75rem;
+}
+
+.stitle {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.92rem;
+  font-weight:600;
+  color:var(--spec);
+  letter-spacing:-0.01em;
+}
+
+.ssub {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.57rem;
+  color:var(--muted);
+  margin-top:0.05rem;
+}
+
+/* terminal chat */
+.chat { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.75rem; }
+
+.msg {
+  display:flex; gap:0.45rem; align-items:flex-start;
+  opacity:0; transform:translateY(6px);
+  transition:opacity 0.3s, transform 0.3s;
+}
+.msg.show { opacity:1; transform:translateY(0); }
+.msg.r { flex-direction:row-reverse; }
+
+.av {
+  width:28px; height:28px;
+  border-radius:5px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.82rem;
+  flex-shrink:0;
+  border:1px solid var(--border2);
+  background:var(--card);
+}
+
+.bub {
+  max-width:82%;
+  padding:0.45rem 0.65rem;
+  border-radius:6px;
+  font-size:0.75rem;
+  line-height:1.55;
+  border:1px solid var(--border2);
+  background:var(--card);
+}
+.bub.l  { border-bottom-left-radius:2px; }
+.bub.r2 { border-bottom-right-radius:2px; text-align:right; }
+
+.who {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.55rem;
+  font-weight:500;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  margin-bottom:0.1rem;
+}
+
+/* SPEC BLOCK — terminal style */
+.spec-block {
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:6px;
+  overflow:hidden;
+  margin:0.55rem 0;
+}
+
+.spec-hdr {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.56rem;
+  color:var(--muted);
+  padding:0.35rem 0.7rem;
+  border-bottom:1px solid var(--border);
+  background:var(--card);
+  display:flex;
+  align-items:center;
+  gap:0.4rem;
+  text-transform:uppercase;
+  letter-spacing:0.07em;
+}
+
+.spec-hdr-dot {
+  width:5px; height:5px;
+  border-radius:50%;
+}
+
+.spec-body {
+  padding:0.7rem 0.8rem;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.67rem;
+  line-height:1.8;
+}
+
+.kw  { color:var(--spec); }
+.sym { color:var(--proof); }
+.val { color:var(--ok); }
+.cmt { color:var(--muted); font-style:italic; }
+.err-line { color:var(--err); }
+.warn-line { color:var(--warn); }
+.ok-line { color:var(--ok); }
+.num { color:var(--warn); }
+
+/* PROOF STEP visual */
+.proof-visual {
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:6px;
+  padding:0.75rem;
+  margin:0.55rem 0;
+}
+
+.pv-title {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.57rem;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:0.07em;
+  margin-bottom:0.55rem;
+  display:flex;
+  align-items:center;
+  gap:0.4rem;
+}
+
+.pv-row {
+  display:flex;
+  align-items:center;
+  gap:0.5rem;
+  padding:0.35rem 0;
+  border-bottom:1px solid var(--border);
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.65rem;
+}
+
+.pv-row:last-child { border-bottom:none; }
+
+.pv-num {
+  width:20px;
+  color:var(--muted);
+  flex-shrink:0;
+  font-size:0.58rem;
+}
+
+.pv-stmt { flex:1; color:var(--text); }
+.pv-reason { color:var(--muted); font-size:0.6rem; }
+
+.pv-ok   { color:var(--ok); }
+.pv-fail { color:var(--err); }
+.pv-pend { color:var(--muted); }
+
+/* COMPARISON table */
+.comp-table {
+  background:var(--card);
+  border:1px solid var(--border2);
+  border-radius:6px;
+  overflow:hidden;
+  margin:0.5rem 0;
+}
+
+.ct-hdr {
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:0;
+  background:var(--surface);
+  border-bottom:1px solid var(--border2);
+}
+
+.ct-h {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.57rem;
+  padding:0.35rem 0.55rem;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+  border-right:1px solid var(--border);
+}
+.ct-h:last-child { border-right:none; }
+
+.ct-row {
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  border-bottom:1px solid var(--border);
+  font-size:0.72rem;
+}
+.ct-row:last-child { border-bottom:none; }
+
+.ct-cell {
+  padding:0.38rem 0.55rem;
+  border-right:1px solid var(--border);
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.62rem;
+  line-height:1.4;
+}
+.ct-cell:last-child { border-right:none; }
+.ct-cell.ok  { color:var(--ok); }
+.ct-cell.err { color:var(--err); }
+.ct-cell.warn { color:var(--warn); }
+
+/* INFO BOX */
+.ibox {
+  border-radius:6px;
+  padding:0.55rem 0.75rem;
+  font-size:0.73rem;
+  line-height:1.55;
+  margin:0.5rem 0;
+  border:1px solid var(--border2);
+  background:var(--card);
+  border-left:3px solid var(--spec);
+  color:var(--text);
+  font-family:'IBM Plex Sans', sans-serif;
+}
+.ibox strong { color:var(--spec); font-weight:600; }
+.ibox.ok-box { border-left-color:var(--ok); }
+.ibox.ok-box strong { color:var(--ok); }
+.ibox.err-box { border-left-color:var(--err); }
+.ibox.err-box strong { color:var(--err); }
+.ibox.proof-box { border-left-color:var(--proof); }
+.ibox.proof-box strong { color:var(--proof); }
+.ibox.warn-box { border-left-color:var(--warn); }
+.ibox.warn-box strong { color:var(--warn); }
+
+/* CHECKLIST */
+.cklist { display:flex; flex-direction:column; gap:0.35rem; margin:0.5rem 0; }
+
+.cli {
+  display:flex; align-items:flex-start; gap:0.5rem;
+  padding:0.4rem 0.6rem;
+  background:var(--card);
+  border:1px solid var(--border2);
+  border-radius:6px;
+  font-size:0.74rem;
+  line-height:1.45;
+}
+.cli-ico { flex-shrink:0; font-size:0.85rem; }
+.cli strong { display:block; font-weight:600; font-size:0.75rem; margin-bottom:0.03rem; }
+.cli span { color:var(--muted); font-size:0.68rem; font-family:'IBM Plex Mono', monospace; }
+
+/* COUNTER EXAMPLE */
+.counter-ex {
+  background:rgba(255,56,92,0.05);
+  border:1px solid rgba(255,56,92,0.3);
+  border-radius:6px;
+  padding:0.6rem 0.75rem;
+  margin:0.5rem 0;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.66rem;
+  line-height:1.7;
+}
+
+.ce-hdr {
+  font-size:0.57rem;
+  color:var(--err);
+  text-transform:uppercase;
+  letter-spacing:0.07em;
+  margin-bottom:0.4rem;
+  display:flex; align-items:center; gap:0.3rem;
+}
+
+/* SUMGRID */
+.sumgrid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:0.4rem; margin:0.5rem 0;
+}
+
+.sbox {
+  background:var(--card);
+  border:1px solid var(--border2);
+  border-radius:6px;
+  padding:0.6rem;
+  text-align:center;
+}
+.sbox .ico { font-size:1.2rem; display:block; margin-bottom:0.2rem; }
+.sbox .val { font-family:'IBM Plex Mono', monospace; font-size:0.9rem; font-weight:600; color:var(--spec); }
+.sbox .lbl { font-family:'IBM Plex Mono', monospace; font-size:0.53rem; color:var(--muted); margin-top:0.05rem; }
+
+/* NAV */
+.nav {
+  position:sticky; bottom:0; z-index:10;
+  background:var(--bg);
+  border-top:1px solid var(--border2);
+  padding:0.7rem 1.3rem;
+  display:flex; align-items:center; gap:0.55rem;
+}
+
+.btn {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.62rem;
+  font-weight:500;
+  padding:0.5rem 1rem;
+  border-radius:5px;
+  cursor:pointer;
+  transition:all 0.18s;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+}
+
+.btnp {
+  background:transparent;
+  color:var(--muted);
+  border:1px solid var(--border2);
+}
+.btnp:hover { color:var(--text); border-color:var(--border2); }
+.btnp:disabled { opacity:0.2; cursor:not-allowed; }
+
+.btnn {
+  flex:1;
+  background:rgba(0,229,160,0.1);
+  color:var(--ok);
+  border:1px solid rgba(0,229,160,0.3);
+}
+.btnn:hover { background:rgba(0,229,160,0.18); }
+
+.ctr {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.57rem;
+  color:var(--muted);
+  white-space:nowrap;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-top">
+    <h1>Formális<br>Módszerek<br><span>Szimuláció</span></h1>
+    <div class="sys-tag">⚠ KRITIKUS RENDSZER</div>
+  </div>
+  <p>// projekt: pacemaker_fw v3.1 — szívritmus-szabályozó szoftver</p>
+</header>
+
+<div class="proof-bar">
+  <div class="pb-title">// Bizonyítási státusz</div>
+  <div class="proof-steps" id="proofBar"></div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 12</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+
+<script>
+const PROOF_STEPS = [
+  { id:'spec',    label:'Specifikáció' },
+  { id:'inv',     label:'Invariánsok' },
+  { id:'timing',  label:'Időzítés' },
+  { id:'safety',  label:'Safety props' },
+  { id:'impl',    label:'Implementáció' },
+  { id:'verify',  label:'Verifikáció' },
+];
+
+// per-step proof bar state
+const STEPS = [
+  // ── 1. BEVEZETŐ ──────────────────────────────────────────────────
+  {
+    proof: { spec:'pending', inv:'pending', timing:'pending', safety:'pending', impl:'pending', verify:'pending' },
+    render: () => `
+      <div class="shdr">
+        <div class="sico">FM</div>
+        <div>
+          <div class="stitle">Miért formális módszer?</div>
+          <div class="ssub">// amikor a tesztelés nem elég</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍⚕️</div>
+          <div class="bub l">
+            <div class="who" style="color:var(--err)">Kardiológus főorvos</div>
+            A pacemaker szoftverének hibátlannak kell lennie. Egy szívritmus-tévesztés halálos lehet. Hogyan garantálják a helyességet?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">👩‍💻</div>
+          <div class="bub r2">
+            <div class="who" style="color:var(--spec);text-align:right">Formális mérnök</div>
+            Nem teszteléssel — matematikai bizonyítással. Minden lehetséges bemenetre és állapotra bebizonyítjuk, hogy a szoftver helyesen viselkedik.
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍⚕️</div>
+          <div class="bub l">
+            <div class="who" style="color:var(--err)">Kardiológus főorvos</div>
+            Teszteléssel nem lehet elég?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.45s">
+          <div class="av">👩‍💻</div>
+          <div class="bub r2">
+            <div class="who" style="color:var(--spec);text-align:right">Formális mérnök</div>
+            Nem. A tesztelés csak azt mutatja, hogy a tesztelt esetekben nincs hiba. De a lehetséges állapotok száma végtelen — nem lehet mindent letesztelni.
+          </div>
+        </div>
+      </div>
+      <div class="ibox">
+        <strong>Dijkstra:</strong> "A tesztelés megmutatja a hibák jelenlétét, de nem a hiányukat." — Ezért kell a formális bizonyítás.
+      </div>
+    `
+  },
+
+  // ── 2. SPECIFIKÁCIÓ ───────────────────────────────────────────────
+  {
+    proof: { spec:'active', inv:'pending', timing:'pending', safety:'pending', impl:'pending', verify:'pending' },
+    render: () => `
+      <div class="shdr">
+        <div class="sico">01</div>
+        <div>
+          <div class="stitle">1. lépés — Formális specifikáció</div>
+          <div class="ssub">// matematikai jelöléssel leírjuk MIT kell csinálnia</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👩‍💻</div>
+          <div class="bub l">
+            <div class="who" style="color:var(--spec)">Formális mérnök</div>
+            Először leírjuk a rendszer állapotait és az elvárásokat matematikailag. Nem magyarul — formálisan.
+          </div>
+        </div>
+      </div>
+      <div class="spec-block">
+        <div class="spec-hdr">
+          <div class="spec-hdr-dot" style="background:var(--spec)"></div>
+          pacemaker_spec.z — Állapottér definíció
+        </div>
+        <div class="spec-body">
+<span class="kw">STATE</span> Pacemaker <span class="cmt">-- a rendszer állapota</span>
+  heart_rate  : <span class="sym">ℕ</span>       <span class="cmt">-- pillanatnyi pulzus (BPM)</span>
+  pacing      : <span class="sym">𝔹</span>       <span class="cmt">-- stimulál-e most?</span>
+  battery     : <span class="sym">ℕ</span>       <span class="cmt">-- akkumulátor %</span>
+  mode        : <span class="sym">{VVI, DDD, AAI}</span>
+
+<span class="kw">INIT</span>
+  heart_rate = <span class="num">0</span>
+  pacing     = <span class="val">false</span>
+  battery    = <span class="num">100</span>
+
+<span class="cmt">-- Alapkövetelmény: pulzus mindig 40-180 BPM között</span>
+<span class="kw">INVARIANT</span> safe_rate:
+  <span class="sym">40 ≤ heart_rate ≤ 180</span>
+        </div>
+      </div>
+      <div class="ibox">
+        <strong>Mit jelent ez?</strong> Az INVARIANT azt mondja: <em>a rendszer MINDEN állapotában</em> igaz, hogy a pulzus 40–180 között van. Nem csak "általában" — hanem matematikailag bizonyítottan mindig.
+      </div>
+    `
+  },
+
+  // ── 3. INVARIÁNSOK ───────────────────────────────────────────────
+  {
+    proof: { spec:'proved', inv:'active', timing:'pending', safety:'pending', impl:'pending', verify:'pending' },
+    render: () => `
+      <div class="shdr">
+        <div class="sico">02</div>
+        <div>
+          <div class="stitle">2. lépés — Invariánsok definiálása</div>
+          <div class="ssub">// amiknek MINDIG igaznak kell lenniük</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👩‍💻</div>
+          <div class="bub l">
+            <div class="who" style="color:var(--spec)">Formális mérnök</div>
+            Az invariánsok olyan feltételek, amelyeknek a rendszer MINDEN állapotában teljesülniük kell — indulástól leállásig.
+          </div>
+        </div>
+      </div>
+      <div class="spec-block">
+        <div class="spec-hdr">
+          <div class="spec-hdr-dot" style="background:var(--proof)"></div>
+          invariants.z — Biztonsági invariánsok
+        </div>
+        <div class="spec-body">
+<span class="cmt">-- I1: Ne stimuláljon, ha a pulzus elég gyors</span>
+<span class="kw">INV</span> no_overpacing:
+  heart_rate <span class="sym">≥</span> min_rate <span class="sym">⟹</span> pacing = <span class="val">false</span>
+
+<span class="cmt">-- I2: Alacsony akkumulátornál csak vészüzemmód</span>
+<span class="kw">INV</span> low_battery_safe:
+  battery <span class="sym">&lt;</span> <span class="num">10</span> <span class="sym">⟹</span> mode = VVI
+
+<span class="cmt">-- I3: Két impulzus között kötelező szünet</span>
+<span class="kw">INV</span> refractory_period:
+  <span class="sym">∀</span> t : Time <span class="sym">•</span>
+    pacing(t) = <span class="val">true</span> <span class="sym">⟹</span>
+    pacing(t + <span class="num">250ms</span>) = <span class="val">false</span>
+        </div>
+      </div>
+      <div class="ibox proof-box">
+        <strong>Miért fontos az I3?</strong> Ha a pacemaker 250ms-nél rövidebb szünettel kétszer stimulál, kamrafibrillációt okozhat — ami halálos. Ezt az invariáns matematikailag kizárja.
+      </div>
+    `
+  },
+
+  // ── 4. IDŐZÍTÉS ───────────────────────────────────────────────────
+  {
+    proof: { spec:'proved', inv:'proved', timing:'active', safety:'pending', impl:'pending', verify:'pending' },
+    render: () => `
+      <div class="shdr">
+        <div class="sico">03</div>
+        <div>
+          <div class="stitle">3. lépés — Időzítési követelmények</div>
+          <div class="ssub">// real-time rendszer — az idő is számít</div>
+        </div>
+      </div>
+      <div class="spec-block">
+        <div class="spec-hdr">
+          <div class="spec-hdr-dot" style="background:var(--warn)"></div>
+          timing.tla — Időzítési specifikáció (TLA+)
+        </div>
+        <div class="spec-body">
+<span class="cmt">-- Érzékelés → Döntés → Stimulálás lánc</span>
+<span class="kw">TIMING</span> sense_to_pace:
+  sense_event  <span class="sym">⟶[≤ 8ms]</span>  process
+  process      <span class="sym">⟶[≤ 2ms]</span>  decide
+  decide       <span class="sym">⟶[≤ 5ms]</span>  pulse_out
+
+<span class="cmt">-- Teljes lánc: maximum 15ms</span>
+<span class="kw">PROPERTY</span> response_time:
+  <span class="sym">□</span> (sense_event <span class="sym">⟹</span> <span class="sym">◇[≤15ms]</span> pulse_out)
+  <span class="cmt">-- "Mindig igaz, hogy ha érzékelés van,</span>
+  <span class="cmt">--  akkor ≤15ms-en belül kimenet lesz"</span>
+
+<span class="cmt">-- Watchdog: ha 5s alatt nincs szívjel → pace</span>
+<span class="kw">PROPERTY</span> asystole_response:
+  <span class="sym">□</span> (no_sense_for(<span class="num">5s</span>) <span class="sym">⟹</span> <span class="sym">◇[≤1s]</span> emergency_pace)
+        </div>
+      </div>
+      <div class="ibox warn-box">
+        <strong>□ = "Mindig igaz"</strong> &nbsp;&nbsp; <strong>◇ = "Valamikor igaz lesz"</strong> — Ezek temporális logika operátorok. Időbeli tulajdonságokat is matematikailag tudunk bizonyítani!
+      </div>
+    `
+  },
+
+  // ── 5. SAFETY PROPERTIESS ─────────────────────────────────────────
+  {
+    proof: { spec:'proved', inv:'proved', timing:'proved', safety:'active', impl:'pending', verify:'pending' },
+    render: () => `
+      <div class="shdr">
+        <div class="sico">04</div>
+        <div>
+          <div class="stitle">4. lépés — Safety tulajdonságok bizonyítása</div>
+          <div class="ssub">// modell ellenőrző futtatása</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🖥️</div>
+          <div class="bub l">
+            <div class="who" style="color:var(--info)">Model Checker (SPIN)</div>
+            Elindítom az összes invariáns ellenőrzését... 847,293 állapot vizsgálva...
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.2s">
+          <div class="av">🖥️</div>
+          <div class="bub l">
+            <div class="who" style="color:var(--info)">Model Checker (SPIN)</div>
+            ⚠ Ellenpélda találva! — no_overpacing megsértve!
+          </div>
+        </div>
+      </div>
+      <div class="counter-ex">
+        <div class="ce-hdr">⚠ Ellenpélda — INVARIÁNS MEGSÉRTVE</div>
+        <span class="err-line">State 1: heart_rate=75, pacing=false, mode=DDD</span>
+        <span class="err-line">State 2: heart_rate=75, pacing=false, mode=DDD</span>
+        <span class="err-line">State 3: heart_rate=75, <b>pacing=TRUE</b>  ← HIBA!</span>
+        <span class="cmt">-- Szívritmus elég (75 BPM ≥ 60), mégis stimulál!</span>
+        <span class="warn-line">-- Eset: DDD módban mode-switch közben race condition</span>
+      </div>
+      <div class="ibox err-box">
+        <strong>Ez a formális módszer ereje:</strong> A model checker megtalált egy "race condition" hibát, amit teszteléssel szinte lehetetlen lett volna felfedezni — csak egy nagyon specifikus állapotsor vezet ide. Emberélet múlhat rajta.
+      </div>
+    `
+  },
+
+  // ── 6. JAVÍTÁS ────────────────────────────────────────────────────
+  {
+    proof: { spec:'proved', inv:'proved', timing:'proved', safety:'active', impl:'pending', verify:'pending' },
+    render: () => `
+      <div class="shdr">
+        <div class="sico">04</div>
+        <div>
+          <div class="stitle">4b. lépés — Hiba javítása a specban</div>
+          <div class="ssub">// a specifikációt javítjuk, nem a kódot!</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👩‍💻</div>
+          <div class="bub l">
+            <div class="who" style="color:var(--spec)">Formális mérnök</div>
+            A race condition oka: mode-switch közben a pacing döntés a régi módra vonatkozik. Javítjuk a specifikációt.
+          </div>
+        </div>
+      </div>
+      <div class="spec-block">
+        <div class="spec-hdr">
+          <div class="spec-hdr-dot" style="background:var(--err)"></div>
+          invariants.z — Javítás előtt
+        </div>
+        <div class="spec-body">
+<span class="err-line">INV no_overpacing:</span>
+<span class="err-line">  heart_rate ≥ min_rate ⟹ pacing = false</span>
+<span class="cmt">  -- Hiányzik: mode-switch közben is teljesüljön!</span>
+        </div>
+      </div>
+      <div class="spec-block">
+        <div class="spec-hdr">
+          <div class="spec-hdr-dot" style="background:var(--ok)"></div>
+          invariants.z — Javítás után
+        </div>
+        <div class="spec-body">
+<span class="ok-line">INV no_overpacing:</span>
+<span class="ok-line">  heart_rate ≥ min_rate</span>
+<span class="ok-line">  ∧ ¬mode_switching        <span class="cmt">-- ÚJ: nem vált módot</span></span>
+<span class="ok-line">  ⟹ pacing = false</span>
+        </div>
+      </div>
+      <div class="ibox ok-box">
+        <strong>Fontos:</strong> A specifikációban javítjuk a hibát — még mielőtt egyetlen sor kód íródott volna. Ez a formális módszer legnagyobb előnye: a legdrágább hibákat a legkorábban találjuk meg.
+      </div>
+    `
+  },
+
+  // ── 7. SAFETY PROVED ─────────────────────────────────────────────
+  {
+    proof: { spec:'proved', inv:'proved', timing:'proved', safety:'proved', impl:'pending', verify:'pending' },
+    render: () => `
+      <div class="shdr">
+        <div class="sico">04</div>
+        <div>
+          <div class="stitle">4c. lépés — Safety bizonyítva ✓</div>
+          <div class="ssub">// model checker újra futtatva — minden rendben</div>
+        </div>
+      </div>
+      <div class="proof-visual">
+        <div class="pv-title">
+          <span style="color:var(--ok)">●</span> Bizonyítási eredmények
+        </div>
+        <div class="pv-row">
+          <div class="pv-num">P1</div>
+          <div class="pv-stmt">safe_rate: 40 ≤ heart_rate ≤ 180</div>
+          <div class="pv-ok">✓ PROVED</div>
+        </div>
+        <div class="pv-row">
+          <div class="pv-num">P2</div>
+          <div class="pv-stmt">no_overpacing (javított)</div>
+          <div class="pv-ok">✓ PROVED</div>
+        </div>
+        <div class="pv-row">
+          <div class="pv-num">P3</div>
+          <div class="pv-stmt">low_battery_safe: battery &lt; 10 ⟹ VVI</div>
+          <div class="pv-ok">✓ PROVED</div>
+        </div>
+        <div class="pv-row">
+          <div class="pv-num">P4</div>
+          <div class="pv-stmt">refractory_period: ≥ 250ms szünet</div>
+          <div class="pv-ok">✓ PROVED</div>
+        </div>
+        <div class="pv-row">
+          <div class="pv-num">P5</div>
+          <div class="pv-stmt">response_time: sense → pulse ≤ 15ms</div>
+          <div class="pv-ok">✓ PROVED</div>
+        </div>
+        <div class="pv-row">
+          <div class="pv-num">P6</div>
+          <div class="pv-stmt">asystole_response: 5s szünet → vészpacing</div>
+          <div class="pv-ok">✓ PROVED</div>
+        </div>
+      </div>
+      <div class="ibox ok-box"><strong>6/6 tulajdonság bizonyítva.</strong> 1,2M állapot megvizsgálva, ellenpélda nem található. Most jöhet az implementáció.</div>
+    `
+  },
+
+  // ── 8. IMPLEMENTÁCIÓ ─────────────────────────────────────────────
+  {
+    proof: { spec:'proved', inv:'proved', timing:'proved', safety:'proved', impl:'active', verify:'pending' },
+    render: () => `
+      <div class="shdr">
+        <div class="sico">05</div>
+        <div>
+          <div class="stitle">5. lépés — Implementáció</div>
+          <div class="ssub">// a specifikáció alapján kódot írunk</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👩‍💻</div>
+          <div class="bub l">
+            <div class="who" style="color:var(--spec)">Formális mérnök</div>
+            A kód minden sorához megmutatjuk, hogy melyik specifikáció-sorból következik. Nincs "kreatív kódolás" — szigorúan követjük a specet.
+          </div>
+        </div>
+      </div>
+      <div class="spec-block">
+        <div class="spec-hdr">
+          <div class="spec-hdr-dot" style="background:var(--info)"></div>
+          pacemaker.c — Implementáció (részlet)
+        </div>
+        <div class="spec-body">
+<span class="cmt">/* [P2] no_overpacing invariáns implementációja */</span>
+<span class="kw">bool</span> <span class="val">should_pace</span>(PacemakerState* s) {
+  <span class="cmt">/* Spec: heart_rate ≥ min_rate ∧ ¬switching */</span>
+  <span class="kw">if</span> (s->heart_rate >= s->min_rate) <span class="kw">return</span> <span class="val">false</span>;
+  <span class="kw">if</span> (s->mode_switching)           <span class="kw">return</span> <span class="val">false</span>;
+  <span class="kw">return</span> <span class="val">true</span>;
+}
+
+<span class="cmt">/* [P4] refractory_period — 250ms kényszer */</span>
+<span class="kw">void</span> <span class="val">deliver_pulse</span>(PacemakerState* s) {
+  s->last_pulse_time = now();
+  s->refractory = <span class="val">true</span>;
+  schedule_refractory_end(s, <span class="num">250</span>); <span class="cmt">/* ms */</span>
+}
+        </div>
+      </div>
+      <div class="ibox"><strong>Minden kódrészlet</strong> hivatkozik a specifikáció melyik pontjára vonatkozik. Ha valaki megkérdezi "miért így van megírva?" — van matematikai válasz.</div>
+    `
+  },
+
+  // ── 9. VERIFIKÁCIÓ ───────────────────────────────────────────────
+  {
+    proof: { spec:'proved', inv:'proved', timing:'proved', safety:'proved', impl:'proved', verify:'active' },
+    render: () => `
+      <div class="shdr">
+        <div class="sico">06</div>
+        <div>
+          <div class="stitle">6. lépés — Kód verifikáció</div>
+          <div class="ssub">// bizonyítjuk hogy a KÓD = SPECIFIKÁCIÓ</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🔬</div>
+          <div class="bub l">
+            <div class="who" style="color:var(--proof)">Tételbizonyító (Coq)</div>
+            Ellenőrzöm, hogy a C kód valóban implementálja a Z specifikációt...
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.2s">
+          <div class="av">🔬</div>
+          <div class="bub l">
+            <div class="who" style="color:var(--proof)">Tételbizonyító (Coq)</div>
+            should_pace() ↔ spec.no_overpacing: ✓ ekvivalens
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.4s">
+          <div class="av">🔬</div>
+          <div class="bub l">
+            <div class="who" style="color:var(--proof)">Tételbizonyító (Coq)</div>
+            deliver_pulse() ↔ spec.refractory_period: ✓ ekvivalens
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.6s">
+          <div class="av">👩‍💻</div>
+          <div class="bub r2">
+            <div class="who" style="color:var(--spec);text-align:right">Formális mérnök</div>
+            Minden függvény bizonyítottan megfelel a specifikációnak. A kód helyes.
+          </div>
+        </div>
+      </div>
+      <div class="ibox proof-box"><strong>Ez a különbség a teszteléstől:</strong> Nem néhány száz tesztesetből következtettük hogy helyes — matematikailag bizonyítottuk, hogy MINDEN bemenetre helyes.</div>
+    `
+  },
+
+  // ── 10. HAGYOMÁNYOS VS FORMÁLIS ──────────────────────────────────
+  {
+    proof: { spec:'proved', inv:'proved', timing:'proved', safety:'proved', impl:'proved', verify:'active' },
+    render: () => `
+      <div class="shdr">
+        <div class="sico">VS</div>
+        <div>
+          <div class="stitle">Hagyományos vs Formális módszer</div>
+          <div class="ssub">// ugyanaz a pacemaker projekt</div>
+        </div>
+      </div>
+      <div class="comp-table">
+        <div class="ct-hdr">
+          <div class="ct-h">Szempont</div>
+          <div class="ct-h">Hagyományos</div>
+          <div class="ct-h">Formális</div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-cell">Fejlesztési idő</div>
+          <div class="ct-cell warn">6 hónap</div>
+          <div class="ct-cell err">18 hónap</div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-cell">Helyesség</div>
+          <div class="ct-cell warn">~tesztelve</div>
+          <div class="ct-cell ok">✓ bizonyítva</div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-cell">Hibák száma</div>
+          <div class="ct-cell err">~15 bug/KLOC</div>
+          <div class="ct-cell ok">&lt;0.1 bug/KLOC</div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-cell">Race condition</div>
+          <div class="ct-cell err">nehezen található</div>
+          <div class="ct-cell ok">spec-ban megtalálva</div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-cell">Szabályozói jóváhagyás</div>
+          <div class="ct-cell warn">nehéz, sok teszt</div>
+          <div class="ct-cell ok">matematikai bizonyíték</div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-cell">Emberi élet kockázata</div>
+          <div class="ct-cell err">marad kockázat</div>
+          <div class="ct-cell ok">minimalizálva</div>
+        </div>
+      </div>
+      <div class="ibox warn-box"><strong>Miért éri meg a 3× hosszabb fejlesztési idő?</strong> Mert egy visszahívott pacemaker (recall) milliárdos kár + perköltség + emberi tragédia. A formális fejlesztés drágább, de a hiba sokkal drágább.</div>
+    `
+  },
+
+  // ── 11. EREDMÉNY ──────────────────────────────────────────────────
+  {
+    proof: { spec:'proved', inv:'proved', timing:'proved', safety:'proved', impl:'proved', verify:'proved' },
+    render: () => `
+      <div class="shdr">
+        <div class="sico">✓</div>
+        <div>
+          <div class="stitle">Projekt lezárva — minden bizonyítva</div>
+          <div class="ssub">// pacemaker_fw v3.1 — FDA jóváhagyásra kész</div>
+        </div>
+      </div>
+      <div class="sumgrid">
+        <div class="sbox"><span class="ico">📐</span><div class="val">847 tétel</div><div class="lbl">bizonyítva</div></div>
+        <div class="sbox"><span class="ico">🔍</span><div class="val">1.2M állapot</div><div class="lbl">megvizsgálva</div></div>
+        <div class="sbox"><span class="ico">🐛</span><div class="val">1 hiba</div><div class="lbl">spec-ban találva, javítva</div></div>
+        <div class="sbox"><span class="ico">✅</span><div class="val">0 kód hiba</div><div class="lbl">bizonyítottan</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli"><div class="cli-ico">📐</div><div><strong>Formális specifikáció</strong><span>Z nyelv + TLA+ — matematikai leírás</span></div></div>
+        <div class="cli"><div class="cli-ico">🔬</div><div><strong>Model checking</strong><span>SPIN — összes állapot automatikus ellenőrzése</span></div></div>
+        <div class="cli"><div class="cli-ico">🧮</div><div><strong>Tételbizonyítás</strong><span>Coq — kód ↔ spec ekvivalencia bizonyítva</span></div></div>
+        <div class="cli"><div class="cli-ico">⚠️</div><div><strong>1 race condition megtalálva</strong><span>spec szinten javítva — kódba soha nem került be</span></div></div>
+      </div>
+    `
+  },
+
+  // ── 12. ÖSSZEFOGLALÁS ────────────────────────────────────────────
+  {
+    proof: { spec:'proved', inv:'proved', timing:'proved', safety:'proved', impl:'proved', verify:'proved' },
+    render: () => `
+      <div class="shdr">
+        <div class="sico">∑</div>
+        <div>
+          <div class="stitle">Összefoglalás</div>
+          <div class="ssub">// mikor érdemes formális módszert használni?</div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-color:rgba(0,229,160,0.25)">
+          <div class="cli-ico">✅</div>
+          <div><strong style="color:var(--ok)">Igen — életkritikus rendszerek</strong><span>Pacemaker, repülőgép, atomerőmű, vonat fékrendszer</span></div>
+        </div>
+        <div class="cli" style="border-color:rgba(0,229,160,0.25)">
+          <div class="cli-ico">✅</div>
+          <div><strong style="color:var(--ok)">Igen — pénzügyi tranzakciók</strong><span>Ahol 1 bug milliárdos kárt okozhat</span></div>
+        </div>
+        <div class="cli" style="border-color:rgba(0,229,160,0.25)">
+          <div class="cli-ico">✅</div>
+          <div><strong style="color:var(--ok)">Igen — kriptográfiai protokollok</strong><span>SSL/TLS, banki titkosítás</span></div>
+        </div>
+        <div class="cli" style="border-color:rgba(255,56,92,0.25)">
+          <div class="cli-ico">❌</div>
+          <div><strong style="color:var(--err)">Nem — webshop, mobilapp</strong><span>Túl drága és lassú — a kockázat nem indokolja</span></div>
+        </div>
+        <div class="cli" style="border-color:rgba(255,56,92,0.25)">
+          <div class="cli-ico">❌</div>
+          <div><strong style="color:var(--err)">Nem — startup, gyors fejlesztés</strong><span>18 hónap befektetés vs 6 hónap agilis</span></div>
+        </div>
+      </div>
+      <div class="ibox proof-box"><strong>A lényeg egy mondatban:</strong> A formális módszer ott éri meg, ahol <em>egy hiba emberi életet vagy milliárdokat kockáztat</em> — és ahol az idő és pénz nem akadály.</div>
+    `
+  },
+];
+
+// ── PROOF BAR RENDER ─────────────────────────────────────────────────
+function renderProofBar(proof) {
+  document.getElementById('proofBar').innerHTML = PROOF_STEPS.map(ps => {
+    const st = proof[ps.id] || 'pending';
+    return `<div class="ps st-${st}">
+      <div class="ps-dot"></div>
+      <span class="ps-lbl">${ps.label}</span>
+    </div>`;
+  }).join('');
+}
+
+let cur = 0;
+
+function render() {
+  const s = STEPS[cur];
+  renderProofBar(s.proof);
+
+  const el = document.getElementById('content');
+  el.innerHTML = s.render();
+
+  setTimeout(() => {
+    el.querySelectorAll('.msg:not(.show)').forEach((m, i) => {
+      setTimeout(() => m.classList.add('show'), i * 170);
+    });
+  }, 60);
+
+  document.getElementById('bprev').disabled = cur === 0;
+  const bn = document.getElementById('bnext');
+  bn.textContent = cur === STEPS.length - 1 ? '↺ Újra' : 'Következő →';
+  document.getElementById('ctr').textContent = `${cur + 1} / ${STEPS.length}`;
+}
+
+function next() { cur = cur === STEPS.length - 1 ? 0 : cur + 1; render(); }
+function prev() { if (cur > 0) { cur--; render(); } }
+
+render();
+</script>
+</body>
+</html>
