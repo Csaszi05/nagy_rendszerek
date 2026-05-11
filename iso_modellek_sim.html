@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Szoftverminőség Modellek — McCall, ISO 9126, ISO 25010, ISO 9000</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+
+:root {
+  --bg:    #0a0f1e;
+  --surf:  #0f1628;
+  --card:  #141d35;
+  --brd:   #1e2d50;
+  --brd2:  #263a68;
+  --text:  #d8e4ff;
+  --muted: #4a5f8a;
+
+  --mcc:  #f59e0b;   /* McCall */
+  --iso9: #3b82f6;   /* ISO 9126 */
+  --iso25:#10b981;   /* ISO 25010 */
+  --iso0: #a855f7;   /* ISO 9000 */
+  --acc:  #6366f1;
+
+  /* McCall háromszög */
+  --op:  #f59e0b;   /* operation */
+  --rev: #3b82f6;   /* revision */
+  --tr:  #10b981;   /* transition */
+
+  /* ISO 9126 jellemzők */
+  --func: #f59e0b;
+  --rel:  #ef4444;
+  --usa:  #10b981;
+  --eff:  #6366f1;
+  --mnt:  #a855f7;
+  --por:  #22d3ee;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background:var(--bg); color:var(--text);
+  font-family:'Sora', sans-serif; min-height:100vh; overflow-x:hidden;
+}
+
+body::before {
+  content:''; position:fixed; inset:0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(99,102,241,0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(16,185,129,0.04) 0%, transparent 50%);
+  pointer-events:none; z-index:0;
+}
+
+header {
+  position:relative; z-index:1;
+  padding:1.2rem 1.3rem 0.85rem;
+  border-bottom:1px solid var(--brd2);
+  background:linear-gradient(180deg, rgba(99,102,241,0.05) 0%, transparent 100%);
+}
+.hdr-row { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+h1 { font-size:1.4rem; font-weight:800; line-height:1.07; letter-spacing:-0.02em; }
+h1 span { color:var(--mcc); }
+h1 em   { font-style:normal; color:var(--iso25); }
+.tag {
+  font-family:'Inconsolata', monospace; font-size:0.56rem;
+  padding:0.25rem 0.55rem; border-radius:4px;
+  background:rgba(99,102,241,0.12); color:var(--acc);
+  border:1px solid rgba(99,102,241,0.28); white-space:nowrap; margin-top:0.2rem;
+}
+header p { font-size:0.7rem; color:var(--muted); margin-top:0.25rem; font-family:'Inconsolata', monospace; }
+
+/* MODEL SELECTOR */
+.modelbar {
+  position:relative; z-index:1;
+  background:var(--surf); border-bottom:1px solid var(--brd2);
+  padding:0.75rem 1.3rem 0.65rem;
+}
+.mb-title {
+  font-family:'Inconsolata', monospace; font-size:0.54rem;
+  color:var(--muted); text-transform:uppercase; letter-spacing:0.09em; margin-bottom:0.5rem;
+}
+.model-steps {
+  display:flex; align-items:center; gap:0; margin-bottom:0.45rem;
+}
+.ms-item {
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:0.2rem; position:relative;
+}
+.ms-item:not(:last-child)::after {
+  content:''; position:absolute; right:0; top:13px;
+  width:50%; height:2px; background:var(--brd); z-index:0;
+}
+.ms-item:not(:first-child)::before {
+  content:''; position:absolute; left:0; top:13px;
+  width:50%; height:2px; background:var(--brd); z-index:0;
+}
+.ms-dot {
+  width:26px; height:26px; border-radius:50%;
+  border:2px solid var(--brd2); background:var(--card);
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.62rem; z-index:1; transition:all 0.35s; position:relative;
+}
+.ms-label {
+  font-family:'Inconsolata', monospace; font-size:0.47rem;
+  color:var(--muted); text-align:center; line-height:1.2;
+}
+.ms-item.active .ms-dot { transform:scale(1.25); box-shadow:0 0 12px currentColor; }
+.ms-item.done   .ms-dot { opacity:0.55; }
+.ms-item.active .ms-label { font-weight:700; font-size:0.5rem; }
+
+.char-pills { display:flex; gap:4px; flex-wrap:wrap; }
+.char-pill {
+  font-family:'Inconsolata', monospace; font-size:0.52rem; font-weight:600;
+  padding:0.15rem 0.42rem; border-radius:3px; border:1px solid;
+  opacity:0.25; transition:opacity 0.3s;
+}
+.char-pill.on { opacity:1; }
+
+/* CONTENT */
+.content { position:relative; z-index:1; padding:0.9rem 1.3rem; min-height:275px; }
+
+.shdr { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.85rem; }
+.sico {
+  width:36px; height:36px; border-radius:9px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:1rem;
+  border:1.5px solid var(--brd2); background:var(--card);
+}
+.stitle { font-size:0.95rem; font-weight:800; letter-spacing:-0.02em; }
+.ssub   { font-family:'Inconsolata', monospace; font-size:0.56rem; color:var(--muted); margin-top:0.03rem; }
+
+/* CHAT */
+.chat { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.7rem; }
+.msg { display:flex; gap:0.4rem; align-items:flex-start; opacity:0; transform:translateY(6px); transition:opacity 0.3s, transform 0.3s; }
+.msg.show { opacity:1; transform:translateY(0); }
+.msg.r { flex-direction:row-reverse; }
+.av { width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:0.9rem; flex-shrink:0; border:1px solid var(--brd2); background:var(--card); }
+.bub { max-width:82%; padding:0.48rem 0.68rem; border-radius:9px; font-size:0.77rem; line-height:1.55; border:1px solid var(--brd2); background:var(--card); }
+.bub.l  { border-bottom-left-radius:2px; }
+.bub.r2 { border-bottom-right-radius:2px; text-align:right; }
+.who { font-family:'Inconsolata', monospace; font-size:0.55rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.1rem; }
+
+/* IBOX */
+.ibox {
+  border-radius:8px; padding:0.55rem 0.75rem; font-size:0.74rem; line-height:1.55;
+  margin:0.45rem 0; border:1px solid var(--brd2); background:var(--card);
+  border-left:3px solid var(--acc);
+}
+.ibox strong { font-weight:700; }
+
+/* CHECKLIST */
+.cklist { display:flex; flex-direction:column; gap:0.35rem; margin:0.45rem 0; }
+.cli {
+  display:flex; align-items:flex-start; gap:0.5rem;
+  padding:0.42rem 0.65rem; background:var(--card);
+  border:1px solid var(--brd2); border-radius:8px; font-size:0.75rem; line-height:1.45;
+}
+.cli-i { flex-shrink:0; font-size:0.88rem; }
+.cli strong { display:block; font-weight:700; font-size:0.76rem; margin-bottom:0.03rem; }
+.cli span   { color:var(--muted); font-size:0.68rem; font-family:'Inconsolata', monospace; }
+
+/* MCALL HÁROMSZÖG VISUAL */
+.triangle-vis {
+  background:var(--card); border:1.5px solid var(--brd2); border-radius:9px;
+  overflow:hidden; margin:0.45rem 0;
+}
+.tv-hdr {
+  background:var(--surf); padding:0.3rem 0.7rem; border-bottom:1px solid var(--brd);
+  font-family:'Inconsolata', monospace; font-size:0.52rem; color:var(--muted);
+  text-transform:uppercase; letter-spacing:0.07em;
+}
+.tv-row {
+  display:flex; gap:0; border-bottom:1px solid var(--brd);
+}
+.tv-row:last-child { border-bottom:none; }
+.tv-side {
+  width:70px; flex-shrink:0; padding:0.5rem 0.6rem;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Inconsolata', monospace; font-size:0.6rem; font-weight:700;
+  text-align:center; line-height:1.2; border-right:1px solid var(--brd);
+}
+.tv-factors { flex:1; padding:0.45rem 0.6rem; display:flex; flex-wrap:wrap; gap:0.25rem; }
+.tv-factor {
+  font-family:'Inconsolata', monospace; font-size:0.55rem;
+  padding:0.12rem 0.4rem; border-radius:3px; border:1px solid; font-weight:600;
+}
+
+/* ISO JELLEMZŐK KÁRTYÁK */
+.iso-char-card {
+  border-radius:10px; padding:0.7rem 0.85rem; margin:0.35rem 0; border:1.5px solid;
+}
+.ic-hdr { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.3rem; }
+.ic-icon { font-size:1.1rem; }
+.ic-name { font-size:0.85rem; font-weight:800; letter-spacing:-0.01em; }
+.ic-badge { font-family:'Inconsolata', monospace; font-size:0.53rem; padding:0.1rem 0.4rem; border-radius:3px; border:1px solid; font-weight:600; margin-left:auto; }
+.ic-desc { font-size:0.73rem; line-height:1.55; color:rgba(216,228,255,0.82); }
+.ic-example {
+  margin-top:0.3rem; background:var(--surf); border-radius:6px;
+  padding:0.35rem 0.55rem; font-size:0.7rem; line-height:1.45;
+  border-left:2px solid; color:rgba(216,228,255,0.75);
+}
+.ex-label { font-family:'Inconsolata', monospace; font-size:0.5rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.1rem; }
+
+/* ISO 9000 ELVEK */
+.elv-card {
+  border-radius:9px; padding:0.6rem 0.75rem; margin:0.3rem 0;
+  border:1px solid var(--brd2); background:var(--card);
+  display:flex; gap:0.5rem; align-items:flex-start;
+}
+.elv-num {
+  font-family:'Inconsolata', monospace; font-size:0.7rem; font-weight:800;
+  flex-shrink:0; width:20px; text-align:center; margin-top:0.05rem;
+}
+.elv-title { font-size:0.77rem; font-weight:800; margin-bottom:0.08rem; }
+.elv-desc { font-size:0.68rem; color:var(--muted); line-height:1.45; font-family:'Inconsolata', monospace; }
+.elv-ex { font-size:0.67rem; margin-top:0.1rem; color:rgba(216,228,255,0.6); }
+
+/* COMPARISON */
+.comp2 { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+
+/* SUMGRID */
+.sumgrid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+.sbox { background:var(--card); border:1px solid var(--brd2); border-radius:8px; padding:0.6rem; text-align:center; }
+.sbox .ico { font-size:1.2rem; display:block; margin-bottom:0.15rem; }
+.sbox .val { font-size:0.88rem; font-weight:800; }
+.sbox .lbl { font-family:'Inconsolata', monospace; font-size:0.52rem; color:var(--muted); margin-top:0.04rem; }
+
+/* NAV */
+.nav {
+  position:sticky; bottom:0; z-index:10;
+  background:var(--bg); border-top:1px solid var(--brd2);
+  padding:0.7rem 1.3rem; display:flex; align-items:center; gap:0.5rem;
+}
+.btn {
+  font-family:'Inconsolata', monospace; font-size:0.63rem; font-weight:600;
+  padding:0.52rem 1rem; border-radius:7px; cursor:pointer;
+  transition:all 0.18s; text-transform:uppercase; letter-spacing:0.04em;
+}
+.btnp { background:transparent; color:var(--muted); border:1px solid var(--brd2); }
+.btnp:hover { color:var(--text); }
+.btnp:disabled { opacity:0.2; cursor:not-allowed; }
+.btnn { flex:1; background:rgba(99,102,241,0.12); color:var(--acc); border:1px solid rgba(99,102,241,0.3); }
+.btnn:hover { background:rgba(99,102,241,0.22); }
+.ctr { font-family:'Inconsolata', monospace; font-size:0.57rem; color:var(--muted); white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <h1><span>McCall</span> · ISO<br>9126 · 25010<br><em>· 9000</em></h1>
+    <div class="tag">Termék + Folyamat // modellek</div>
+  </div>
+  <p>// McCall háromszög · ISO 9126 · ISO 25010 · ISO 9000 elvek</p>
+</header>
+
+<div class="modelbar">
+  <div class="mb-title">// minőségmodellek — aktuális</div>
+  <div class="model-steps" id="modelSteps"></div>
+  <div class="char-pills" id="charPills"></div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 25</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+
+<script>
+const MODELS = [
+  { label:'Termék vs\nFolyamat', color:'var(--acc)',  icon:'⚖️' },
+  { label:'McCall\n3 szint',    color:'var(--mcc)',  icon:'△' },
+  { label:'ISO\n9126',          color:'var(--iso9)', icon:'6' },
+  { label:'ISO\n25010',         color:'var(--iso25)',icon:'✚' },
+  { label:'ISO\n9000',          color:'var(--iso0)', icon:'9' },
+  { label:'Össze\nfoglalás',    color:'#ec4899',     icon:'∑' },
+];
+
+const CHARS_9126 = [
+  { label:'Funkcionalitás', color:'var(--func)' },
+  { label:'Megbízhatóság',  color:'var(--rel)' },
+  { label:'Használhatóság', color:'var(--usa)' },
+  { label:'Hatékonyság',    color:'var(--eff)' },
+  { label:'Karbantarthat.', color:'var(--mnt)' },
+  { label:'Hordozhatóság',  color:'var(--por)' },
+];
+
+const STEPS = [
+
+  // ── 0. TERMÉK VS FOLYAMAT ────────────────────────────────────────
+  {
+    model:0, chars:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">⚖️</div>
+        <div><div class="stitle">Termék-alapú vs Folyamat-alapú</div>
+        <div class="ssub">// két teljesen különböző megközelítés</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+            A szoftverminőség mérésére két fő iskolát különböztetünk meg. Melyikre gondolnátok előbb?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--mcc);text-align:right">Tanuló</div>
+            Hát a terméket nézzük — végül is az a fontos, hogy a szoftver jó legyen?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+            Igaz! De a folyamat is számít — ha jó a gyártási folyamat, akkor a termék is jó lesz. Mint a hamburger: ha jó receptből és jó alapanyagokból készítik, a végeredmény is jó lesz.
+          </div>
+        </div>
+      </div>
+      <div class="comp2">
+        <div style="background:rgba(245,158,11,0.07);border:1.5px solid rgba(245,158,11,0.3);border-radius:10px;padding:0.75rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--mcc);font-weight:700;margin-bottom:0.35rem">📦 TERMÉK-ALAPÚ</div>
+          <div class="cklist" style="margin:0">
+            <div style="font-size:0.7rem;margin-bottom:0.1rem">Magát a szoftvert vizsgálja</div>
+            <div style="font-size:0.68rem;color:var(--muted);font-family:'Inconsolata',monospace">▸ McCall féle modell</div>
+            <div style="font-size:0.68rem;color:var(--muted);font-family:'Inconsolata',monospace">▸ Boehm féle modell</div>
+            <div style="font-size:0.68rem;color:var(--muted);font-family:'Inconsolata',monospace">▸ ISO 9126</div>
+            <div style="font-size:0.68rem;color:var(--muted);font-family:'Inconsolata',monospace">▸ ISO 25010</div>
+          </div>
+        </div>
+        <div style="background:rgba(168,85,247,0.07);border:1.5px solid rgba(168,85,247,0.3);border-radius:10px;padding:0.75rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--iso0);font-weight:700;margin-bottom:0.35rem">⚙️ FOLYAMAT-ALAPÚ</div>
+          <div class="cklist" style="margin:0">
+            <div style="font-size:0.7rem;margin-bottom:0.1rem">A fejlesztési folyamatot vizsgálja</div>
+            <div style="font-size:0.68rem;color:var(--muted);font-family:'Inconsolata',monospace">▸ ISO 9000</div>
+            <div style="font-size:0.68rem;color:var(--muted);font-family:'Inconsolata',monospace">▸ ISO 9000-3 (szoftver)</div>
+            <div style="font-size:0.68rem;color:var(--muted);font-family:'Inconsolata',monospace">▸ CMM/CMMI</div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Különbség egy példán:</strong> Ha egy webshop lassan tölt be → ez TERMÉK minőségi probléma (ISO 25010 Efficiency). Ha a fejlesztési folyamatban nincs performance testing → ez FOLYAMAT minőségi probléma (ISO 9000 hiány). Mindkettő kell!</div>
+    `
+  },
+
+  // ── 1. MCCALL BEVEZETŐ ───────────────────────────────────────────
+  {
+    model:1, chars:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,0.5)">△</div>
+        <div><div class="stitle">McCall féle minőségmodell</div>
+        <div class="ssub">// General Electric, DoD, AirForce — 1977</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--mcc)">Oktató</div>
+            A McCall modell a végterméket veszi alapul — nem a folyamatot. A General Electric fejlesztette a US Defense Department számára. Három szintet azonosít hierarchikusan.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--iso25);text-align:right">Tanuló</div>
+            Mi az a három szint?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--mcc)">Oktató</div>
+            Három nézőpontból vizsgálja a szoftvert: hogyan MŰKÖDIK (operation), hogyan MÓDOSÍTHATÓ (revision), és hogyan VIHETŐ ÁT máshova (transition). Ez a McCall-háromszög.
+          </div>
+        </div>
+      </div>
+      <div class="triangle-vis">
+        <div class="tv-hdr">// McCall minőségi háromszög — 3 nézőpont</div>
+        <div class="tv-row">
+          <div class="tv-side" style="color:var(--op);border-color:rgba(245,158,11,0.3)">OPERATION<br>Működés</div>
+          <div class="tv-factors">
+            <div class="tv-factor" style="background:rgba(245,158,11,0.1);color:var(--op);border-color:rgba(245,158,11,0.3)">Korrektség</div>
+            <div class="tv-factor" style="background:rgba(245,158,11,0.1);color:var(--op);border-color:rgba(245,158,11,0.3)">Megbízhatóság</div>
+            <div class="tv-factor" style="background:rgba(245,158,11,0.1);color:var(--op);border-color:rgba(245,158,11,0.3)">Hatékonyság</div>
+            <div class="tv-factor" style="background:rgba(245,158,11,0.1);color:var(--op);border-color:rgba(245,158,11,0.3)">Biztonság</div>
+            <div class="tv-factor" style="background:rgba(245,158,11,0.1);color:var(--op);border-color:rgba(245,158,11,0.3)">Használhatóság</div>
+          </div>
+        </div>
+        <div class="tv-row">
+          <div class="tv-side" style="color:var(--rev);border-color:rgba(59,130,246,0.3)">REVISION<br>Módosítás</div>
+          <div class="tv-factors">
+            <div class="tv-factor" style="background:rgba(59,130,246,0.1);color:var(--rev);border-color:rgba(59,130,246,0.3)">Karbantarthatóság</div>
+            <div class="tv-factor" style="background:rgba(59,130,246,0.1);color:var(--rev);border-color:rgba(59,130,246,0.3)">Rugalmasság</div>
+            <div class="tv-factor" style="background:rgba(59,130,246,0.1);color:var(--rev);border-color:rgba(59,130,246,0.3)">Tesztelhetőség</div>
+          </div>
+        </div>
+        <div class="tv-row">
+          <div class="tv-side" style="color:var(--tr);border-color:rgba(16,185,129,0.3)">TRANSITION<br>Átvitel</div>
+          <div class="tv-factors">
+            <div class="tv-factor" style="background:rgba(16,185,129,0.1);color:var(--tr);border-color:rgba(16,185,129,0.3)">Hordozhatóság</div>
+            <div class="tv-factor" style="background:rgba(16,185,129,0.1);color:var(--tr);border-color:rgba(16,185,129,0.3)">Újrafelhasználhatóság</div>
+            <div class="tv-factor" style="background:rgba(16,185,129,0.1);color:var(--tr);border-color:rgba(16,185,129,0.3)">Együttműkőd-képesség</div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--mcc)"><strong>3 szint összefoglalva:</strong> Operation = a szoftver napjában 10x fut, stabilan? · Revision = ha bugot találnak, könnyen javítható? · Transition = átvihető más platformra vagy integrálható más rendszerrel?</div>
+    `
+  },
+
+  // ── 2. MCCALL OPERATION ──────────────────────────────────────────
+  {
+    model:1, chars:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,0.5)">🏃</div>
+        <div><div class="stitle">McCall — Operation (Működési) nézőpont</div>
+        <div class="ssub">// hogyan működik a szoftver nap mint nap?</div></div>
+      </div>
+      <div style="background:rgba(245,158,11,0.05);border:1.5px solid rgba(245,158,11,0.3);border-radius:10px;padding:0.75rem;margin-bottom:0.45rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--op);font-weight:700;margin-bottom:0.35rem">OPERATION — Napi működés tényezői</div>
+        <div class="cklist" style="margin:0">
+          <div class="cli" style="border-left:3px solid var(--op)">
+            <div class="cli-i">✅</div>
+            <div><strong>Korrektség</strong>
+            <span>A szoftver azt csinálja, amit kell. Pl. a számológép app 2+2=4 eredményt ad — nem 5-öt. Az összes specifikált funkció helyesen működik.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--op)">
+            <div class="cli-i">🔄</div>
+            <div><strong>Megbízhatóság</strong>
+            <span>Ritkán omlik össze. Gmail 99.9% uptime → 8h 45min leállás/év max. A rendelkezésre állás és stabilitás mértéke.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--op)">
+            <div class="cli-i">⚡</div>
+            <div><strong>Hatékonyság</strong>
+            <span>Kevés erőforrásból sok teljesítmény. Pl. Chrome vs Edge: azonos funkció, de Chrome 3x annyi RAM-ot használ → Chrome KEVÉSBÉ hatékony.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--op)">
+            <div class="cli-i">🔒</div>
+            <div><strong>Biztonság</strong>
+            <span>Védi az adatokat. Pl. a banking app PIN kóddal zárja a munkamenetet 5 perc inaktivitás után → biztonságos. Ha nem → nem biztonságos.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--op)">
+            <div class="cli-i">👆</div>
+            <div><strong>Használhatóság</strong>
+            <span>Könnyen megtanulható, kezelhető. Pl. Duolingo — egy 10 éves gyerek is el tud indítani egy leckét segítség nélkül. Intuitív UI = jó használhatóság.</span></div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 3. MCCALL REVISION + TRANSITION ─────────────────────────────
+  {
+    model:1, chars:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,0.5)">🔧</div>
+        <div><div class="stitle">McCall — Revision &amp; Transition</div>
+        <div class="ssub">// módosíthatóság és átvihetőség</div></div>
+      </div>
+      <div style="background:rgba(59,130,246,0.05);border:1.5px solid rgba(59,130,246,0.3);border-radius:10px;padding:0.75rem;margin-bottom:0.4rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--rev);font-weight:700;margin-bottom:0.3rem">REVISION — Módosíthatóság tényezői</div>
+        <div class="cklist" style="margin:0">
+          <div class="cli" style="border-left:3px solid var(--rev)">
+            <div class="cli-i">🔨</div>
+            <div><strong>Karbantarthatóság</strong>
+            <span>Könnyen javítható bugok esetén. Pl.: "clean code" vs "spaghetti code". Ha a kód olvasható és moduláris, a bug 1 óra alatt megvan. Ha 10 000 soros egy fájl, napokig tart megtalálni.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--rev)">
+            <div class="cli-i">🌿</div>
+            <div><strong>Rugalmasság</strong>
+            <span>Új funkciók könnyen hozzáadhatók. Pl. egy jól tervezett plugin architektúrával (WordPress) bárki új funkciót adhat hozzá anélkül, hogy az alapkódhoz nyúlna.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--rev)">
+            <div class="cli-i">🧪</div>
+            <div><strong>Tesztelhetőség</strong>
+            <span>Könnyen írható és futtatható tesztek. Ha a kód teli van globális state-tel és szoros csatolással → nehéz tesztelni. Clean architektúra → könnyen tesztelhető.</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="background:rgba(16,185,129,0.05);border:1.5px solid rgba(16,185,129,0.3);border-radius:10px;padding:0.75rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--tr);font-weight:700;margin-bottom:0.3rem">TRANSITION — Átvihetőség tényezői</div>
+        <div class="cklist" style="margin:0">
+          <div class="cli" style="border-left:3px solid var(--tr)">
+            <div class="cli-i">🖥️</div>
+            <div><strong>Hordozhatóság</strong>
+            <span>Fut-e más platformon? Pl. Java "write once, run anywhere" — ugyanaz a kód fut Windowson, Linuxon, Macen. A Python script is hordozható — ellentétben egy .exe-vel.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--tr)">
+            <div class="cli-i">♻️</div>
+            <div><strong>Újrafelhasználhatóság</strong>
+            <span>Más projektben is felhasználható-e? Az npm csomagok (lodash, axios) millió projektben vannak újrafelhasználva — ez a magas újrafelhasználhatóság.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--tr)">
+            <div class="cli-i">🔌</div>
+            <div><strong>Együttműköd-képesség</strong>
+            <span>Beilleszthető más rendszerekbe? REST API-val felszerelt szoftver könnyen integrálható — bármilyen más rendszer meg tudja hívni.</span></div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 4. ISO 9126 BEVEZETŐ ─────────────────────────────────────────
+  {
+    model:2, chars:[0,1,2,3,4,5],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,0.5)">6</div>
+        <div><div class="stitle">ISO 9126 — a részletes termékmodell</div>
+        <div class="ssub">// McCall + Boehm ötvözete — 2001</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--iso9)">Oktató</div>
+            Az ISO 9126 a McCall és Boehm modellek alapján alakult ki — a legrészletesebben fogalmazza meg a szoftvertermék minőségi attribútumait. 6 fő jellemzőre bontja a minőséget.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--mcc);text-align:right">Tanuló</div>
+            Mi a különbség McCall-hoz képest?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--iso9)">Oktató</div>
+            Részletesebb és szisztematikusabb. McCall 3 nézőpont → ISO 9126 6 jellemző, mindegyikhez részletes al-jellemzők és mérési metrikák tartoznak (külső, belső, és használat közbeni).
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.35rem;margin:0.45rem 0">
+        <div style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:0.5rem;text-align:center">
+          <div style="font-size:1.1rem;margin-bottom:0.2rem">🔧</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:0.58rem;font-weight:700;color:var(--func)">Funkcionalitás</div>
+        </div>
+        <div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:0.5rem;text-align:center">
+          <div style="font-size:1.1rem;margin-bottom:0.2rem">🔄</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:0.58rem;font-weight:700;color:var(--rel)">Megbízhatóság</div>
+        </div>
+        <div style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:0.5rem;text-align:center">
+          <div style="font-size:1.1rem;margin-bottom:0.2rem">👆</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:0.58rem;font-weight:700;color:var(--usa)">Használhatóság</div>
+        </div>
+        <div style="background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:0.5rem;text-align:center">
+          <div style="font-size:1.1rem;margin-bottom:0.2rem">⚡</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:0.58rem;font-weight:700;color:var(--eff)">Hatékonyság</div>
+        </div>
+        <div style="background:rgba(168,85,247,0.07);border:1px solid rgba(168,85,247,0.3);border-radius:8px;padding:0.5rem;text-align:center">
+          <div style="font-size:1.1rem;margin-bottom:0.2rem">🔨</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:0.58rem;font-weight:700;color:var(--mnt)">Karbantarthat.</div>
+        </div>
+        <div style="background:rgba(34,211,238,0.07);border:1px solid rgba(34,211,238,0.3);border-radius:8px;padding:0.5rem;text-align:center">
+          <div style="font-size:1.1rem;margin-bottom:0.2rem">🖥️</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:0.58rem;font-weight:700;color:var(--por)">Hordozhatóság</div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--iso9)"><strong>4 rész, 4 szabvány:</strong> ISO/IEC 9126-1 (minőségi modell) + 9126-2 (külső metrikák) + 9126-3 (belső metrikák) + 9126-4 (használat közbeni metrikák). Ez az egész ISO 25010-ben tovább fejlődött.</div>
+    `
+  },
+
+  // ── 5. ISO 9126 — FUNKCIONALITÁS ────────────────────────────────
+  {
+    model:2, chars:[0],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,0.5)">🔧</div>
+        <div><div class="stitle">ISO 9126 — 1. Funkcionalitás</div>
+        <div class="ssub">// mit tud a szoftver? mit kellene tudnia?</div></div>
+      </div>
+      <div class="iso-char-card" style="background:rgba(245,158,11,0.05);border-color:rgba(245,158,11,0.35)">
+        <div class="ic-hdr">
+          <div class="ic-icon">🔧</div>
+          <div class="ic-name" style="color:var(--func)">Funkcionalitás</div>
+          <div class="ic-badge" style="background:rgba(245,158,11,0.1);color:var(--func);border-color:rgba(245,158,11,0.3)">1/6</div>
+        </div>
+        <div class="ic-desc">A szoftver rendelkezik-e az összes szükséges és elvárt funkcióval? Helyes-e amit csinál?</div>
+        <div class="ic-example" style="border-color:var(--func)">
+          <div class="ex-label" style="color:var(--func)">Webshop példa — funkcionalitás al-jellemzők</div>
+          <div>✅ <strong>Alkalmasság:</strong> Van kosár, fizetés, szállítás választás, rendelés követés? → Mind megvan.</div>
+          <div>✅ <strong>Pontosság:</strong> A végösszeg helyesen számolódik? Kedvezmények helyesen alkalmazódnak?</div>
+          <div>✅ <strong>Interoperabilitás:</strong> PayPal, Stripe, bankkártya mind működik?</div>
+          <div>✅ <strong>Biztonság:</strong> A jelszavak hash-elve vannak? Fizetés titkosítva?</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🛒</div>
+          <div class="bub l"><div class="who" style="color:var(--func)">QA tesztelő</div>
+            Funkcionalitás teszt: hozzáadok 3 terméket a kosárhoz, 10% kedvezményt alkalmazok, és fizetek PayPal-lal. Helyes az összeg? Megérkezett az e-mail visszaigazolás?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">💻</div>
+          <div class="bub r2"><div class="who" style="color:var(--iso9);text-align:right">Fejlesztő</div>
+            ✅ Összeg helyes, ✅ PayPal sikeres, ✅ E-mail megérkezett, ✅ Készlet csökkent. Funkcionalitás: PASS.
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 6. ISO 9126 — MEGBÍZHATÓSÁG ─────────────────────────────────
+  {
+    model:2, chars:[1],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,0.5)">🔄</div>
+        <div><div class="stitle">ISO 9126 — 2. Megbízhatóság</div>
+        <div class="ssub">// stabil-e? mennyire omlik össze?</div></div>
+      </div>
+      <div class="iso-char-card" style="background:rgba(239,68,68,0.05);border-color:rgba(239,68,68,0.35)">
+        <div class="ic-hdr">
+          <div class="ic-icon">🔄</div>
+          <div class="ic-name" style="color:var(--rel)">Megbízhatóság</div>
+          <div class="ic-badge" style="background:rgba(239,68,68,0.1);color:var(--rel);border-color:rgba(239,68,68,0.3)">2/6</div>
+        </div>
+        <div class="ic-desc">Meghatározott feltételek és időtartam alatt hibátlanul teljesít-e a szoftver?</div>
+        <div class="ic-example" style="border-color:var(--rel)">
+          <div class="ex-label" style="color:var(--rel)">Netflix megbízhatóság — al-jellemzők</div>
+          <div>📊 <strong>Érettség:</strong> Sok hibás állapotba kerül? Netflix 99.99% uptime — évente ~50 perc kiesés max.</div>
+          <div>🔧 <strong>Hibatűrés:</strong> Ha egy szerver elromlik, a másik átveszi? → Netflix Chaos Monkey: szándékosan rombolnak le szervereket, hogy teszteljék a hibatűrést.</div>
+          <div>↩️ <strong>Helyreállíthatóság:</strong> Ha összeomlik, visszaáll-e magától? Docker + Kubernetes: automatikusan újraindul a konténer.</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🦋</div>
+          <div class="bub l"><div class="who" style="color:var(--rel)">Netflix Chaos Monkey</div>
+            Automatikusan lekapcsoltam 3 production szervert... A rendszer észrevette, 30 másodpercen belül átvette más szerver, a felhasználók semmit nem vettek észre.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">👔</div>
+          <div class="bub r2"><div class="who" style="color:var(--iso9);text-align:right">Engineering Lead</div>
+            Megbízhatóság: PASS ✅ — rendszer hibatűrő, automatikusan helyreáll. ISO 9126 Reliability jellemző teljesítve.
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 7. ISO 9126 — HASZNÁLHATÓSÁG ─────────────────────────────────
+  {
+    model:2, chars:[2],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,0.5)">👆</div>
+        <div><div class="stitle">ISO 9126 — 3. Használhatóság</div>
+        <div class="ssub">// könnyű-e megtanulni és használni?</div></div>
+      </div>
+      <div class="iso-char-card" style="background:rgba(16,185,129,0.05);border-color:rgba(16,185,129,0.35)">
+        <div class="ic-hdr">
+          <div class="ic-icon">👆</div>
+          <div class="ic-name" style="color:var(--usa)">Használhatóság (Usability)</div>
+          <div class="ic-badge" style="background:rgba(16,185,129,0.1);color:var(--usa);border-color:rgba(16,185,129,0.3)">3/6</div>
+        </div>
+        <div class="ic-desc">Mennyire könnyű a szoftvert megérteni, megtanulni és hatékonyan kezelni?</div>
+        <div class="ic-example" style="border-color:var(--usa)">
+          <div class="ex-label" style="color:var(--usa)">TikTok vs régi videómegosztó (2010) összehasonlítás</div>
+          <div>🎬 <strong>Megérthetőség:</strong> TikTok megnyitásra azonnal látod mi a funkció — görgetés, like, share. Tanulási görbe: 0 másodperc.</div>
+          <div>📚 <strong>Tanulhatóság:</strong> Régi YouTube (2008): az upload folyamat 12 lépéses volt, dokumentáció kellett. TikTok upload: 3 koppintás.</div>
+          <div>😊 <strong>Vonzóság:</strong> Az UX élvezetes? TikTok algoritmus annyira jó, hogy "véletlenül" 2 órát tölt az ember rajta.</div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--usa)"><strong>A "Nagymama teszt":</strong> Ha a 70 éves nagymama segítség nélkül el tud indítani egy videóhívást az alkalmazásban → a Használhatóság jellemző teljesítve. Steve Jobs ezzel tesztelt — "ha egy 5 éves gyerek nem tudja megcsinálni, az UI rossz".</div>
+    `
+  },
+
+  // ── 8. ISO 9126 — HATÉKONYSÁG + KARBANTARTHATÓSÁG ────────────────
+  {
+    model:2, chars:[3,4],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(99,102,241,0.5)">⚡</div>
+        <div><div class="stitle">ISO 9126 — 4. Hatékonyság &amp; 5. Karbantarthatóság</div>
+        <div class="ssub">// erőforrás-felhasználás és módosíthatóság</div></div>
+      </div>
+      <div class="iso-char-card" style="background:rgba(99,102,241,0.05);border-color:rgba(99,102,241,0.3);margin-bottom:0.35rem">
+        <div class="ic-hdr">
+          <div class="ic-icon">⚡</div>
+          <div class="ic-name" style="color:var(--eff)">Hatékonyság (Efficiency)</div>
+          <div class="ic-badge" style="background:rgba(99,102,241,0.1);color:var(--eff);border-color:rgba(99,102,241,0.3)">4/6</div>
+        </div>
+        <div class="ic-desc">A teljesítmény és az erőforrás-felhasználás aránya.</div>
+        <div class="ic-example" style="border-color:var(--eff)">
+          <div class="ex-label" style="color:var(--eff)">Chrome vs Safari memória</div>
+          <div>💾 Chrome 20 tab: ~2GB RAM. Safari 20 tab: ~700MB RAM. Azonos eredmény, 3x kevesebb erőforrás → Safari HATÉKONYABB. Emiatt jobb az akkumulátor élettartam MacBook-on Safari-val.</div>
+        </div>
+      </div>
+      <div class="iso-char-card" style="background:rgba(168,85,247,0.05);border-color:rgba(168,85,247,0.3)">
+        <div class="ic-hdr">
+          <div class="ic-icon">🔨</div>
+          <div class="ic-name" style="color:var(--mnt)">Karbantarthatóság (Maintainability)</div>
+          <div class="ic-badge" style="background:rgba(168,85,247,0.1);color:var(--mnt);border-color:rgba(168,85,247,0.3)">5/6</div>
+        </div>
+        <div class="ic-desc">Mennyire könnyű módosítani, javítani, fejleszteni a szoftvert?</div>
+        <div class="ic-example" style="border-color:var(--mnt)">
+          <div class="ex-label" style="color:var(--mnt)">Legacy kód vs Clean Code</div>
+          <div>🍝 Spaghetti kód: 1 bug javítása = 3 nap keresés + 2 nap tesztelés. Minden módosítás 5 másik helyen tör el valamit.</div>
+          <div>✨ Clean code (SOLID elvek): Bug megtalálása = 20 perc (unit teszt jelzi a helyet). Javítás = 30 perc. Teszt fut → zöld.</div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 9. ISO 9126 — HORDOZHATÓSÁG ──────────────────────────────────
+  {
+    model:2, chars:[5],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(34,211,238,0.5)">🖥️</div>
+        <div><div class="stitle">ISO 9126 — 6. Hordozhatóság</div>
+        <div class="ssub">// fut-e más platformon? könnyen átköltöztethető?</div></div>
+      </div>
+      <div class="iso-char-card" style="background:rgba(34,211,238,0.05);border-color:rgba(34,211,238,0.35)">
+        <div class="ic-hdr">
+          <div class="ic-icon">🖥️</div>
+          <div class="ic-name" style="color:var(--por)">Hordozhatóság (Portability)</div>
+          <div class="ic-badge" style="background:rgba(34,211,238,0.1);color:var(--por);border-color:rgba(34,211,238,0.3)">6/6</div>
+        </div>
+        <div class="ic-desc">Mennyire könnyű a szoftvert egyik környezetből a másikba átültetni?</div>
+        <div class="ic-example" style="border-color:var(--por)">
+          <div class="ex-label" style="color:var(--por)">Docker — a hordozhatóság forradalma</div>
+          <div>🐳 Régen: "Nálam működik!" szindróma. A szoftver a fejlesztő gépén fut, de a production szerveren nem — mert más OS, más library verziók.</div>
+          <div>🐳 Dockerrel: a konténer magával viszi az egész futási környezetet. Ugyanaz a Docker image fut localon, staging-en, production-ban → 100% hordozhatóság.</div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--por)">
+          <div class="cli-i">🔧</div>
+          <div><strong>Installálhatóság</strong>
+          <span>Könnyen telepíthető? Pl. egy npm install és fut — vs. 50 lépéses setup útmutató.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--por)">
+          <div class="cli-i">🔄</div>
+          <div><strong>Cserélhetőség</strong>
+          <span>Felváltható-e más szoftverrel? Ha a cég Jira-ból Linear-ba akar váltani → az adatok átmigrálhatók? Ha igen → jó cserélhetőség.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--por)">
+          <div class="cli-i">🌍</div>
+          <div><strong>Alkalmazkodhatóság</strong>
+          <span>Különböző környezetekbe beilleszthető? Pl. egy React app fut desktop böngészőben, mobilon, és PWA-ként is — ez jó alkalmazkodhatóság.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 10. ISO 25010 ────────────────────────────────────────────────
+  {
+    model:3, chars:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,0.5)">✚</div>
+        <div><div class="stitle">ISO 25010 — az újabb, bővített modell</div>
+        <div class="ssub">// 2011, a 9126 továbbfejlesztése — +Security +Compatibility</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--iso25)">Oktató</div>
+            Az ISO 25010 a 9126 modernebb változata — teljes mértékben épít rá, de 2011-ben frissítették, hogy megfeleljen a kor kihívásainak. Mi változott?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--mcc);text-align:right">Tanuló</div>
+            Biztosan valami új jellemzőt adtak hozzá?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--iso25)">Oktató</div>
+            Igen! 2 új jellemzőt: Security (Biztonság) és Compatibility (Kompatibilitás). Eddig ezek a Functionality-n belül voltak elrejtve — de 2011-re annyira fontossá váltak, hogy külön főkategóriát kaptak.
+          </div>
+        </div>
+      </div>
+      <div class="comp2">
+        <div style="background:rgba(59,130,246,0.07);border:1.5px solid rgba(59,130,246,0.3);border-radius:10px;padding:0.75rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--iso9);font-weight:700;margin-bottom:0.3rem">ISO 9126 (2001) — 6 jellemző</div>
+          <div style="font-size:0.68rem;color:var(--muted);font-family:'Inconsolata',monospace;line-height:1.6">
+            ▸ Funkcionalitás<br>▸ Megbízhatóság<br>▸ Használhatóság<br>▸ Hatékonyság<br>▸ Karbantarthatóság<br>▸ Hordozhatóság
+          </div>
+        </div>
+        <div style="background:rgba(16,185,129,0.07);border:1.5px solid rgba(16,185,129,0.3);border-radius:10px;padding:0.75rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--iso25);font-weight:700;margin-bottom:0.3rem">ISO 25010 (2011) — 8 jellemző</div>
+          <div style="font-size:0.68rem;color:var(--muted);font-family:'Inconsolata',monospace;line-height:1.6">
+            ▸ Funkcionalitás<br>▸ Megbízhatóság<br>▸ Használhatóság<br>▸ Hatékonyság<br>▸ Karbantarthatóság<br>▸ Hordozhatóság<br>
+            <span style="color:var(--iso25)">▸ <strong>🔒 Security (ÚJ)</strong></span><br>
+            <span style="color:var(--iso25)">▸ <strong>🔌 Compatibility (ÚJ)</strong></span>
+          </div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--iso25)"><strong>Miért kellett a Security?</strong> 2001-ben a legtöbb szoftver lokálisan futott. 2011-re az összes szoftver internethez kapcsolódott — a biztonság kritikus lett. A GDPR, adatszivárgások, hackelések egy év alatt milliárdokat tesznek tönkre.</div>
+    `
+  },
+
+  // ── 11. ISO 25010 — SECURITY + COMPATIBILITY ─────────────────────
+  {
+    model:3, chars:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,0.5)">🔒</div>
+        <div><div class="stitle">ISO 25010 — Security &amp; Compatibility</div>
+        <div class="ssub">// a két új jellemző — miért lényegesek?</div></div>
+      </div>
+      <div class="iso-char-card" style="background:rgba(239,68,68,0.05);border-color:rgba(239,68,68,0.3);margin-bottom:0.4rem">
+        <div class="ic-hdr">
+          <div class="ic-icon">🔒</div>
+          <div class="ic-name" style="color:#ef4444">Security — Biztonság</div>
+          <div class="ic-badge" style="background:rgba(239,68,68,0.1);color:#ef4444;border-color:rgba(239,68,68,0.3)">ÚJ 2011</div>
+        </div>
+        <div class="ic-desc">A szoftver megvédi-e az adatokat és a funkcionalitást illetéktelen hozzáféréstől?</div>
+        <div class="ic-example" style="border-color:#ef4444">
+          <div class="ex-label" style="color:#ef4444">Példák al-jellemzőkre</div>
+          <div>🔐 <strong>Bizalmasság:</strong> A jelszavak bcrypt-tel hash-elve? HTTPS mindenhol?</div>
+          <div>📋 <strong>Integritás:</strong> Az adatok módosítatlanul tárolódnak? Nincs SQL injection?</div>
+          <div>📝 <strong>Letagadhatatlanság:</strong> Minden tranzakciónak van audit trail-je?</div>
+          <div>✅ <strong>Hitelesség:</strong> OAuth/JWT token-ek helyesen kezelve?</div>
+        </div>
+      </div>
+      <div class="iso-char-card" style="background:rgba(34,211,238,0.05);border-color:rgba(34,211,238,0.3)">
+        <div class="ic-hdr">
+          <div class="ic-icon">🔌</div>
+          <div class="ic-name" style="color:#22d3ee">Compatibility — Kompatibilitás</div>
+          <div class="ic-badge" style="background:rgba(34,211,238,0.1);color:#22d3ee;border-color:rgba(34,211,238,0.3)">ÚJ 2011</div>
+        </div>
+        <div class="ic-desc">Mennyire tud együttműködni más szoftverekkel és rendszerekkel?</div>
+        <div class="ic-example" style="border-color:#22d3ee">
+          <div class="ex-label" style="color:#22d3ee">REST API példa</div>
+          <div>🔌 <strong>Együttműkőd-képesség:</strong> A webshop Stripe-tal, PayPal-lal, Revolut-tal is működik? REST API-n keresztül bármi integrálható.</div>
+          <div>🔌 <strong>Koegzisztencia:</strong> A szoftver fut-e más szoftver mellett zavartalanul? Chrome + Antivirus + Teams egyszerre futva nem lassítja-e egymást?</div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 12. ISO 9000 BEVEZETŐ ────────────────────────────────────────
+  {
+    model:4, chars:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,0.5)">9</div>
+        <div><div class="stitle">ISO 9000 — Folyamat-alapú minőség</div>
+        <div class="ssub">// nem a termék, hanem a GYÁRTÁSI FOLYAMAT tanúsítványa</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--iso0)">Oktató</div>
+            Az ISO 9000 teljesen más megközelítés. Nem a terméket minősíti — hanem a fejlesztési folyamatot. Egy termék gyártásának ISO 9001 tanúsítása NEM a termék kiválóságát jelenti!
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--mcc);text-align:right">Tanuló</div>
+            Akkor mit jelent pontosan az ISO 9001 tanúsítvány?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--iso0)">Oktató</div>
+            Azt, hogy a cég gyártási MINŐSÉGBIZTOSÍTÁSI RENDSZERE az ISO 9000 szerint lett kidolgozva. A folyamatuk dokumentált, ellenőrzött, és következetes minőségű terméket állít elő.
+          </div>
+        </div>
+      </div>
+      <div class="comp2">
+        <div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:0.65rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.56rem;color:#ef4444;font-weight:700;margin-bottom:0.2rem">❌ ISO 9001 NEM jelenti:</div>
+          <div style="font-size:0.7rem;line-height:1.5">"A termék kiváló minőségű." Piaci siker garantált. A legjobb termék a piacon.</div>
+        </div>
+        <div style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.25);border-radius:8px;padding:0.65rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.56rem;color:#22c55e;font-weight:700;margin-bottom:0.2rem">✅ ISO 9001 JELENTI:</div>
+          <div style="font-size:0.7rem;line-height:1.5">"A fejlesztési folyamatuk dokumentált és ellenőrzött." Következetesen azonos minőséget állítanak elő.</div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--iso0)"><strong>Analógia:</strong> Ha egy McDonald's ISO 9001 tanúsított — az nem azt jelenti, hogy a Big Mac a világ legjobb hamburgere. Hanem azt, hogy MINDEN Big Mac UGYANOLYAN. Párizstól Tokióig azonos — ez a folyamat-minőség.</div>
+    `
+  },
+
+  // ── 13. ISO 9000 — 8 ALAPELV (1-4) ──────────────────────────────
+  {
+    model:4, chars:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,0.5)">📋</div>
+        <div><div class="stitle">ISO 9000 — 8 minőségirányítási alapelv (1–4)</div>
+        <div class="ssub">// a szervezetek működtetésének alapszabályai</div></div>
+      </div>
+      <div class="elv-card" style="border-left:3px solid #f59e0b">
+        <div class="elv-num" style="color:#f59e0b">1.</div>
+        <div>
+          <div class="elv-title">Vevőközpontúság</div>
+          <div class="elv-desc">A szervezetek a vevőiktől függenek → meg kell érteni a jelenlegi ÉS jövőbeli igényeket, törekedni a vevői elvárások TÚLTELJESÍTÉSÉRE.</div>
+          <div class="elv-ex">🛒 Amazon: "The most customer-centric company on Earth." — minden döntés a vevő szemszögéből. Ezért van a 1-kattintásos vásárlás, az ingyenes visszaküldés.</div>
+        </div>
+      </div>
+      <div class="elv-card" style="border-left:3px solid #3b82f6">
+        <div class="elv-num" style="color:#3b82f6">2.</div>
+        <div>
+          <div class="elv-title">Támogató vezetés</div>
+          <div class="elv-desc">A vezetők hozzák létre a szervezet céljának egységét — olyan belső környezet, amelybe a munkatársak teljesen be tudnak kapcsolódni.</div>
+          <div class="elv-ex">🍎 Steve Jobs: "A minőség nem opcionális." — Top-down minőségi kultúra. Ha a CEO mondja, mindenki komolyan veszi.</div>
+        </div>
+      </div>
+      <div class="elv-card" style="border-left:3px solid #10b981">
+        <div class="elv-num" style="color:#10b981">3.</div>
+        <div>
+          <div class="elv-title">Munkatársak bevonása</div>
+          <div class="elv-desc">A szervezet lényegét minden szinten a munkatársak jelentik — képességeik teljes felhasználása a szervezet javára.</div>
+          <div class="elv-ex">🚗 Toyota: bármelyik összeszerelő-sori munkás leállíthatja a gyártást ha hibát észlel. A minőség nem csak a QA osztály dolga.</div>
+        </div>
+      </div>
+      <div class="elv-card" style="border-left:3px solid #6366f1">
+        <div class="elv-num" style="color:#6366f1">4.</div>
+        <div>
+          <div class="elv-title">Folyamatszemléletű megközelítés</div>
+          <div class="elv-desc">A kívánt célt hatékonyabban lehet elérni, ha a tevékenységeket és erőforrásokat folyamatként kezelik.</div>
+          <div class="elv-ex">🔄 Scrum Sprint folyamat, CI/CD pipeline — minden tevékenység definiált folyamatba szervezett → kiszámítható, mérhető eredmény.</div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 14. ISO 9000 — 8 ALAPELV (5-8) ──────────────────────────────
+  {
+    model:4, chars:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,0.5)">📋</div>
+        <div><div class="stitle">ISO 9000 — 8 minőségirányítási alapelv (5–8)</div>
+        <div class="ssub">// a rendszer, fejlesztés, döntések és beszállítók</div></div>
+      </div>
+      <div class="elv-card" style="border-left:3px solid #a855f7">
+        <div class="elv-num" style="color:#a855f7">5.</div>
+        <div>
+          <div class="elv-title">Rendszerszemlélet az irányításban</div>
+          <div class="elv-desc">Az egymással összefüggő folyamatok rendszerként való azonosítása, megértése és irányítása — eredményes és hatékony célmegvalósítás.</div>
+          <div class="elv-ex">🌐 Egy webshop NEM csak az app — hanem: fejlesztés + deployment + monitoring + support + logisztika + fizetési rendszer együtt. Az egész rendszer egészsége számít.</div>
+        </div>
+      </div>
+      <div class="elv-card" style="border-left:3px solid #22d3ee">
+        <div class="elv-num" style="color:#22d3ee">6.</div>
+        <div>
+          <div class="elv-title">Folyamatos fejlesztés</div>
+          <div class="elv-desc">A szervezet ÁLLANDÓ CÉLJA legyen az átfogó, teljes működésre vonatkozó folyamatos fejlesztés. Kaizen — sosem vagyunk "elég jók".</div>
+          <div class="elv-ex">🔄 Sprint Retrospektív: minden sprint végén "mit csináljunk másképp?" kérdés. Spotify Quarterly Planning: negyedévente felülvizsgálják a folyamatokat.</div>
+        </div>
+      </div>
+      <div class="elv-card" style="border-left:3px solid #f97316">
+        <div class="elv-num" style="color:#f97316">7.</div>
+        <div>
+          <div class="elv-title">Tényeken alapuló döntéshozatal</div>
+          <div class="elv-desc">Az eredményes döntések az adatok és egyéb információk elemzésén alapulnak. "In God we trust; all others must bring data."</div>
+          <div class="elv-ex">📊 A/B tesztelés: nem "szerintem ez a gomb-szín jobb" — hanem 10 000 felhasználón tesztelik. Az adatok döntenek. Google, Facebook minden UI döntést adatok alapján hoz.</div>
+        </div>
+      </div>
+      <div class="elv-card" style="border-left:3px solid #ef4444">
+        <div class="elv-num" style="color:#ef4444">8.</div>
+        <div>
+          <div class="elv-title">Kölcsönösen előnyös kapcsolatok a beszállítókkal</div>
+          <div class="elv-desc">A szervezetek és beszállítóik kölcsönösen függnek egymástól — a kölcsönösen előnyös kapcsolatok révén értékteremtő képességük növekszik.</div>
+          <div class="elv-ex">☁️ AWS és a startupok: AWS AWS-Credits programot adott a startupoknak → startupok az AWS-en nőnek fel → AWS nagy ügyfele lesznek. Win-win kapcsolat.</div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 15. ISO 9000 PROJEKT MINŐSÉGTERV ────────────────────────────
+  {
+    model:4, chars:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,0.5)">📁</div>
+        <div><div class="stitle">ISO 9000 — Szervezet → Projekt kapcsolat</div>
+        <div class="ssub">// minőségi kézikönyv → projekt minőségtervek</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--iso0)">Oktató</div>
+            Az ISO 9000 nem egy egyszeri audit — hanem a szervezet teljes minőségrendszere. Felépítése: szervezeti szint → projekt szint.
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--card);border:1.5px solid var(--brd2);border-radius:9px;padding:0.75rem;margin:0.45rem 0">
+        <div style="font-family:'Inconsolata',monospace;font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.4rem">// ISO 9000 struktúra</div>
+        <div style="background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);border-radius:7px;padding:0.5rem;text-align:center;margin-bottom:0.3rem">
+          <div style="font-weight:700;color:var(--iso0)">📚 Szervezeti Minőségi Kézikönyv</div>
+          <div style="font-size:0.67rem;color:var(--muted);font-family:'Inconsolata',monospace">Az egész cég minőségpolitikája — dokumentálja a szervezeti minőség folyamatot</div>
+        </div>
+        <div style="display:flex;justify-content:center;color:var(--muted);font-size:0.8rem;margin:0.2rem 0">↓ megvalósul mint</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.3rem">
+          <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.3);border-radius:6px;padding:0.4rem;text-align:center">
+            <div style="font-size:0.7rem;font-weight:700;color:var(--iso9)">Projekt 1<br>Minőségterv</div>
+            <div style="font-size:0.6rem;color:var(--muted)">webshop fejlesztés</div>
+          </div>
+          <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.3);border-radius:6px;padding:0.4rem;text-align:center">
+            <div style="font-size:0.7rem;font-weight:700;color:var(--iso9)">Projekt 2<br>Minőségterv</div>
+            <div style="font-size:0.6rem;color:var(--muted)">mobil app</div>
+          </div>
+          <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.3);border-radius:6px;padding:0.4rem;text-align:center">
+            <div style="font-size:0.7rem;font-weight:700;color:var(--iso9)">Projekt 3<br>Minőségterv</div>
+            <div style="font-size:0.6rem;color:var(--muted)">ERP integráció</div>
+          </div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--iso0)">
+          <div class="cli-i">📚</div>
+          <div><strong>Szervezeti Minőségi Kézikönyv</strong>
+          <span>A cég minőségpolitikája. Mit jelent náluk a minőség? Milyen folyamatokat követnek? Hogyan mérik? Ez az ISO 9001 tanúsítvány alapja.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--iso9)">
+          <div class="cli-i">📋</div>
+          <div><strong>Projekt Minőségterv</strong>
+          <span>Minden projektre külön készül — az általános kézikönyvet alkalmazzák a konkrét projekt kontextusára. Pl. a webshop projektnek más tesztelési stratégiája van, mint az ERP-nek.</span></div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--iso0)"><strong>ISO 9000-3:</strong> A szabvány szoftver-specifikus verziója — a szoftver fejlesztés specialitásait veszi figyelembe, pl. a kód review folyamatok, tesztelési stratégiák, dokumentáció követelmények.</div>
+    `
+  },
+
+  // ── 16. MODELLEK ÖSSZEHASONLÍTÁSA ────────────────────────────────
+  {
+    model:5, chars:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">∑</div>
+        <div><div class="stitle">Összefoglalás — Modellek összehasonlítása</div>
+        <div class="ssub">// McCall · ISO 9126 · ISO 25010 · ISO 9000</div></div>
+      </div>
+      <div style="background:var(--card);border:1.5px solid var(--brd2);border-radius:9px;overflow:hidden;margin:0.45rem 0">
+        <div style="display:grid;grid-template-columns:80px 1fr 1fr 60px;background:var(--surf);padding:0.35rem 0.65rem;gap:0.5rem;font-family:'Inconsolata',monospace;font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;border-bottom:1px solid var(--brd);align-items:center">
+          <div>Modell</div><div>Megközelítés</div><div>Mire fókuszál</div><div>Mikor</div>
+        </div>
+        <div style="display:grid;grid-template-columns:80px 1fr 1fr 60px;padding:0.4rem 0.65rem;gap:0.5rem;border-bottom:1px solid var(--brd);font-size:0.68rem;align-items:center">
+          <div style="font-weight:700;color:var(--mcc)">McCall</div>
+          <div>Termék-alapú, 3 nézőpont</div>
+          <div style="color:var(--muted);font-size:0.63rem">Operation / Revision / Transition</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--muted)">1977</div>
+        </div>
+        <div style="display:grid;grid-template-columns:80px 1fr 1fr 60px;padding:0.4rem 0.65rem;gap:0.5rem;border-bottom:1px solid var(--brd);font-size:0.68rem;align-items:center">
+          <div style="font-weight:700;color:var(--iso9)">ISO 9126</div>
+          <div>Termék-alapú, részletes</div>
+          <div style="color:var(--muted);font-size:0.63rem">6 jellemző + al-jellemzők + metrikák</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--muted)">2001</div>
+        </div>
+        <div style="display:grid;grid-template-columns:80px 1fr 1fr 60px;padding:0.4rem 0.65rem;gap:0.5rem;border-bottom:1px solid var(--brd);font-size:0.68rem;align-items:center">
+          <div style="font-weight:700;color:var(--iso25)">ISO 25010</div>
+          <div>Termék-alapú, modern</div>
+          <div style="color:var(--muted);font-size:0.63rem">8 jellemző (+Security, +Compatibility)</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--muted)">2011</div>
+        </div>
+        <div style="display:grid;grid-template-columns:80px 1fr 1fr 60px;padding:0.4rem 0.65rem;gap:0.5rem;font-size:0.68rem;align-items:center">
+          <div style="font-weight:700;color:var(--iso0)">ISO 9000</div>
+          <div>Folyamat-alapú</div>
+          <div style="color:var(--muted);font-size:0.63rem">8 alapelv — a fejlesztési folyamat minősége</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--muted)">folyam.</div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--mcc)">
+          <div class="cli-i">△</div>
+          <div><strong style="color:var(--mcc)">McCall háromszög:</strong>
+          <span>Operation (fut stabilan?) · Revision (módosítható?) · Transition (átvihető?)</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--iso9)">
+          <div class="cli-i">6️⃣</div>
+          <div><strong style="color:var(--iso9)">ISO 9126:</strong>
+          <span>Funkcionalitás · Megbízhatóság · Használhatóság · Hatékonyság · Karbantarthatóság · Hordozhatóság</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--iso25)">
+          <div class="cli-i">✚</div>
+          <div><strong style="color:var(--iso25)">ISO 25010:</strong>
+          <span>= ISO 9126 + 🔒 Security + 🔌 Compatibility (2 új jellemző)</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--iso0)">
+          <div class="cli-i">9️⃣</div>
+          <div><strong style="color:var(--iso0)">ISO 9000:</strong>
+          <span>Folyamat tanúsítvány — 8 alapelv: Vevőközpont · Vezető · Munkatárs · Folyamat · Rendszer · Fejlesztés · Adatok · Beszállítók</span></div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:#ec4899"><strong>A legfontosabb különbség:</strong> ISO 9126/25010 = a szoftver TERMÉK minőségét méri. ISO 9000 = a fejlesztési FOLYAMAT minőségét tanúsítja. Ideálisan MINDKETTŐRE törekszünk — jó folyamatból jó termék születik.</div>
+    `
+  },
+];
+
+function renderBoard(modelIdx, aktCharIdxs) {
+  document.getElementById('modelSteps').innerHTML = MODELS.map((m,i) => {
+    const on = i === modelIdx;
+    const done = i < modelIdx;
+    const cls = on ? 'active' : done ? 'done' : '';
+    const c = on ? m.color : done ? m.color : 'var(--muted)';
+    return `<div class="ms-item ${cls}">
+      <div class="ms-dot" style="border-color:${c};color:${c}">${m.icon}</div>
+      <div class="ms-label" style="color:${on?m.color:'var(--muted)'}">${m.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('charPills').innerHTML = CHARS_9126.map((ch,i) => {
+    const on = aktCharIdxs.includes(i);
+    return `<div class="char-pill ${on?'on':''}" style="border-color:${ch.color};color:${ch.color}">${ch.label}</div>`;
+  }).join('');
+}
+
+let cur = 0;
+
+function render() {
+  const s = STEPS[cur];
+  renderBoard(s.model, s.chars);
+  const el = document.getElementById('content');
+  el.innerHTML = s.render();
+  setTimeout(() => {
+    el.querySelectorAll('.msg:not(.show)').forEach((m,i) => setTimeout(() => m.classList.add('show'), i*160));
+  }, 60);
+  document.getElementById('bprev').disabled = cur === 0;
+  const bn = document.getElementById('bnext');
+  bn.textContent = cur === STEPS.length-1 ? '↺ Újra' : 'Következő →';
+  document.getElementById('ctr').textContent = `${cur+1} / ${STEPS.length}`;
+}
+
+function next() { cur = cur === STEPS.length-1 ? 0 : cur+1; render(); }
+function prev() { if(cur>0){cur--;render();} }
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Szoftverminőség Alapok</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+
+:root {
+  --bg:    #0a0f1e;
+  --surf:  #0f1628;
+  --card:  #141d35;
+  --brd:   #1e2d50;
+  --brd2:  #263a68;
+  --text:  #d8e4ff;
+  --muted: #4a5f8a;
+
+  --q1: #f59e0b;   /* felhasználói */
+  --q2: #3b82f6;   /* termék */
+  --q3: #10b981;   /* folyamat */
+  --q4: #a855f7;   /* érték */
+  --q5: #f97316;   /* transzcendens */
+
+  --d1: #f59e0b;
+  --d2: #3b82f6;
+  --d3: #10b981;
+  --d4: #6366f1;
+  --d5: #a855f7;
+  --d6: #ec4899;
+  --d7: #f97316;
+  --d8: #22d3ee;
+
+  --fok1: #6b7280;
+  --fok2: #f59e0b;
+  --fok3: #3b82f6;
+  --fok4: #10b981;
+
+  --acc: #f59e0b;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background:var(--bg); color:var(--text);
+  font-family:'Sora', sans-serif; min-height:100vh; overflow-x:hidden;
+}
+
+body::before {
+  content:''; position:fixed; inset:0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(245,158,11,0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(59,130,246,0.04) 0%, transparent 50%);
+  pointer-events:none; z-index:0;
+}
+
+header {
+  position:relative; z-index:1;
+  padding:1.2rem 1.3rem 0.85rem;
+  border-bottom:1px solid var(--brd2);
+  background:linear-gradient(180deg, rgba(245,158,11,0.05) 0%, transparent 100%);
+}
+.hdr-row { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+h1 { font-size:1.4rem; font-weight:800; line-height:1.07; letter-spacing:-0.02em; }
+h1 span { color:var(--acc); }
+h1 em   { font-style:normal; color:#10b981; }
+.tag {
+  font-family:'Inconsolata', monospace; font-size:0.56rem;
+  padding:0.25rem 0.55rem; border-radius:4px;
+  background:rgba(245,158,11,0.12); color:var(--acc);
+  border:1px solid rgba(245,158,11,0.28); white-space:nowrap; margin-top:0.2rem;
+}
+header p { font-size:0.7rem; color:var(--muted); margin-top:0.25rem; font-family:'Inconsolata', monospace; }
+
+/* TOP BAR — témakörök */
+.topbar {
+  position:relative; z-index:1;
+  background:var(--surf); border-bottom:1px solid var(--brd2);
+  padding:0.75rem 1.3rem 0.65rem;
+}
+.tb-title {
+  font-family:'Inconsolata', monospace; font-size:0.54rem;
+  color:var(--muted); text-transform:uppercase; letter-spacing:0.09em; margin-bottom:0.5rem;
+}
+.topic-row {
+  display:flex; gap:0; align-items:center; margin-bottom:0.45rem;
+}
+.tp-item {
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:0.18rem; position:relative;
+}
+.tp-item:not(:last-child)::after {
+  content:''; position:absolute; right:0; top:11px;
+  width:50%; height:2px; background:var(--brd); z-index:0;
+}
+.tp-item:not(:first-child)::before {
+  content:''; position:absolute; left:0; top:11px;
+  width:50%; height:2px; background:var(--brd); z-index:0;
+}
+.tp-dot {
+  width:22px; height:22px; border-radius:50%;
+  border:2px solid var(--brd2); background:var(--card);
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.58rem; z-index:1; transition:all 0.35s; position:relative;
+}
+.tp-label {
+  font-family:'Inconsolata', monospace; font-size:0.44rem;
+  color:var(--muted); text-align:center; line-height:1.2;
+}
+.tp-item.active .tp-dot { transform:scale(1.25); box-shadow:0 0 10px currentColor; }
+.tp-item.done .tp-dot { opacity:0.55; }
+.tp-item.active .tp-label { font-weight:700; font-size:0.48rem; }
+
+.fok-chips { display:flex; gap:4px; flex-wrap:wrap; }
+.fok-chip {
+  font-family:'Inconsolata', monospace; font-size:0.54rem; font-weight:600;
+  padding:0.16rem 0.45rem; border-radius:3px; border:1px solid;
+  opacity:0.3; transition:opacity 0.3s;
+}
+.fok-chip.on { opacity:1; }
+
+/* CONTENT */
+.content { position:relative; z-index:1; padding:0.9rem 1.3rem; min-height:275px; }
+
+.shdr { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.85rem; }
+.sico {
+  width:36px; height:36px; border-radius:9px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:1rem;
+  border:1.5px solid var(--brd2); background:var(--card);
+}
+.stitle { font-size:0.95rem; font-weight:800; letter-spacing:-0.02em; }
+.ssub   { font-family:'Inconsolata', monospace; font-size:0.56rem; color:var(--muted); margin-top:0.03rem; }
+
+/* CHAT */
+.chat { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.7rem; }
+.msg { display:flex; gap:0.4rem; align-items:flex-start; opacity:0; transform:translateY(6px); transition:opacity 0.3s, transform 0.3s; }
+.msg.show { opacity:1; transform:translateY(0); }
+.msg.r { flex-direction:row-reverse; }
+.av { width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:0.9rem; flex-shrink:0; border:1px solid var(--brd2); background:var(--card); }
+.bub { max-width:82%; padding:0.48rem 0.68rem; border-radius:9px; font-size:0.77rem; line-height:1.55; border:1px solid var(--brd2); background:var(--card); }
+.bub.l  { border-bottom-left-radius:2px; }
+.bub.r2 { border-bottom-right-radius:2px; text-align:right; }
+.who { font-family:'Inconsolata', monospace; font-size:0.55rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.1rem; }
+
+/* DEFINÍCIÓ KÁRTYÁK */
+.def-card {
+  border-radius:10px; padding:0.75rem 0.85rem; margin:0.35rem 0; border:1.5px solid;
+  display:flex; gap:0.7rem; align-items:flex-start;
+}
+.dc-num { font-family:'Inconsolata', monospace; font-size:1.4rem; font-weight:800; flex-shrink:0; line-height:1; }
+.dc-title { font-size:0.85rem; font-weight:800; margin-bottom:0.18rem; }
+.dc-sub { font-family:'Inconsolata', monospace; font-size:0.55rem; opacity:0.7; margin-bottom:0.2rem; }
+.dc-desc { font-size:0.73rem; line-height:1.55; color:rgba(216,228,255,0.82); }
+.dc-example {
+  margin-top:0.35rem; background:var(--surf); border-radius:6px;
+  padding:0.38rem 0.55rem; font-size:0.7rem; line-height:1.45;
+  border-left:2px solid; color:rgba(216,228,255,0.75);
+}
+.ex-label { font-family:'Inconsolata', monospace; font-size:0.5rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.1rem; }
+
+/* DIMENZIÓ GRID */
+.dim-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.35rem; margin:0.45rem 0; }
+.dim-card {
+  background:var(--card); border:1px solid var(--brd2); border-radius:8px;
+  padding:0.5rem 0.6rem; border-left:3px solid;
+}
+.dim-name { font-size:0.77rem; font-weight:800; margin-bottom:0.1rem; }
+.dim-example { font-size:0.64rem; color:var(--muted); font-family:'Inconsolata', monospace; line-height:1.4; }
+
+/* FOKOZAT CARDS */
+.fok-card {
+  border-radius:11px; padding:0.8rem 0.95rem; margin:0.35rem 0; border:2px solid;
+}
+.fk-header { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.4rem; }
+.fk-num { font-family:'Inconsolata', monospace; font-size:0.58rem; font-weight:700; opacity:0.7; }
+.fk-name { font-size:0.92rem; font-weight:800; letter-spacing:-0.02em; }
+.fk-badge { font-family:'Inconsolata', monospace; font-size:0.52rem; padding:0.1rem 0.45rem; border-radius:3px; border:1px solid; font-weight:700; margin-left:auto; }
+.fk-desc { font-size:0.73rem; line-height:1.55; color:rgba(216,228,255,0.82); margin-bottom:0.35rem; }
+.fk-example {
+  background:var(--surf); border-radius:7px; padding:0.45rem 0.6rem;
+  font-size:0.7rem; line-height:1.45;
+}
+.fk-ex-title { font-family:'Inconsolata', monospace; font-size:0.52rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.12rem; }
+.fk-list { display:flex; flex-direction:column; gap:0.1rem; }
+.fk-item { font-family:'Inconsolata', monospace; font-size:0.66rem; color:var(--muted); }
+.fk-item::before { content:'▸ '; opacity:0.6; }
+
+/* IBOX */
+.ibox {
+  border-radius:8px; padding:0.55rem 0.75rem; font-size:0.74rem; line-height:1.55;
+  margin:0.45rem 0; border:1px solid var(--brd2); background:var(--card);
+  border-left:3px solid var(--acc);
+}
+.ibox strong { font-weight:700; }
+.ibox.g-b { border-left-color:#10b981; }
+.ibox.g-b strong { color:#10b981; }
+.ibox.b-b { border-left-color:#3b82f6; }
+.ibox.b-b strong { color:#3b82f6; }
+
+/* CHECKLIST */
+.cklist { display:flex; flex-direction:column; gap:0.35rem; margin:0.45rem 0; }
+.cli {
+  display:flex; align-items:flex-start; gap:0.5rem;
+  padding:0.42rem 0.65rem; background:var(--card);
+  border:1px solid var(--brd2); border-radius:8px; font-size:0.75rem; line-height:1.45;
+}
+.cli-i { flex-shrink:0; font-size:0.88rem; }
+.cli strong { display:block; font-weight:700; font-size:0.76rem; margin-bottom:0.03rem; }
+.cli span   { color:var(--muted); font-size:0.68rem; font-family:'Inconsolata', monospace; }
+
+/* QUOTE CARD */
+.quote-card {
+  border-radius:11px; padding:0.9rem 1rem; margin:0.45rem 0;
+  border:2px solid rgba(245,158,11,0.35); background:rgba(245,158,11,0.05);
+  position:relative;
+}
+.q-mark { font-size:3rem; line-height:0.8; color:rgba(245,158,11,0.2); font-family:Georgia,serif; position:absolute; top:0.4rem; left:0.6rem; }
+.q-text { font-size:0.82rem; line-height:1.6; font-style:italic; padding-left:1.2rem; color:rgba(216,228,255,0.9); }
+.q-author { font-family:'Inconsolata', monospace; font-size:0.58rem; color:var(--acc); font-weight:700; margin-top:0.4rem; padding-left:1.2rem; }
+
+/* SUMGRID */
+.sumgrid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+.sbox { background:var(--card); border:1px solid var(--brd2); border-radius:8px; padding:0.6rem; text-align:center; }
+.sbox .ico { font-size:1.2rem; display:block; margin-bottom:0.15rem; }
+.sbox .val { font-size:0.88rem; font-weight:800; }
+.sbox .lbl { font-family:'Inconsolata', monospace; font-size:0.52rem; color:var(--muted); margin-top:0.04rem; }
+
+/* COMPARISON */
+.comp-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+
+/* NAV */
+.nav {
+  position:sticky; bottom:0; z-index:10;
+  background:var(--bg); border-top:1px solid var(--brd2);
+  padding:0.7rem 1.3rem; display:flex; align-items:center; gap:0.5rem;
+}
+.btn {
+  font-family:'Inconsolata', monospace; font-size:0.63rem; font-weight:600;
+  padding:0.52rem 1rem; border-radius:7px; cursor:pointer;
+  transition:all 0.18s; text-transform:uppercase; letter-spacing:0.04em;
+}
+.btnp { background:transparent; color:var(--muted); border:1px solid var(--brd2); }
+.btnp:hover { color:var(--text); }
+.btnp:disabled { opacity:0.2; cursor:not-allowed; }
+.btnn { flex:1; background:rgba(245,158,11,0.12); color:var(--acc); border:1px solid rgba(245,158,11,0.3); }
+.btnn:hover { background:rgba(245,158,11,0.22); }
+.ctr { font-family:'Inconsolata', monospace; font-size:0.57rem; color:var(--muted); white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <h1><span>Szoftver</span><br>minőség<br><em>Alapok</em></h1>
+    <div class="tag">4. előadás // Garvin</div>
+  </div>
+  <p>// Mi a minőség? · 5 definíció · 8 dimenzió · 4 fokozat</p>
+</header>
+
+<div class="topbar">
+  <div class="tb-title">// témakörök</div>
+  <div class="topic-row" id="topicRow"></div>
+  <div class="fok-chips" id="fokChips"></div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 22</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+
+<script>
+const TOPICS = [
+  { label:'Mi a\nminőség?', color:'var(--acc)', icon:'❓' },
+  { label:'Garvin\n5 def.', color:'var(--q2)', icon:'📚' },
+  { label:'8\nDimenzió', color:'var(--q3)', icon:'🎯' },
+  { label:'4\nFokozat', color:'var(--q4)', icon:'📈' },
+  { label:'Összefog\nlalás', color:'#ec4899', icon:'∑' },
+];
+
+const FOK_CHIPS = [
+  { label:'1. Ártatlanság', color:'var(--fok1)' },
+  { label:'2. Eszmélés',    color:'var(--fok2)' },
+  { label:'3. Elkötelezettség', color:'var(--fok3)' },
+  { label:'4. Világszínvonal', color:'var(--fok4)' },
+];
+
+const STEPS = [
+
+  // ── 0. MI A MINŐSÉG? BEVEZETŐ ────────────────────────────────────
+  {
+    topic:0, fok:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">❓</div>
+        <div><div class="stitle">Mi a minőség?</div>
+        <div class="ssub">// látszólag egyszerű kérdés — valójában nagyon bonyolult</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+            Mi a minőség? Ha megkérem önöket, hogy mondják meg, melyik autó jobb minőségű — a Porsche vagy a Dacia — mit mondanának?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--q2);text-align:right">Tanuló A</div>
+            Hát nyilván a Porsche — gyorsabb, jobb az anyag, drágább...
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">🙋</div>
+          <div class="bub l"><div class="who" style="color:var(--q3)">Tanuló B</div>
+            De ha valaki szűk utakon akar olcsón közlekedni, és nem zavar fel a Dacia? Akkor a Dacia jobb minőségű — mert jobban megfelel az igényeinek!
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.45s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub r2"><div class="who" style="color:var(--acc);text-align:right">Oktató</div>
+            Pontosan! A minőség nehéz definiálni, lehetetlen pontosan mérni — de könnyű felismerni. Ezért van, hogy Garvin 5 különböző megközelítéssel próbálta leírni.
+          </div>
+        </div>
+      </div>
+      <div class="quote-card">
+        <div class="q-mark">"</div>
+        <div class="q-text">We just can't ship junk. There are thresholds that we can't cross because of who we are.</div>
+        <div class="q-author">— Steve Jobs (1955–2011) · Apple, NeXT, Pixar alapítója</div>
+      </div>
+      <div class="ibox"><strong>A minőség paradoxona:</strong> A minőséget nehéz definiálni, lehetetlen mérni — de könnyű felismerni. Mindenki tudja, ha rossz minőségű szoftvert használ (bugok, lassúság, rossz UI) — de nehéz pontosan megmondani miért.</div>
+    `
+  },
+
+  // ── 1. GARVIN 1 — FELHASZNÁLÓI ───────────────────────────────────
+  {
+    topic:1, fok:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">📚</div>
+        <div><div class="stitle">Garvin 1. definíció — Felhasználói alapú</div>
+        <div class="ssub">// "a minőség a felhasználásra való alkalmasság"</div></div>
+      </div>
+      <div class="def-card" style="background:rgba(245,158,11,0.05);border-color:rgba(245,158,11,0.35)">
+        <div class="dc-num" style="color:var(--q1)">1.</div>
+        <div>
+          <div class="dc-sub" style="color:var(--q1)">FELHASZNÁLÓI ALAPÚ DEFINÍCIÓ</div>
+          <div class="dc-title" style="color:var(--q1)">Alkalmasság a felhasználásra</div>
+          <div class="dc-desc">A minőség az, hogy mennyire teljesíti a termék a felhasználók egyedi igényeit. A legjobb termék az, amelyik ezt a legmagasabb színvonalon képes megtenni.</div>
+          <div class="dc-example" style="border-color:var(--q1)">
+            <div class="ex-label" style="color:var(--q1)">Példa — szoftver</div>
+            <div>🎵 A Spotify akkor jó minőségű, ha az a felhasználó, aki zenehallgatáshoz használja, megtalálja, amit keres, gyorsan betölt, és offline is működik. Egy másiknak a podcast funkció a lényeg — számára az a minőség.</div>
+          </div>
+          <div class="dc-example" style="border-color:var(--muted);margin-top:0.25rem">
+            <div class="ex-label" style="color:var(--muted)">Ellenexempla</div>
+            <div>🔧 A VS Code kiváló minőségű egy fejlesztőnek — de egy 65 éves nagymamának, aki csak e-mailezni akar, nem "jó minőségű", mert nem az ő igényeire való.</div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--q1)"><strong>Szubjektív!</strong> Ez a megközelítés teljesen szubjektív — nincs abszolút mérce. Két ember ugyanarról a termékről teljesen ellentétes véleményt mondhat — és mindkettőnek igaza van a saját szemszögéből.</div>
+    `
+  },
+
+  // ── 2. GARVIN 2 — TERMÉK ALAPÚ ───────────────────────────────────
+  {
+    topic:1, fok:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">📚</div>
+        <div><div class="stitle">Garvin 2. definíció — Termék alapú</div>
+        <div class="ssub">// "a minőség a mérhető paraméterekből következik"</div></div>
+      </div>
+      <div class="def-card" style="background:rgba(59,130,246,0.05);border-color:rgba(59,130,246,0.35)">
+        <div class="dc-num" style="color:var(--q2)">2.</div>
+        <div>
+          <div class="dc-sub" style="color:var(--q2)">TERMÉK ALAPÚ DEFINÍCIÓ</div>
+          <div class="dc-title" style="color:var(--q2)">Objektív, mérhető paraméterek</div>
+          <div class="dc-desc">A minőség a termék mérhető jellemzőiből következik. A termékek közti minőségi különbségek az összetevők különbségeiből fakadnak. A megítélés OBJEKTÍV — nem szubjektív.</div>
+          <div class="dc-example" style="border-color:var(--q2)">
+            <div class="ex-label" style="color:var(--q2)">Példa — szoftver minőség mérőszámok</div>
+            <div>📊 Chrome vs Firefox összehasonlítás:</div>
+            <div>• Memóriahasználat: Chrome 800MB, Firefox 400MB — Firefox jobb</div>
+            <div>• Betöltési sebesség: Chrome 0.8s, Firefox 1.1s — Chrome jobb</div>
+            <div>• Kódhibák száma: 100 000 sorra Chrome 0.3, Firefox 0.5 — Chrome jobb</div>
+          </div>
+          <div class="dc-example" style="border-color:var(--muted);margin-top:0.25rem">
+            <div class="ex-label" style="color:var(--muted)">Szoftver metrika példák</div>
+            <div>Ciklomatikus komplexitás, kódlefedettség %, API válaszidő ms, uptime %, bug/KLOC</div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox b-b"><strong>Objektív, de nem teljes:</strong> A számok nem mondanak el mindent. Egy szoftver lehet hogy minden metrikán jó, de a UI annyira rossz, hogy senki nem akarja használni. A termék alapú megközelítés kiegészítője a felhasználói alapúnak.</div>
+    `
+  },
+
+  // ── 3. GARVIN 3 — FOLYAMAT ALAPÚ ────────────────────────────────
+  {
+    topic:1, fok:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">📚</div>
+        <div><div class="stitle">Garvin 3. definíció — Folyamat alapú</div>
+        <div class="ssub">// "a minőség a specifikációnak való megfelelőség"</div></div>
+      </div>
+      <div class="def-card" style="background:rgba(16,185,129,0.05);border-color:rgba(16,185,129,0.35)">
+        <div class="dc-num" style="color:var(--q3)">3.</div>
+        <div>
+          <div class="dc-sub" style="color:var(--q3)">FOLYAMAT ALAPÚ DEFINÍCIÓ</div>
+          <div class="dc-title" style="color:var(--q3)">Megfelelőség a specifikációnak</div>
+          <div class="dc-desc">A minőség azt jelenti: megfelel-e a termék a specifikációnak? Ha igen → jó minőségű. Ha nem → rossz minőségű. Egyszerű és egyértelmű.</div>
+          <div class="dc-example" style="border-color:var(--q3)">
+            <div class="ex-label" style="color:var(--q3)">Példa — API fejlesztés</div>
+            <div>📋 Spec: "Az API max 200ms válaszidőn belül válaszoljon, 99.9% uptime-mal"</div>
+            <div>✅ Átlagos válaszidő: 150ms → megfelel a specnek → JÓ MINŐSÉG</div>
+            <div>❌ Ha 350ms → nem felel meg a specnek → ROSSZ MINŐSÉG</div>
+          </div>
+          <div class="dc-example" style="border-color:var(--muted);margin-top:0.25rem">
+            <div class="ex-label" style="color:var(--muted)">ISO 9000 kapcsolat</div>
+            <div>Az ISO 9000 szabvány erre épít — a minőségbiztosítási folyamat azt garantálja, hogy a fejlesztési folyamat következetesen specifikáció-kompatibilis terméket állít elő.</div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox g-b"><strong>A szoftverfejlesztés szemszögéből:</strong> Ez a leggyakrabban használt megközelítés — unit tesztek, acceptance tesztek, specifikációk alapján döntjük el, hogy a szoftver "megfelel-e". A TDD (Test Driven Development) ezen alapul.</div>
+    `
+  },
+
+  // ── 4. GARVIN 4+5 ────────────────────────────────────────────────
+  {
+    topic:1, fok:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">📚</div>
+        <div><div class="stitle">Garvin 4–5. definíció — Érték &amp; Transzcendens</div>
+        <div class="ssub">// ár/érték arány és "veleszületett kiválóság"</div></div>
+      </div>
+      <div class="def-card" style="background:rgba(168,85,247,0.05);border-color:rgba(168,85,247,0.35)">
+        <div class="dc-num" style="color:var(--q4)">4.</div>
+        <div>
+          <div class="dc-sub" style="color:var(--q4)">ÉRTÉK ALAPÚ DEFINÍCIÓ</div>
+          <div class="dc-title" style="color:var(--q4)">Ár/teljesítmény arány</div>
+          <div class="dc-desc">A minőséget a COST (ár) függvényében határozza meg. Jó minőségű termék = alacsony áron képes elvégezni a feladatát.</div>
+          <div class="dc-example" style="border-color:var(--q4)">
+            <div class="ex-label" style="color:var(--q4)">Példa</div>
+            <div>💰 A Notion ingyenes verziója: korlátozott funkciók, de ha az ingyen elérhető funkciók fedik az igényt → kiváló érték/ár arány → jó minőség az ár tükrében</div>
+            <div>💰 A Figma $12/hó: ha professzionális designer, aki naponta használja → megéri → jó minőség. Ha havonta egyszer nyitja meg → nem éri meg.</div>
+          </div>
+        </div>
+      </div>
+      <div class="def-card" style="background:rgba(249,115,22,0.05);border-color:rgba(249,115,22,0.35);margin-top:0.35rem">
+        <div class="dc-num" style="color:var(--q5)">5.</div>
+        <div>
+          <div class="dc-sub" style="color:var(--q5)">TRANSZCENDENS DEFINÍCIÓ</div>
+          <div class="dc-title" style="color:var(--q5)">Veleszületett kiválóság — "ezt nem kell magyarázni"</div>
+          <div class="dc-desc">A minőség egyfajta veleszületett kiválóságot jelent. Abszolút, egyetemes — nem kell mérni, nem kell specifikálni. Felismered, amikor látod.</div>
+          <div class="dc-example" style="border-color:var(--q5)">
+            <div class="ex-label" style="color:var(--q5)">Példa</div>
+            <div>🍎 Az eredeti Apple Macintosh felhasználói felülete 1984-ben. Nem kellett mérni — mindenki érezte, hogy valami teljesen más, valami kiváló. A "wow faktor".</div>
+            <div>🎮 A Super Mario Bros. játékmenet. Nem kell magyarázni miért jó — érzed, hogy az.</div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 5. ISO DEFINÍCIÓ ─────────────────────────────────────────────
+  {
+    topic:1, fok:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">📜</div>
+        <div><div class="stitle">A minőség ISO definíciója</div>
+        <div class="ssub">// a szabvány egyértelmű, hivatalos megfogalmazása</div></div>
+      </div>
+      <div class="quote-card" style="border-color:rgba(59,130,246,0.35);background:rgba(59,130,246,0.05)">
+        <div class="q-mark" style="color:rgba(59,130,246,0.2)">"</div>
+        <div class="q-text" style="color:rgba(216,228,255,0.9)">Az egység (termék, szolgáltatás) azon jellemzőinek összessége, amelyek befolyásolják képességét, hogy meghatározott és elvárt igényeket elégítsen ki.</div>
+        <div class="q-author" style="color:var(--q2)">— ISO szabvány (International Organization for Standardization)</div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+            Lefordítva egyszerű nyelvre: a termék, vagy szolgáltatás azt nyújtja a vevőnek, amit akar, amikor akarja, és mindezt megfelelő árért.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--q2);text-align:right">Tanuló</div>
+            Tehát az ISO 3 dolgot vár: a TERMÉKTŐL amit akar, a MIKOR-t amikor akarja, és az ÁRAT ami megfelelő?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+            Igen! Egy webshop például: a vevő megtalálja amit keres (mit), gyorsan betölt (mikor), és a szállítás ára ésszerű (mennyiért). Ha mindhárom teljesül → a webshop jó minőségű.
+          </div>
+        </div>
+      </div>
+      <div class="sumgrid">
+        <div class="sbox" style="border-top:2px solid var(--acc)"><span class="ico">🎯</span><div class="val">MIT?</div><div class="lbl">amit a vevő akar</div></div>
+        <div class="sbox" style="border-top:2px solid var(--q2)"><span class="ico">⏱️</span><div class="val">MIKOR?</div><div class="lbl">amikor akarja</div></div>
+        <div class="sbox" style="border-top:2px solid var(--q3)"><span class="ico">💰</span><div class="val">MENNYIÉRT?</div><div class="lbl">megfelelő árért</div></div>
+        <div class="sbox" style="border-top:2px solid var(--q4)"><span class="ico">😊</span><div class="val">EREDMÉNY</div><div class="lbl">elégedett vevő</div></div>
+      </div>
+    `
+  },
+
+  // ── 6. GARVIN 8 DIMENZIÓ — BEVEZETŐ ─────────────────────────────
+  {
+    topic:2, fok:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">🎯</div>
+        <div><div class="stitle">Garvin 8 minőségi dimenziója</div>
+        <div class="ssub">// mitől elégedett a vevő? — 8 szempont</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+            Garvin azt vizsgálta: a vevők számára a termék vagy szolgáltatás MELY tulajdonságaiból fakad az elégedettség? 8 dimenziót azonosított.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--q3);text-align:right">Tanuló</div>
+            Ez mind szoftvernél is érvényes?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+            Teljesen! Garvin fizikai termékeknél dolgozta ki, de a szoftvernél pontosan ugyanúgy alkalmazzuk. Vegyük az Instagram-ot példaként — mind a 8 dimenzió megjelenik ott.
+          </div>
+        </div>
+      </div>
+      <div class="dim-grid">
+        <div class="dim-card" style="border-color:var(--d1)"><div class="dim-name" style="color:var(--d1)">1. Teljesítmény</div><div class="dim-example">alapvető funkciók mennyire jók</div></div>
+        <div class="dim-card" style="border-color:var(--d2)"><div class="dim-name" style="color:var(--d2)">2. Sajátosságok</div><div class="dim-example">megkülönböztető jellemzők</div></div>
+        <div class="dim-card" style="border-color:var(--d3)"><div class="dim-name" style="color:var(--d3)">3. Megbízhatóság</div><div class="dim-example">milyen ritkán romlik el</div></div>
+        <div class="dim-card" style="border-color:var(--d4)"><div class="dim-name" style="color:var(--d4)">4. Megfelelés</div><div class="dim-example">szabványoknak megfelel-e</div></div>
+        <div class="dim-card" style="border-color:var(--d5)"><div class="dim-name" style="color:var(--d5)">5. Tartósság</div><div class="dim-example">meddig marad használható</div></div>
+        <div class="dim-card" style="border-color:var(--d6)"><div class="dim-name" style="color:var(--d6)">6. Használhatóság</div><div class="dim-example">mennyire könnyű kiaknázni</div></div>
+        <div class="dim-card" style="border-color:var(--d7)"><div class="dim-name" style="color:var(--d7)">7. Esztétika</div><div class="dim-example">külső megjelenés</div></div>
+        <div class="dim-card" style="border-color:var(--d8)"><div class="dim-name" style="color:var(--d8)">8. Felismert minőség</div><div class="dim-example">márkaérték, hírnév</div></div>
+      </div>
+    `
+  },
+
+  // ── 7. DIMENZIÓ 1–2 ──────────────────────────────────────────────
+  {
+    topic:2, fok:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">🎯</div>
+        <div><div class="stitle">1. Teljesítmény &amp; 2. Sajátosságok</div>
+        <div class="ssub">// az alap és ami megkülönböztet</div></div>
+      </div>
+      <div class="def-card" style="background:rgba(245,158,11,0.05);border-color:rgba(245,158,11,0.3)">
+        <div class="dc-num" style="color:var(--d1)">1.</div>
+        <div>
+          <div class="dc-sub" style="color:var(--d1)">TELJESÍTMÉNY</div>
+          <div class="dc-title">A termék alapvető felhasználhatósága</div>
+          <div class="dc-desc">Az alapvető funkciók minőségét méri — azt, amire a terméket ténylegesen használják.</div>
+          <div class="dc-example" style="border-color:var(--d1)">
+            <div class="ex-label" style="color:var(--d1)">Google Maps példa</div>
+            <div>🗺️ Teljesítmény = útvonalak pontossága, forgalmi info frissessége, betöltési sebesség. Ha ezek jók → teljesítmény dimenzió jó.</div>
+          </div>
+        </div>
+      </div>
+      <div class="def-card" style="background:rgba(59,130,246,0.05);border-color:rgba(59,130,246,0.3)">
+        <div class="dc-num" style="color:var(--d2)">2.</div>
+        <div>
+          <div class="dc-sub" style="color:var(--d2)">SAJÁTOSSÁGOK</div>
+          <div class="dc-title">Ami megkülönbözteti a konkurenciától</div>
+          <div class="dc-desc">A termék alapvető jellemzője, amely megkülönbözteti más hasonló terméktől — az extra "features".</div>
+          <div class="dc-example" style="border-color:var(--d2)">
+            <div class="ex-label" style="color:var(--d2)">Gmail sajátosságai vs más e-mail</div>
+            <div>✉️ Sajátosságok: intelligens spam szűrő, "Undo Send" funkció, 15 GB ingyenes tárhely, keresés az egész mailboxban másodpercek alatt. Ezek különböztetik meg a Hotmail-től.</div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Különbség:</strong> A Teljesítmény az alap, amit minden konkurens kínál. A Sajátosságok az extra, amitől a te terméked kiemelkedik. iPhone Teljesítmény = hívás, SMS. Sajátosság = Face ID, Animoji, AirDrop.</div>
+    `
+  },
+
+  // ── 8. DIMENZIÓ 3–4 ──────────────────────────────────────────────
+  {
+    topic:2, fok:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">🎯</div>
+        <div><div class="stitle">3. Megbízhatóság &amp; 4. Megfelelés</div>
+        <div class="ssub">// mennyire stabil és mennyire felel meg a szabványoknak</div></div>
+      </div>
+      <div class="def-card" style="background:rgba(16,185,129,0.05);border-color:rgba(16,185,129,0.3)">
+        <div class="dc-num" style="color:var(--d3)">3.</div>
+        <div>
+          <div class="dc-sub" style="color:var(--d3)">MEGBÍZHATÓSÁG</div>
+          <div class="dc-title">Annak valószínűsége, hogy nem romlik el</div>
+          <div class="dc-desc">Annak valószínűsége, hogy a termék a használati idő alatt hibátlanul működik.</div>
+          <div class="dc-example" style="border-color:var(--d3)">
+            <div class="ex-label" style="color:var(--d3)">Gmail vs e-mail szerver összehasonlítás</div>
+            <div>📧 Gmail megbízhatósága: 99.9% uptime → évente max. <strong>8 óra 45 perc</strong> leállás megengedett</div>
+            <div>📧 Ha a saját céges szerver 99.5% → évente 43 óra leállás → kétszer naponta leállhat az e-mail → nem megbízható!</div>
+          </div>
+        </div>
+      </div>
+      <div class="def-card" style="background:rgba(99,102,241,0.05);border-color:rgba(99,102,241,0.3)">
+        <div class="dc-num" style="color:var(--d4)">4.</div>
+        <div>
+          <div class="dc-sub" style="color:var(--d4)">MEGFELELÉS</div>
+          <div class="dc-title">Szabványoknak, követelményeknek megfelelés</div>
+          <div class="dc-desc">A szabványokban rögzített követelmények kielégítése. Tömegtermelésnél különösen fontos — nem lehet minden terméket egyedileg ellenőrizni (LEGO példa).</div>
+          <div class="dc-example" style="border-color:var(--d4)">
+            <div class="ex-label" style="color:var(--d4)">Szoftver megfelelési példák</div>
+            <div>📋 GDPR megfelelés: minden EU-s felhasználó adatát az EU-ban kell tárolni</div>
+            <div>📋 PCI-DSS: ha bankkártyás fizetést kezel → auditált biztonsági standard</div>
+            <div>📋 WCAG 2.1: akadálymentes webdesign — látáscsökkentett felhasználóknak is</div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 9. DIMENZIÓ 5–6 ──────────────────────────────────────────────
+  {
+    topic:2, fok:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">🎯</div>
+        <div><div class="stitle">5. Tartósság &amp; 6. Használhatóság</div>
+        <div class="ssub">// meddig él és mennyire könnyen kiaknázható</div></div>
+      </div>
+      <div class="def-card" style="background:rgba(168,85,247,0.05);border-color:rgba(168,85,247,0.3)">
+        <div class="dc-num" style="color:var(--d5)">5.</div>
+        <div>
+          <div class="dc-sub" style="color:var(--d5)">TARTÓSSÁG</div>
+          <div class="dc-title">Használati idő alatti teljesítmény mértéke</div>
+          <div class="dc-desc">Meddig marad a termék/szoftver használható és hasznos anélkül, hogy nagyobb befektetésre lenne szükség.</div>
+          <div class="dc-example" style="border-color:var(--d5)">
+            <div class="ex-label" style="color:var(--d5)">Szoftver tartósság példa</div>
+            <div>🖥️ Windows XP-t 2001-ben adták ki. 2014-ig kapott official supportot (13 év!). Sok gép még 2023-ban is futtatja ipari rendszerekben. Ez tartósság.</div>
+            <div>🖥️ Egy React app, amit 2018-ban írtak. 2024-re a könyvtár annyira megváltozott, hogy újra kellett írni. Szoftver "tartóssági" probléma.</div>
+          </div>
+        </div>
+      </div>
+      <div class="def-card" style="background:rgba(236,72,153,0.05);border-color:rgba(236,72,153,0.3)">
+        <div class="dc-num" style="color:var(--d6)">6.</div>
+        <div>
+          <div class="dc-sub" style="color:var(--d6)">HASZNÁLHATÓSÁG</div>
+          <div class="dc-title">A lehetőségek kiaknázhatósága</div>
+          <div class="dc-desc">Mennyire könnyű a termék által kínált lehetőségeket kiaknázni — UX, tanulhatóság, dokumentáció.</div>
+          <div class="dc-example" style="border-color:var(--d6)">
+            <div class="ex-label" style="color:var(--d6)">iPhone vs Android gyári visszaállítás</div>
+            <div>📱 iPhone: Beállítások → Általános → iPhone átvitele / visszaállítása → 3 lépés. Bárki megcsinálja.</div>
+            <div>📱 Régi Android: Gyártótól függ, néha különleges gombkombináció, néha Recovery mode, néha ADB parancssor... A "lehetőség megvan" de nem kiaknázható könnyen.</div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 10. DIMENZIÓ 7–8 ─────────────────────────────────────────────
+  {
+    topic:2, fok:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">🎯</div>
+        <div><div class="stitle">7. Esztétika &amp; 8. Felismert minőség</div>
+        <div class="ssub">// kinézet és márkahatás</div></div>
+      </div>
+      <div class="def-card" style="background:rgba(249,115,22,0.05);border-color:rgba(249,115,22,0.3)">
+        <div class="dc-num" style="color:var(--d7)">7.</div>
+        <div>
+          <div class="dc-sub" style="color:var(--d7)">ESZTÉTIKAI TULAJDONSÁGOK</div>
+          <div class="dc-title">A termék külső jegyeinek összessége</div>
+          <div class="dc-desc">Hogyan néz ki? Hogyan érzi magát a használat során? Vizuális design, animációk, hanghatások — az érzékekre ható elemek összessége.</div>
+          <div class="dc-example" style="border-color:var(--d7)">
+            <div class="ex-label" style="color:var(--d7)">Notion vs Google Docs összehasonlítás</div>
+            <div>📝 Notion esztétikája: minimalist dark/light theme, szép ikonok, smooth animációk, minden egységes. Öröm megnyitni.</div>
+            <div>📝 Régi Google Docs (2012-es): funkcionalitásra jó, de a design egyszínű, inspirálatlan. Ugyanaz a funkció, de más esztétikai élmény.</div>
+          </div>
+        </div>
+      </div>
+      <div class="def-card" style="background:rgba(34,211,238,0.05);border-color:rgba(34,211,238,0.3)">
+        <div class="dc-num" style="color:var(--d8)">8.</div>
+        <div>
+          <div class="dc-sub" style="color:var(--d8)">FELISMERT MINŐSÉG</div>
+          <div class="dc-title">Márkanév, hírnév — a percepció maga a minőség</div>
+          <div class="dc-desc">A márkanév, a termék jó híre a felhasználók körében tovább emeli a PERCEPCIÓT a minőségről — akár a tényleges minőségtől függetlenül is.</div>
+          <div class="dc-example" style="border-color:var(--d8)">
+            <div class="ex-label" style="color:var(--d8)">Apple vs ugyanolyan laptop más márkától</div>
+            <div>💻 Egy 1500 eurós Lenovo ThinkPad technikai szempontból azonos vagy jobb egy 1500 eurós MacBook Air-nél. De a MacBook-ot sokan automatikusan jobb minőségűnek érzékelik az Apple márka miatt.</div>
+            <div>🌐 A Stack Overflow válasza: ha SO-n megtalálod a megoldást, automatikusan megbízhatóbbnak érzed mint egy random blogposton.</div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 11. FOKOZATOK BEVEZETŐ ───────────────────────────────────────
+  {
+    topic:3, fok:[0,1,2,3],
+    render:()=>`
+      <div class="shdr"><div class="sico">📈</div>
+        <div><div class="stitle">A minőség 4 fokozata</div>
+        <div class="ssub">// hogyan érik el a cégek a minőségi kultúrát?</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--q4)">Oktató</div>
+            A cégek nem egyik napról a másikra válnak minőségtudatossá. 4 fokozatot azonosítottak, amelyeken általában végigmennek — mint egy érési folyamat.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--q2);text-align:right">Tanuló</div>
+            Egy mai startup például melyiknél tarthat?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--q4)">Oktató</div>
+            Tipikusan az 1. vagy 2. fokozatnál. A legtöbb induló cég a "ship fast" kultúrában él — minőség másodlagos. A 3-4. fokozatot általában csak érettebb, ISO-tanúsított cégek érik el.
+          </div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--fok1)">
+          <div class="cli-i">😴</div>
+          <div><strong style="color:var(--fok1)">1. Ártatlanság kora</strong>
+          <span>"Ship junk, it'll be fine." A minőség szükséges rossz, a profit fontosabb.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--fok2)">
+          <div class="cli-i">😳</div>
+          <div><strong style="color:var(--fok2)">2. Eszmélés időszaka</strong>
+          <span>"Hmm, a bugok pénzbe kerülnek." Felismerik, de még alig van eszközük.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--fok3)">
+          <div class="cli-i">💪</div>
+          <div><strong style="color:var(--fok3)">3. Elkötelezettség kora</strong>
+          <span>ISO bevezetés, QA csapat, 50% cost reduction. Rendszer van.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--fok4)">
+          <div class="cli-i">🏆</div>
+          <div><strong style="color:var(--fok4)">4. Világszínvonal elérése</strong>
+          <span>Minőség DNS-szinten — mindenki felelős. Folyamatos fejlesztés.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 12. FOKOZAT 1 ────────────────────────────────────────────────
+  {
+    topic:3, fok:[0],
+    render:()=>`
+      <div class="shdr"><div class="sico">😴</div>
+        <div><div class="stitle">1. Fokozat — Az ártatlanság kora</div>
+        <div class="ssub">// "ez van, ezt kell szeretni" — a minőség szükséges rossz</div></div>
+      </div>
+      <div class="fok-card" style="background:rgba(107,114,128,0.06);border-color:rgba(107,114,128,0.35)">
+        <div class="fk-header">
+          <div class="fk-num">FOKOZAT 01/04</div>
+          <div class="fk-name" style="color:var(--fok1)">Az ártatlanság kora</div>
+          <div class="fk-badge" style="background:rgba(107,114,128,0.15);color:var(--fok1);border-color:rgba(107,114,128,0.3)">Naiv</div>
+        </div>
+        <div class="fk-desc">A cég nincs tudatában a minőség fontosságának. A hibákat sorscsapásnak tartják — "ezek mindig előfordulnak". A profit fontosabb, mint a vevő elégedettsége.</div>
+        <div class="fk-example">
+          <div class="fk-ex-title" style="color:var(--fok1)">Tipikus mondások ezen a szinten</div>
+          <div class="fk-list">
+            <div class="fk-item">❌ "A vevő majd megszokja a bugokat"</div>
+            <div class="fk-item">❌ "Miért teszteljünk? Úgyis jó lesz"</div>
+            <div class="fk-item">❌ "A selejtszám nő? Normális, szép idők jönnek"</div>
+            <div class="fk-item">❌ "Gyorsabb kiadni, mint tesztelni"</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👔</div>
+          <div class="bub l"><div class="who" style="color:var(--fok1)">Vezető (2003-as startup)</div>
+            Tegyük ki ma! A bugokat majd a következő patchben javítjuk.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">💻</div>
+          <div class="bub r2"><div class="who" style="color:var(--q2);text-align:right">Fejlesztő</div>
+            De még nem teszteltük a payment flow-t...
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👔</div>
+          <div class="bub l"><div class="who" style="color:var(--fok1)">Vezető</div>
+            Majd a felhasználók jelzik ha baj van! Ők a legjobb tesztelők.
+          </div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--fok1)"><strong>Valódi példa:</strong> Az első generációs Facebook 2004-ben. "Move fast and break things" — a minőség másodlagos volt a gyors növekedésnél. Rengeteg bug, de a felhasználók maradtak, mert nem volt más.</div>
+    `
+  },
+
+  // ── 13. FOKOZAT 2 ────────────────────────────────────────────────
+  {
+    topic:3, fok:[1],
+    render:()=>`
+      <div class="shdr"><div class="sico">😳</div>
+        <div><div class="stitle">2. Fokozat — Az eszmélés időszaka</div>
+        <div class="ssub">// "a minőség pénzbe kerül, de a fennmaradáshoz szükséges"</div></div>
+      </div>
+      <div class="fok-card" style="background:rgba(245,158,11,0.05);border-color:rgba(245,158,11,0.3)">
+        <div class="fk-header">
+          <div class="fk-num">FOKOZAT 02/04</div>
+          <div class="fk-name" style="color:var(--fok2)">Az eszmélés időszaka</div>
+          <div class="fk-badge" style="background:rgba(245,158,11,0.15);color:var(--fok2);border-color:rgba(245,158,11,0.3)">Ébredő</div>
+        </div>
+        <div class="fk-desc">A cég felismeri, hogy a minőség pénzbe kerül — de a fennmaradáshoz szükséges. Átszervezik a struktúrát, keresik a vevők véleményét. A minőség-ellenőrzés helyett minőségbiztosítás kezd kialakulni.</div>
+        <div class="fk-example">
+          <div class="fk-ex-title" style="color:var(--fok2)">Mi változik ezen a szinten</div>
+          <div class="fk-list">
+            <div class="fk-item">✅ Megkérdezik a vevőket: mit csinálnánk jobban?</div>
+            <div class="fk-item">✅ Elkezdik mérni a hibák számát (bug tracker)</div>
+            <div class="fk-item">✅ Az első QA tesztelőt felveszik</div>
+            <div class="fk-item">❌ Még nincs rendszer — egyéni hőstettekre épül</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👔</div>
+          <div class="bub l"><div class="who" style="color:var(--fok2)">CEO (2010-es startup)</div>
+            3 nagy ügyfél panaszkodott bugokra és elment a konkurenshez. Elveszítettük 40K €-t. Szükségünk van QA-re.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">💻</div>
+          <div class="bub r2"><div class="who" style="color:var(--q2);text-align:right">CTO</div>
+            Felveszünk egy tesztelőt, és bevezetjük a Jira bug trackert. Elkezdjük mérni hány bugot szállítunk ki.
+          </div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--fok2)"><strong>Valódi példa:</strong> Twitter 2008-2010 körül — a "Fail Whale" (bálna kép amit a leállásokkor mutatott) annyira híressé vált, hogy mémé vált. Ez az "eszmélés" pillanata volt — rájöttek, hogy a megbízhatóság üzleti kérdés.</div>
+    `
+  },
+
+  // ── 14. FOKOZAT 3 ────────────────────────────────────────────────
+  {
+    topic:3, fok:[2],
+    render:()=>`
+      <div class="shdr"><div class="sico">💪</div>
+        <div><div class="stitle">3. Fokozat — Az elkötelezettség kora</div>
+        <div class="ssub">// "a gyenge minőség 50% cost növekedést okoz"</div></div>
+      </div>
+      <div class="fok-card" style="background:rgba(59,130,246,0.05);border-color:rgba(59,130,246,0.3)">
+        <div class="fk-header">
+          <div class="fk-num">FOKOZAT 03/04</div>
+          <div class="fk-name" style="color:var(--fok3)">Az elkötelezettség kora</div>
+          <div class="fk-badge" style="background:rgba(59,130,246,0.15);color:var(--fok3);border-color:rgba(59,130,246,0.3)">Rendszeres</div>
+        </div>
+        <div class="fk-desc">A minőség gazdasági szükségszerűség. A minőségbiztosítási rendszer megvalósítva és ellenőrzve. A gyenge minőség kiküszöbölése 50%-os cost csökkentést eredményez. Munkavállalók is bevonva.</div>
+        <div class="fk-example">
+          <div class="fk-ex-title" style="color:var(--fok3)">Rendszer szinten megjelenik</div>
+          <div class="fk-list">
+            <div class="fk-item">✅ ISO 9001 tanúsítvány megszerzése</div>
+            <div class="fk-item">✅ Dedikált QA csapat, automatizált tesztek</div>
+            <div class="fk-item">✅ Vevői NPS score mérése és célként kezelése</div>
+            <div class="fk-item">✅ Munkavállalók nyereségmegosztásban részt vesznek</div>
+            <div class="fk-item">✅ Minőségi metrikák a dashboardon vannak</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👔</div>
+          <div class="bub l"><div class="who" style="color:var(--fok3)">Engineering Manager</div>
+            Bevezettük a CI/CD-t, az automatizált tesztek 80% lefedettséget biztosítanak. A production bugok száma 70%-kal csökkent. A support ticketek feleannyiak lettek.
+          </div>
+        </div>
+      </div>
+      <div class="ibox b-b"><strong>50% cost reduction:</strong> Philip Crosby "Quality is Free" könyve bizonyítja: a hibák javítása production-ban 100x drágább mint fejlesztés közben. Az elkötelezettség korában ezt már mérhetően látják a cégek.</div>
+    `
+  },
+
+  // ── 15. FOKOZAT 4 ────────────────────────────────────────────────
+  {
+    topic:3, fok:[3],
+    render:()=>`
+      <div class="shdr"><div class="sico">🏆</div>
+        <div><div class="stitle">4. Fokozat — Világszínvonal elérése</div>
+        <div class="ssub">// "minden munkatárs felelős a minőségért"</div></div>
+      </div>
+      <div class="fok-card" style="background:rgba(16,185,129,0.05);border-color:rgba(16,185,129,0.3)">
+        <div class="fk-header">
+          <div class="fk-num">FOKOZAT 04/04</div>
+          <div class="fk-name" style="color:var(--fok4)">Világszínvonal elérése</div>
+          <div class="fk-badge" style="background:rgba(16,185,129,0.15);color:var(--fok4);border-color:rgba(16,185,129,0.3)">Excellence</div>
+        </div>
+        <div class="fk-desc">A minőségi szemlélet mindenek felett áll. A megelőzés az élet útja — nem a hibák javítása, hanem elkerülése. Folyamatos, sosem befejezett tökéletesítés (Kaizen). Mindenki felelős.</div>
+        <div class="fk-example">
+          <div class="fk-ex-title" style="color:var(--fok4)">Mit jelent a gyakorlatban</div>
+          <div class="fk-list">
+            <div class="fk-item">✅ Bárki leállíthatja a "gyártást" ha hibát lát (Toyota módszer)</div>
+            <div class="fk-item">✅ Minden sprint retro-ban minőségi kérdések is előkerülnek</div>
+            <div class="fk-item">✅ Vevők lelkesedése a cél — nem csak elégedettsége</div>
+            <div class="fk-item">✅ Six Sigma, Lean — rendszerszintű minőség</div>
+            <div class="fk-item">✅ A CEO is törődik a minőséggel — top-down kultúra</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🍎</div>
+          <div class="bub l"><div class="who" style="color:var(--fok4)">Apple (Jobs korszak)</div>
+            "We just can't ship junk." — A szoftver vagy tökéletes, vagy nem megy ki. Az animáció 60fps, vagy nem animáció.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🔴</div>
+          <div class="bub r2"><div class="who" style="color:var(--q3);text-align:right">Toyota gyár</div>
+            Bármelyik munkás megállíthatja a futószalagot, ha hibát észlel. Nem szégyenletes — kötelező. Ez a minőség kultúra.
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 16. JUNK PARADOXON ───────────────────────────────────────────
+  {
+    topic:3, fok:[0,1,2,3],
+    render:()=>`
+      <div class="shdr"><div class="sico">💡</div>
+        <div><div class="stitle">A minőség és a költség paradoxona</div>
+        <div class="ssub">// "a minőség ingyenes" — Philip Crosby</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🙋</div>
+          <div class="bub l"><div class="who" style="color:var(--q2)">Tanuló</div>
+            Várjuk csak — ha jobban tesztelünk, több időt töltünk a fejlesztéssel. Nem kerül ez többe?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub r2"><div class="who" style="color:var(--acc);text-align:right">Oktató</div>
+            Látszólag igen. De nézzük a számokat! Egy bug javítási költsége szorozva a fázissal:
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--card);border:1.5px solid var(--brd2);border-radius:9px;overflow:hidden;margin:0.45rem 0">
+        <div style="background:var(--surf);padding:0.35rem 0.7rem;font-family:'Inconsolata',monospace;font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;border-bottom:1px solid var(--brd)">// bug javítás relatív költsége</div>
+        <div style="display:grid;grid-template-columns:1fr 80px;padding:0.38rem 0.7rem;border-bottom:1px solid var(--brd);font-size:0.7rem;align-items:center;gap:0.5rem">
+          <div>📋 Tervezés közben találják meg</div>
+          <div style="font-family:'Inconsolata',monospace;font-weight:800;color:#10b981">1x</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 80px;padding:0.38rem 0.7rem;border-bottom:1px solid var(--brd);font-size:0.7rem;align-items:center;gap:0.5rem">
+          <div>💻 Kódolás közben találják meg</div>
+          <div style="font-family:'Inconsolata',monospace;font-weight:800;color:#22c55e">10x</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 80px;padding:0.38rem 0.7rem;border-bottom:1px solid var(--brd);font-size:0.7rem;align-items:center;gap:0.5rem">
+          <div>🧪 Tesztelés közben találják meg</div>
+          <div style="font-family:'Inconsolata',monospace;font-weight:800;color:#f59e0b">50x</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 80px;padding:0.38rem 0.7rem;font-size:0.7rem;align-items:center;gap:0.5rem">
+          <div>🚀 Production-ban találja meg a vevő</div>
+          <div style="font-family:'Inconsolata',monospace;font-weight:800;color:#ef4444">100–1000x</div>
+        </div>
+      </div>
+      <div class="ibox g-b"><strong>Következtetés:</strong> Ha production-ban kell javítani egy bugot, az 100–1000x többe kerül mint ha tervezés közben találták volna meg. Ezért "ingyenes a minőség" — a megelőzésbe fektetett pénz sokszorosát hozza vissza.</div>
+    `
+  },
+
+  // ── 17. ÖSSZEFOGLALÁS ────────────────────────────────────────────
+  {
+    topic:4, fok:[0,1,2,3],
+    render:()=>`
+      <div class="shdr"><div class="sico">∑</div>
+        <div><div class="stitle">Összefoglalás — Szoftverminőség alapok</div>
+        <div class="ssub">// Garvin · ISO · 4 fokozat</div></div>
+      </div>
+      <div class="sumgrid">
+        <div class="sbox" style="border-top:2px solid var(--acc)">
+          <span class="ico">📚</span>
+          <div class="val">5 Definíció</div>
+          <div class="lbl">Garvin megközelítései</div>
+        </div>
+        <div class="sbox" style="border-top:2px solid var(--q3)">
+          <span class="ico">🎯</span>
+          <div class="val">8 Dimenzió</div>
+          <div class="lbl">vevő szemszögéből</div>
+        </div>
+        <div class="sbox" style="border-top:2px solid var(--q4)">
+          <span class="ico">📈</span>
+          <div class="val">4 Fokozat</div>
+          <div class="lbl">minőségi érettség</div>
+        </div>
+        <div class="sbox" style="border-top:2px solid var(--q2)">
+          <span class="ico">💰</span>
+          <div class="val">100–1000x</div>
+          <div class="lbl">késői bugjavítás drágasága</div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--acc)">
+          <div class="cli-i">📚</div>
+          <div><strong>Garvin 5 megközelítése:</strong>
+          <span>Felhasználói (alkalmasság) · Termék (mérhető) · Folyamat (spec-nek megfelelés) · Érték (ár/telj.) · Transzcendens (veleszületett kiválóság)</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--q3)">
+          <div class="cli-i">🎯</div>
+          <div><strong>Garvin 8 dimenziója:</strong>
+          <span>Teljesítmény · Sajátosságok · Megbízhatóság · Megfelelés · Tartósság · Használhatóság · Esztétika · Felismert minőség</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--fok1)">
+          <div class="cli-i">📈</div>
+          <div><strong>1. Ártatlanság kora:</strong>
+          <span>Profit > Minőség. "Ezt kell szeretni." Hibák sorscsapás.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--fok2)">
+          <div class="cli-i">😳</div>
+          <div><strong>2. Eszmélés:</strong>
+          <span>Felismerés: minőség kell. Első QA tesztelő, bug tracker.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--fok3)">
+          <div class="cli-i">💪</div>
+          <div><strong>3. Elkötelezettség:</strong>
+          <span>ISO tanúsítvány. 50% cost csökkentés. Rendszer van.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--fok4)">
+          <div class="cli-i">🏆</div>
+          <div><strong>4. Világszínvonal:</strong>
+          <span>Mindenki felelős. Megelőzés. Folyamatos fejlesztés. Kaizen.</span></div>
+        </div>
+      </div>
+      <div class="ibox"><strong>A legfontosabb mondat:</strong> "A minőség az, ha a vevő jön vissza — és nem a termék." Ha a szoftver jó, a felhasználó visszatér. Ha rossz, a termék visszajön reklamációval.</div>
+    `
+  },
+];
+
+function renderBoard(topicIdx, aktivFokok) {
+  document.getElementById('topicRow').innerHTML = TOPICS.map((t,i) => {
+    const on = i === topicIdx;
+    const done = i < topicIdx;
+    const cls = on ? 'active' : done ? 'done' : '';
+    const c = on ? t.color : done ? t.color : 'var(--muted)';
+    return `<div class="tp-item ${cls}">
+      <div class="tp-dot" style="border-color:${c};color:${c}">${t.icon}</div>
+      <div class="tp-label" style="color:${on?t.color:'var(--muted)'}">${t.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('fokChips').innerHTML = FOK_CHIPS.map((f,i) => {
+    const on = aktivFokok.includes(i);
+    return `<div class="fok-chip ${on?'on':''}" style="border-color:${f.color};color:${f.color}">${f.label}</div>`;
+  }).join('');
+}
+
+let cur = 0;
+
+function render() {
+  const s = STEPS[cur];
+  renderBoard(s.topic, s.fok);
+  const el = document.getElementById('content');
+  el.innerHTML = s.render();
+  setTimeout(() => {
+    el.querySelectorAll('.msg:not(.show)').forEach((m,i) => setTimeout(() => m.classList.add('show'), i*160));
+  }, 60);
+  document.getElementById('bprev').disabled = cur === 0;
+  const bn = document.getElementById('bnext');
+  bn.textContent = cur === STEPS.length-1 ? '↺ Újra' : 'Következő →';
+  document.getElementById('ctr').textContent = `${cur+1} / ${STEPS.length}`;
+}
+
+function next() { cur = cur === STEPS.length-1 ? 0 : cur+1; render(); }
+function prev() { if(cur>0){cur--;render();} }
+
+render();
+</script>
+</body>
+</html>
