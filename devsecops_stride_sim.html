@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevSecOps &amp; STRIDE Szimuláció</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+
+:root {
+  --bg:    #0a0f1e;
+  --surf:  #0f1628;
+  --card:  #141d35;
+  --brd:   #1e2d50;
+  --brd2:  #263a68;
+  --text:  #d8e4ff;
+  --muted: #4a5f8a;
+
+  --sec:   #ef4444;
+  --sec2:  #f87171;
+  --dev:   #3b82f6;
+  --ops:   #10b981;
+  --warn:  #f59e0b;
+  --info:  #6366f1;
+
+  /* STRIDE colors */
+  --s: #f59e0b;   /* Spoofing */
+  --t: #ef4444;   /* Tampering */
+  --r: #a855f7;   /* Repudiation */
+  --i: #3b82f6;   /* Info Disclosure */
+  --d: #10b981;   /* DoS */
+  --e: #f97316;   /* Elevation */
+
+  /* Security tools */
+  --sast: #6366f1;
+  --dast: #ef4444;
+  --iast: #a855f7;
+  --sca:  #10b981;
+  --siem: #f97316;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Sora', sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(239,68,68,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(168,85,247,0.05) 0%, transparent 50%);
+  pointer-events:none; z-index:0;
+}
+
+header {
+  position:relative; z-index:1;
+  padding:1.2rem 1.3rem 0.85rem;
+  border-bottom:1px solid var(--brd2);
+  background:linear-gradient(180deg, rgba(239,68,68,0.06) 0%, transparent 100%);
+}
+.hdr-row { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+h1 { font-size:1.4rem; font-weight:800; line-height:1.07; letter-spacing:-0.02em; }
+h1 span { color:var(--sec); }
+h1 em   { font-style:normal; color:#a855f7; }
+.tag {
+  font-family:'Inconsolata', monospace; font-size:0.56rem;
+  padding:0.25rem 0.55rem; border-radius:4px;
+  background:rgba(239,68,68,0.12); color:var(--sec);
+  border:1px solid rgba(239,68,68,0.28); white-space:nowrap; margin-top:0.2rem;
+}
+header p { font-size:0.7rem; color:var(--muted); margin-top:0.25rem; font-family:'Inconsolata', monospace; }
+
+/* SECURITY LEVEL BAR */
+.sec-board {
+  position:relative; z-index:1;
+  background:var(--surf);
+  border-bottom:1px solid var(--brd2);
+  padding:0.75rem 1.3rem 0.65rem;
+}
+.sb-title {
+  font-family:'Inconsolata', monospace; font-size:0.54rem;
+  color:var(--muted); text-transform:uppercase; letter-spacing:0.09em;
+  margin-bottom:0.5rem;
+}
+.topic-steps {
+  display:flex; align-items:center; gap:0; margin-bottom:0.45rem;
+}
+.ts-item {
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:0.2rem;
+  position:relative;
+}
+.ts-item:not(:last-child)::after {
+  content:''; position:absolute; right:0; top:12px;
+  width:50%; height:2px; background:var(--brd); z-index:0;
+}
+.ts-item:not(:first-child)::before {
+  content:''; position:absolute; left:0; top:12px;
+  width:50%; height:2px; background:var(--brd); z-index:0;
+}
+.ts-dot {
+  width:24px; height:24px; border-radius:50%;
+  border:2px solid var(--brd2); background:var(--card);
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.6rem; z-index:1; transition:all 0.4s; position:relative;
+}
+.ts-label {
+  font-family:'Inconsolata', monospace; font-size:0.45rem;
+  color:var(--muted); text-align:center; line-height:1.2;
+}
+.ts-item.active .ts-dot { transform:scale(1.2); box-shadow:0 0 10px currentColor; }
+.ts-item.done   .ts-dot { opacity:0.55; }
+.ts-item.active .ts-label { font-weight:700; }
+
+.threat-bar { display:flex; gap:4px; flex-wrap:wrap; }
+.threat-pill {
+  display:flex; align-items:center; gap:0.25rem;
+  padding:0.18rem 0.5rem; border-radius:20px;
+  font-family:'Inconsolata', monospace; font-size:0.55rem;
+  font-weight:600; border:1px solid; transition:all 0.35s; opacity:0.28;
+}
+.threat-pill.on { opacity:1; }
+
+/* CONTENT */
+.content {
+  position:relative; z-index:1;
+  padding:0.9rem 1.3rem;
+  min-height:275px;
+}
+.shdr { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.85rem; }
+.sico {
+  width:36px; height:36px; border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1rem; flex-shrink:0;
+  border:1.5px solid var(--brd2); background:var(--card);
+}
+.stitle { font-size:0.95rem; font-weight:800; letter-spacing:-0.02em; }
+.ssub   { font-family:'Inconsolata', monospace; font-size:0.56rem; color:var(--muted); margin-top:0.03rem; }
+
+/* CHAT */
+.chat { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.7rem; }
+.msg {
+  display:flex; gap:0.4rem; align-items:flex-start;
+  opacity:0; transform:translateY(6px); transition:opacity 0.3s, transform 0.3s;
+}
+.msg.show { opacity:1; transform:translateY(0); }
+.msg.r { flex-direction:row-reverse; }
+.av {
+  width:30px; height:30px; border-radius:7px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.9rem; flex-shrink:0; border:1px solid var(--brd2); background:var(--card);
+}
+.bub {
+  max-width:82%; padding:0.48rem 0.68rem;
+  border-radius:9px; font-size:0.77rem; line-height:1.55;
+  border:1px solid var(--brd2); background:var(--card);
+}
+.bub.l  { border-bottom-left-radius:2px; }
+.bub.r2 { border-bottom-right-radius:2px; text-align:right; }
+.who {
+  font-family:'Inconsolata', monospace; font-size:0.55rem;
+  font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.1rem;
+}
+
+/* INFO BOX */
+.ibox {
+  border-radius:8px; padding:0.55rem 0.75rem;
+  font-size:0.74rem; line-height:1.55; margin:0.45rem 0;
+  border:1px solid var(--brd2); background:var(--card);
+  border-left:3px solid var(--sec);
+}
+.ibox strong { font-weight:700; }
+.ibox.warn-b { border-left-color:var(--warn); }
+.ibox.warn-b strong { color:var(--warn); }
+.ibox.info-b { border-left-color:var(--info); }
+.ibox.info-b strong { color:var(--info); }
+.ibox.ok-b { border-left-color:var(--ops); }
+.ibox.ok-b strong { color:var(--ops); }
+
+/* CHECKLIST */
+.cklist { display:flex; flex-direction:column; gap:0.35rem; margin:0.45rem 0; }
+.cli {
+  display:flex; align-items:flex-start; gap:0.5rem;
+  padding:0.42rem 0.65rem; background:var(--card);
+  border:1px solid var(--brd2); border-radius:8px;
+  font-size:0.75rem; line-height:1.45;
+}
+.cli-i { flex-shrink:0; font-size:0.88rem; }
+.cli strong { display:block; font-weight:700; font-size:0.76rem; margin-bottom:0.03rem; }
+.cli span   { color:var(--muted); font-size:0.68rem; font-family:'Inconsolata', monospace; }
+
+/* STRIDE CARD — big */
+.stride-card {
+  border-radius:11px; padding:0.8rem 0.9rem;
+  margin:0.45rem 0; border:2px solid;
+}
+.sc-header { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.4rem; }
+.sc-letter {
+  font-family:'Inconsolata', monospace; font-size:2rem; font-weight:800;
+  line-height:1; flex-shrink:0; width:36px; text-align:center;
+}
+.sc-top {
+  display:flex; flex-direction:column; gap:0.05rem;
+}
+.sc-name { font-size:0.95rem; font-weight:800; letter-spacing:-0.02em; }
+.sc-prop { font-family:'Inconsolata', monospace; font-size:0.56rem; opacity:0.7; }
+.sc-badge {
+  font-family:'Inconsolata', monospace; font-size:0.54rem;
+  padding:0.12rem 0.5rem; border-radius:3px; border:1px solid;
+  font-weight:700; margin-left:auto;
+}
+.sc-desc { font-size:0.75rem; line-height:1.6; color:rgba(216,228,255,0.85); margin-bottom:0.4rem; }
+.sc-example {
+  background:var(--surf); border-radius:6px; padding:0.45rem 0.6rem;
+  font-size:0.72rem; line-height:1.5;
+}
+.sc-ex-label {
+  font-family:'Inconsolata', monospace; font-size:0.52rem;
+  font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.15rem;
+}
+.sc-mitigation {
+  margin-top:0.35rem; font-size:0.7rem;
+  font-family:'Inconsolata', monospace; color:var(--ops);
+}
+.sc-mitigation::before { content:'→ Védelem: '; font-weight:700; }
+
+/* TOOL CARD */
+.tool-card {
+  border-radius:10px; padding:0.75rem 0.85rem;
+  margin:0.35rem 0; border:1.5px solid;
+}
+.tc-hdr { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.3rem; }
+.tc-badge {
+  font-family:'Inconsolata', monospace; font-size:0.58rem;
+  padding:0.15rem 0.5rem; border-radius:4px; border:1px solid; font-weight:800;
+}
+.tc-name { font-size:0.85rem; font-weight:800; }
+.tc-full { font-family:'Inconsolata', monospace; font-size:0.56rem; opacity:0.7; }
+.tc-desc { font-size:0.73rem; line-height:1.55; color:rgba(216,228,255,0.82); }
+.tc-tools { display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.3rem; }
+.tc-tool {
+  font-family:'Inconsolata', monospace; font-size:0.56rem;
+  padding:0.15rem 0.45rem; border-radius:3px; border:1px solid; font-weight:600;
+}
+
+/* VS GRID */
+.vs-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+
+/* SUMGRID */
+.sumgrid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+.sbox { background:var(--card); border:1px solid var(--brd2); border-radius:8px; padding:0.6rem; text-align:center; }
+.sbox .ico { font-size:1.2rem; display:block; margin-bottom:0.15rem; }
+.sbox .val { font-size:0.88rem; font-weight:800; }
+.sbox .lbl { font-family:'Inconsolata', monospace; font-size:0.52rem; color:var(--muted); margin-top:0.04rem; }
+
+/* PIPELINE SHIFT LEFT VISUAL */
+.pipeline-sec {
+  display:flex; align-items:stretch; gap:3px;
+  border-radius:8px; overflow:hidden; border:1px solid var(--brd2);
+  margin:0.45rem 0;
+}
+.ps-phase {
+  flex:1; padding:0.5rem 0.25rem; text-align:center;
+  font-family:'Inconsolata', monospace; font-size:0.5rem;
+  font-weight:700; line-height:1.3;
+  display:flex; flex-direction:column; align-items:center; gap:0.2rem;
+}
+.ps-icon { font-size:0.85rem; }
+.ps-name { font-size:0.46rem; }
+.ps-sec {
+  font-size:0.42rem; padding:0.1rem 0.25rem; border-radius:2px;
+  border:1px solid rgba(239,68,68,0.4); background:rgba(239,68,68,0.1);
+  color:var(--sec); font-weight:700; margin-top:0.1rem;
+}
+
+/* NAV */
+.nav {
+  position:sticky; bottom:0; z-index:10;
+  background:var(--bg); border-top:1px solid var(--brd2);
+  padding:0.7rem 1.3rem; display:flex; align-items:center; gap:0.5rem;
+}
+.btn {
+  font-family:'Inconsolata', monospace; font-size:0.63rem; font-weight:600;
+  padding:0.52rem 1rem; border-radius:7px; cursor:pointer;
+  transition:all 0.18s; text-transform:uppercase; letter-spacing:0.04em;
+}
+.btnp { background:transparent; color:var(--muted); border:1px solid var(--brd2); }
+.btnp:hover { color:var(--text); }
+.btnp:disabled { opacity:0.2; cursor:not-allowed; }
+.btnn { flex:1; background:rgba(239,68,68,0.12); color:var(--sec); border:1px solid rgba(239,68,68,0.3); }
+.btnn:hover { background:rgba(239,68,68,0.22); }
+.ctr { font-family:'Inconsolata', monospace; font-size:0.57rem; color:var(--muted); white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <h1><span>DevSecOps</span><br>&amp; <em>STRIDE</em><br>Szimuláció</h1>
+    <div class="tag">Shift Left // Security</div>
+  </div>
+  <p>// Biztonság minden fázisban — STRIDE · SAST · DAST · IAST · SCA · SIEM</p>
+</header>
+
+<div class="sec-board">
+  <div class="sb-title">// DevSecOps témakörök — aktuális téma</div>
+  <div class="topic-steps" id="topicSteps"></div>
+  <div class="threat-bar" id="threatBar"></div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 19</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+
+<script>
+const TOPICS = [
+  { label:'DevSecOps\nalapok', color:'var(--sec)', icon:'🔒' },
+  { label:'Shift\nLeft', color:'var(--warn)', icon:'⬅️' },
+  { label:'Threat\nModelling', color:'#a855f7', icon:'⚠️' },
+  { label:'STRIDE', color:'var(--info)', icon:'🎯' },
+  { label:'Security\nStack', color:'var(--sast)', icon:'🧰' },
+  { label:'Infra\nSecurity', color:'var(--siem)', icon:'🔐' },
+];
+
+const THREATS = [
+  { label:'S — Spoofing',    color:'var(--s)', icon:'🎭' },
+  { label:'T — Tampering',   color:'var(--t)', icon:'✏️' },
+  { label:'R — Repudiation', color:'var(--r)', icon:'🙈' },
+  { label:'I — Info Disc.',  color:'var(--i)', icon:'👁️' },
+  { label:'D — DoS',         color:'var(--d)', icon:'💥' },
+  { label:'E — Elevation',   color:'var(--e)', icon:'⬆️' },
+];
+
+const STEPS = [
+
+  // ── 0. BEVEZETŐ ──────────────────────────────────────────────────
+  {
+    topic:0, threats:[],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(239,68,68,0.5)">🔒</div>
+        <div><div class="stitle">DevSecOps — Mi és Miért?</div>
+        <div class="ssub">// 3.5. — Development · Security · Operations</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--sec)">Oktató</div>
+            Mi a különbség a DevOps és a DevSecOps között?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--dev);text-align:right">Tanuló</div>
+            Gondolom valahol bejön a Security is?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--sec)">Oktató</div>
+            Pontosan! A DevSecOps a biztonságot a fejlesztési életciklus MINDEN fázisába integrálja — nem csak az utolsó fázisban végzett biztonsági auditot jelent. Ez az alapvető különbség.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.45s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--dev);text-align:right">Tanuló</div>
+            Eddig mikor foglalkoztak a biztonsággal?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.6s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--sec)">Oktató</div>
+            A régi megközelítésben a biztonság az utolsó fázisra maradt — sérülékenység tesztelés deploy előtt. Ez drága, lassú és kockázatos. DevSecOps mindezt megváltoztatja.
+          </div>
+        </div>
+      </div>
+      <div class="ibox"><strong>DevSecOps célja:</strong> Hatékonyan csökkenteni a biztonsági réseket (sérülékenységeket) tartalmazó kód kiadásának kockázatát. Különösen kritikus nagy felhő-alapú rendszereknél, ahol a komplexitás miatt a manuális biztonsági ellenőrzés nem elegendő.</div>
+    `
+  },
+
+  // ── 1. DEVOPS VS DEVSECOPS ───────────────────────────────────────
+  {
+    topic:0, threats:[],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(239,68,68,0.5)">⚖️</div>
+        <div><div class="stitle">DevOps vs DevSecOps</div>
+        <div class="ssub">// mi változik a Security bevezetésével?</div></div>
+      </div>
+      <div class="vs-grid">
+        <div style="background:rgba(16,185,129,0.07);border:1.5px solid rgba(16,185,129,0.3);border-radius:10px;padding:0.75rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--ops);font-weight:700;margin-bottom:0.35rem">🔄 DevOps</div>
+          <div class="rc-list" style="display:flex;flex-direction:column;gap:0.15rem">
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Plan → Code → Build → Test</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Release → Deploy → Operate → Monitor</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Biztonság: tesztelési fázisban</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ CI/CD automatizálva</div>
+          </div>
+        </div>
+        <div style="background:rgba(239,68,68,0.07);border:1.5px solid rgba(239,68,68,0.3);border-radius:10px;padding:0.75rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--sec);font-weight:700;margin-bottom:0.35rem">🔒 DevSecOps</div>
+          <div class="rc-list" style="display:flex;flex-direction:column;gap:0.15rem">
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Plan: Threat Modelling</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Code: SAST elemzés</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Build: SCA dependency scan</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Test: DAST + etikus hacking</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Deploy: container security scan</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Monitor: SIEM + IDS</div>
+          </div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--sec)">
+          <div class="cli-i">👥</div>
+          <div><strong>Security mérnök a csapat tagja</strong>
+          <span>A kiberbiztonsági architektek és biztonsági mérnökök a fejlesztő csapat SZERVES része — nem kívülről jönnek "auditálni".</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--sec)">
+          <div class="cli-i">🤝</div>
+          <div><strong>Megosztott felelősség</strong>
+          <span>Együttműködés és automatizálás révén a csapatok megosztják a biztonsággal kapcsolatos felelősséget — nem csak a "security team" dolga.</span></div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Microsoft SDL:</strong> A Microsoft Security Development Lifecycle (SDL) az egyik legismertebb DevSecOps megközelítés — Microsoft beépítette a biztonsági ellenőrzéseket a fejlesztési folyamat minden fázisába.</div>
+    `
+  },
+
+  // ── 2. SHIFT LEFT ────────────────────────────────────────────────
+  {
+    topic:1, threats:[],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(245,158,11,0.5)">⬅️</div>
+        <div><div class="stitle">"Shift Left" — a DevSecOps mantra</div>
+        <div class="ssub">// tolja a biztonságot balra — kezdd KORÁN!</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--warn)">Oktató</div>
+            A "shift left" azt jelenti: toljuk a biztonságot a DevOps pipeline jobb oldaláról — a végéről — a bal oldalára, az elejére. Ez az egész DevSecOps gondolkodás alappillére.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--dev);text-align:right">Tanuló</div>
+            Miért fontos, hogy korán foglalkozzunk a biztonsággal?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--warn)">Oktató</div>
+            Egy fejlesztés ELEJÉN talált sebezhetőség megjavítása kb. 1 munkaóra. Production-ban talált sebezhetőség: esetleg hetekig tart, adatszivárgással, reputáció kárral jár.
+          </div>
+        </div>
+      </div>
+      <div style="margin:0.45rem 0">
+        <div style="font-family:'Inconsolata',monospace;font-size:0.52rem;color:var(--muted);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.07em">// Security minden fázisban (Shift Left megvalósítva)</div>
+        <div class="pipeline-sec">
+          <div class="ps-phase" style="background:rgba(245,158,11,0.08)">
+            <div class="ps-icon">📋</div>
+            <div class="ps-name" style="color:var(--warn)">Plan</div>
+            <div class="ps-sec">Threat Model</div>
+          </div>
+          <div class="ps-phase" style="background:rgba(59,130,246,0.08)">
+            <div class="ps-icon">💻</div>
+            <div class="ps-name" style="color:var(--dev)">Code</div>
+            <div class="ps-sec">SAST</div>
+          </div>
+          <div class="ps-phase" style="background:rgba(99,102,241,0.08)">
+            <div class="ps-icon">🔨</div>
+            <div class="ps-name" style="color:#818cf8">Build</div>
+            <div class="ps-sec">SCA</div>
+          </div>
+          <div class="ps-phase" style="background:rgba(168,85,247,0.08)">
+            <div class="ps-icon">🧪</div>
+            <div class="ps-name" style="color:#a855f7">Test</div>
+            <div class="ps-sec">DAST</div>
+          </div>
+          <div class="ps-phase" style="background:rgba(34,211,238,0.08)">
+            <div class="ps-icon">🚀</div>
+            <div class="ps-name" style="color:#22d3ee">Deploy</div>
+            <div class="ps-sec">ContScan</div>
+          </div>
+          <div class="ps-phase" style="background:rgba(239,68,68,0.08)">
+            <div class="ps-icon">📊</div>
+            <div class="ps-name" style="color:var(--sec)">Monitor</div>
+            <div class="ps-sec">SIEM/IDS</div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox warn-b"><strong>Shift Left = proaktív biztonság:</strong> A biztonsági kockázatokat, kitettségeket idejekorán felismerjük és kezeljük — a lehető legkorábban. Ez drámaian csökkenti a végső biztonsági incidensek valószínűségét és javítási költségét.</div>
+    `
+  },
+
+  // ── 3. THREAT MODELLING BEVEZETŐ ─────────────────────────────────
+  {
+    topic:2, threats:[],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(168,85,247,0.5)">⚠️</div>
+        <div><div class="stitle">Fenyegetettség Modellezés</div>
+        <div class="ssub">// Threat Modelling — a Plan fázis biztonsági pillére</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🔒</div>
+          <div class="bub l"><div class="who" style="color:#a855f7">Security architekt</div>
+            A Threat Modelling egy strukturált megközelítés: azonosítjuk a rendszert fenyegető biztonsági kockázatokat még mielőtt egyetlen sor kódot is írnánk.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--dev);text-align:right">Tanuló</div>
+            Mit azonosítanak pontosan?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">🔒</div>
+          <div class="bub l"><div class="who" style="color:#a855f7">Security architekt</div>
+            Lehetséges támadásokat, azok hatásait, és az ellenük való védekezés stratégiáit. Így a sebezhetőségeket a fejlesztési folyamat KORAI szakaszában azonosítjuk.
+          </div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid #a855f7">
+          <div class="cli-i">1️⃣</div>
+          <div><strong>Biztonsági követelmények meghatározása</strong>
+          <span>Mit kell megvédenünk? Adatok, funkciók, interfészek. Mi a rendszer "crown jewel"-je?</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid #a855f7">
+          <div class="cli-i">2️⃣</div>
+          <div><strong>Alkalmazási diagram — Data Flow Diagram</strong>
+          <span>Hol folynak az adatok? Milyen rendszerhatárokat lépnek át? Ki fér hozzá mit? A DFD alapján azonosíthatók a veszélyes pontok.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid #a855f7">
+          <div class="cli-i">3️⃣</div>
+          <div><strong>Fenyegetések azonosítása (STRIDE)</strong>
+          <span>Módszeres végigmenetel a rendszeren: mi történne ha valaki megpróbálna betörni? STRIDE kategóriák alapján gondolkodunk.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid #a855f7">
+          <div class="cli-i">4️⃣</div>
+          <div><strong>Mérséklési stratégia kidolgozása</strong>
+          <span>Minden azonosított fenyegetésre: mitigáció, kontroll, elfogadás vagy átvállalás? Kockázati mátrix alapján prioritizálva.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid #a855f7">
+          <div class="cli-i">5️⃣</div>
+          <div><strong>Validálás</strong>
+          <span>Az intézkedések hatékonyságának ellenőrzése pentesting, code review és audit segítségével.</span></div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:#a855f7"><strong>Modellek:</strong> STRIDE (Microsoft — legelterjedtebb), PASTA (Process for Attack Simulation and Threat Analysis), Threat Tree (fenyegetés fa). Mindegyik más nézőpontból közelíti a problémát.</div>
+    `
+  },
+
+  // ── 4. STRIDE ÁTTEKINTÉS ─────────────────────────────────────────
+  {
+    topic:3, threats:[0,1,2,3,4,5],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(99,102,241,0.5)">🎯</div>
+        <div><div class="stitle">STRIDE — áttekintő</div>
+        <div class="ssub">// 6 fenyegetéskategória · Microsoft módszer</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--info)">Oktató</div>
+            A STRIDE különféle kategóriákba sorolja a fenyegetéseket annak alapján, hogy mely biztonsági célokat érintik. A betűszó a 6 kategória első betűit rejti.
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--card);border:1.5px solid var(--brd2);border-radius:9px;overflow:hidden;margin:0.45rem 0">
+        <div style="display:grid;grid-template-columns:28px 32px 90px 1fr;background:var(--surf);border-bottom:1px solid var(--brd);padding:0.35rem 0.65rem;gap:0.5rem;font-family:'Inconsolata',monospace;font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;align-items:center">
+          <div>Betű</div><div>Icon</div><div>Fenyegetés</div><div>Sérült tulajdonság</div>
+        </div>
+        <div style="display:grid;grid-template-columns:28px 32px 90px 1fr;padding:0.38rem 0.65rem;gap:0.5rem;border-bottom:1px solid var(--brd);font-size:0.7rem;align-items:center">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.8rem;font-weight:800;color:var(--s)">S</div>
+          <div>🎭</div>
+          <div style="font-weight:700">Spoofing</div>
+          <div style="font-size:0.67rem;color:var(--muted)">Authentication — személyazonosság meghamisítása</div>
+        </div>
+        <div style="display:grid;grid-template-columns:28px 32px 90px 1fr;padding:0.38rem 0.65rem;gap:0.5rem;border-bottom:1px solid var(--brd);font-size:0.7rem;align-items:center">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.8rem;font-weight:800;color:var(--t)">T</div>
+          <div>✏️</div>
+          <div style="font-weight:700">Tampering</div>
+          <div style="font-size:0.67rem;color:var(--muted)">Integrity — adatok jogosulatlan módosítása</div>
+        </div>
+        <div style="display:grid;grid-template-columns:28px 32px 90px 1fr;padding:0.38rem 0.65rem;gap:0.5rem;border-bottom:1px solid var(--brd);font-size:0.7rem;align-items:center">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.8rem;font-weight:800;color:var(--r)">R</div>
+          <div>🙈</div>
+          <div style="font-weight:700">Repudiation</div>
+          <div style="font-size:0.67rem;color:var(--muted)">Non-Repudiation — tagadás, felelősség elhárítása</div>
+        </div>
+        <div style="display:grid;grid-template-columns:28px 32px 90px 1fr;padding:0.38rem 0.65rem;gap:0.5rem;border-bottom:1px solid var(--brd);font-size:0.7rem;align-items:center">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.8rem;font-weight:800;color:var(--i)">I</div>
+          <div>👁️</div>
+          <div style="font-weight:700">Info Disclosure</div>
+          <div style="font-size:0.67rem;color:var(--muted)">Confidentiality — jogosulatlan adathozzáférés</div>
+        </div>
+        <div style="display:grid;grid-template-columns:28px 32px 90px 1fr;padding:0.38rem 0.65rem;gap:0.5rem;border-bottom:1px solid var(--brd);font-size:0.7rem;align-items:center">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.8rem;font-weight:800;color:var(--d)">D</div>
+          <div>💥</div>
+          <div style="font-weight:700">Denial of Service</div>
+          <div style="font-size:0.67rem;color:var(--muted)">Availability — erőforrások kimerítése</div>
+        </div>
+        <div style="display:grid;grid-template-columns:28px 32px 90px 1fr;padding:0.38rem 0.65rem;gap:0.5rem;font-size:0.7rem;align-items:center">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.8rem;font-weight:800;color:var(--e)">E</div>
+          <div>⬆️</div>
+          <div style="font-weight:700">Elevation of Priv.</div>
+          <div style="font-size:0.67rem;color:var(--muted)">Authorization — jogosulatlan jogosultság szerzés</div>
+        </div>
+      </div>
+      <div class="ibox info-b"><strong>Kockázatértékelés:</strong> Az egyes fenyegetések kockázati szintjét külön ki lehet számítani az egyes célkitűzésekhez — DREAD (Damage, Reproducibility, Exploitability, Affected users, Discoverability) pontrendszerrel.</div>
+    `
+  },
+
+  // ── 5. SPOOFING ──────────────────────────────────────────────────
+  {
+    topic:3, threats:[0],
+    render:()=>`
+      <div class="stride-card" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.4)">
+        <div class="sc-header">
+          <div class="sc-letter" style="color:var(--s)">S</div>
+          <div class="sc-top">
+            <div class="sc-name" style="color:var(--s)">Spoofing — Hamisítás</div>
+            <div class="sc-prop">Sérült tulajdonság: Authentication (Hitelesítés)</div>
+          </div>
+          <div class="sc-badge" style="background:rgba(245,158,11,0.1);color:var(--s);border-color:rgba(245,158,11,0.3)">STRIDE[0]</div>
+        </div>
+        <div class="sc-desc">Valaminek vagy valakinek kiadja magát — a hitelesítési mechanizmust játssza ki. A támadó hamis identitást vesz fel, hogy jogosultsághoz jusson vagy bizalmat szerezzen.</div>
+        <div class="sc-example">
+          <div class="sc-ex-label" style="color:var(--s)">Példák</div>
+          <div>🌐 IP Spoofing — a forrás IP cím meghamisítása</div>
+          <div>📧 E-mail spoofing — hamis feladó cím</div>
+          <div>🍪 Session hijacking — más felhasználó session-jának eltulajdonítása</div>
+          <div>🔐 Credential stuffing — ellopott jelszavakkal próbálkozás</div>
+        </div>
+        <div class="sc-mitigation">Erős hitelesítés (MFA), session tokenek biztonságos kezelése, HTTPS, certificate pinning, SPF/DKIM e-mailnél</div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">😈</div>
+          <div class="bub l"><div class="who" style="color:var(--s)">Támadó</div>
+            HTTP kérés: X-Forwarded-For: 10.0.0.1 — mintha belső hálózatról jönnék. Megkapom az admin jogokat?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🔒</div>
+          <div class="bub r2"><div class="who" style="color:var(--ops);text-align:right">Védett rendszer</div>
+            Nem. IP alapú hitelesítés nem fogadunk el — kötelező JWT token + MFA. Az IP cím könnyen hamisítható.
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 6. TAMPERING ─────────────────────────────────────────────────
+  {
+    topic:3, threats:[1],
+    render:()=>`
+      <div class="stride-card" style="background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.4)">
+        <div class="sc-header">
+          <div class="sc-letter" style="color:var(--t)">T</div>
+          <div class="sc-top">
+            <div class="sc-name" style="color:var(--t)">Tampering — Módosítás</div>
+            <div class="sc-prop">Sérült tulajdonság: Integrity (Sértetlenség)</div>
+          </div>
+          <div class="sc-badge" style="background:rgba(239,68,68,0.1);color:var(--t);border-color:rgba(239,68,68,0.3)">STRIDE[1]</div>
+        </div>
+        <div class="sc-desc">Lemezen, hálózaton, memóriában vagy máshol lévő adat jogosulatlan módosítása. Az adatok integritása sérül — a rendszer hamis információkkal dolgozik.</div>
+        <div class="sc-example">
+          <div class="sc-ex-label" style="color:var(--t)">Példák</div>
+          <div>🌐 Man-in-the-Middle — hálózati forgalom módosítása</div>
+          <div>💉 SQL Injection — adatbázis tartalmának módosítása</div>
+          <div>📝 Parameter tampering — URL / form paraméterek módosítása</div>
+          <div>💾 Log tampering — audit napló meghamisítása</div>
+        </div>
+        <div class="sc-mitigation">HTTPS (TLS) minden kommunikációra, digitális aláírás, HMAC, input validáció és sanitizáció, paraméteres SQL lekérdezések</div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--t)"><strong>SQL Injection példa:</strong> <code style="font-family:Inconsolata,monospace;font-size:0.7rem">SELECT * FROM users WHERE id = '; DROP TABLE users; --</code> — Ha a bemenet nem validált, a teljes adatbázis törölhető. SAST eszközök ezt a tesztelés előtt detektálják.</div>
+    `
+  },
+
+  // ── 7. REPUDIATION ───────────────────────────────────────────────
+  {
+    topic:3, threats:[2],
+    render:()=>`
+      <div class="stride-card" style="background:rgba(168,85,247,0.06);border-color:rgba(168,85,247,0.4)">
+        <div class="sc-header">
+          <div class="sc-letter" style="color:var(--r)">R</div>
+          <div class="sc-top">
+            <div class="sc-name" style="color:var(--r)">Repudiation — Tagadás</div>
+            <div class="sc-prop">Sérült tulajdonság: Non-Repudiation (Letagadhatatlanság)</div>
+          </div>
+          <div class="sc-badge" style="background:rgba(168,85,247,0.1);color:var(--r);border-color:rgba(168,85,247,0.3)">STRIDE[2]</div>
+        </div>
+        <div class="sc-desc">Azt állítani, hogy nem tettünk valamit, vagy nem vagyunk felelősek. Ha nincs megfelelő naplózás, egy felhasználó tagadhatja a tetteit — és nem tudjuk bizonyítani.</div>
+        <div class="sc-example">
+          <div class="sc-ex-label" style="color:var(--r)">Példák</div>
+          <div>💳 "Én nem adtam fel ezt a megrendelést" — nincs audit trail</div>
+          <div>🗑️ Admin törli a naplókat, hogy eltüntesse a nyomait</div>
+          <div>👤 Megosztott fiók — nem tudni ki tette a változtatást</div>
+          <div>📜 Szerződés tagadása — nincs digitális aláírás</div>
+        </div>
+        <div class="sc-mitigation">Részletes audit log (ki, mit, mikor), digitális aláírás, tamper-proof naplózás (SIEM), egyedi felhasználói fiókok (nincs shared account)</div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--r)"><strong>SIEM szerepe:</strong> A SIEM rendszerek (Splunk, ELK) centralizáltan gyűjtik és tárolják a naplókat, és korrelálják az eseményeket — így a repudiation nehezebb, mert minden tevékenység visszakövethető.</div>
+    `
+  },
+
+  // ── 8. INFORMATION DISCLOSURE ────────────────────────────────────
+  {
+    topic:3, threats:[3],
+    render:()=>`
+      <div class="stride-card" style="background:rgba(59,130,246,0.06);border-color:rgba(59,130,246,0.4)">
+        <div class="sc-header">
+          <div class="sc-letter" style="color:var(--i)">I</div>
+          <div class="sc-top">
+            <div class="sc-name" style="color:var(--i)">Information Disclosure — Adatszivárgás</div>
+            <div class="sc-prop">Sérült tulajdonság: Confidentiality (Bizalmasság)</div>
+          </div>
+          <div class="sc-badge" style="background:rgba(59,130,246,0.1);color:var(--i);border-color:rgba(59,130,246,0.3)">STRIDE[3]</div>
+        </div>
+        <div class="sc-desc">Információ átadása olyan személynek, aki nem jogosult rá. A bizalmas adatok (jelszavak, személyes adatok, üzleti titkok) illetéktelen kezekbe kerülnek.</div>
+        <div class="sc-example">
+          <div class="sc-ex-label" style="color:var(--i)">Példák</div>
+          <div>🔓 Titkosítatlan adatbázis — open internet-en elérhető</div>
+          <div>📄 Részletes hibaüzenet — stack trace publikusan látható</div>
+          <div>🗂️ Directory listing — fájllista elérhető a webszerveren</div>
+          <div>🔑 API kulcs GitHub-ra feltöltve — publikusan elérhető</div>
+        </div>
+        <div class="sc-mitigation">Titkosítás (at rest és in transit), hozzáférés-vezérlés (RBAC), hibaüzenetek generikus kezelése, secret management (HashiCorp Vault), DAST scanning</div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--i)"><strong>GDPR kapcsolat:</strong> Az Information Disclosure GDPR jogsértést is okozhat — személyes adatok kiszivárgása bírsághoz és reputációs kárhoz vezet. A DevSecOps az adatvédelmet is segíti.</div>
+    `
+  },
+
+  // ── 9. DENIAL OF SERVICE ─────────────────────────────────────────
+  {
+    topic:3, threats:[4],
+    render:()=>`
+      <div class="stride-card" style="background:rgba(16,185,129,0.06);border-color:rgba(16,185,129,0.4)">
+        <div class="sc-header">
+          <div class="sc-letter" style="color:var(--d)">D</div>
+          <div class="sc-top">
+            <div class="sc-name" style="color:var(--d)">Denial of Service — Szolg. megtagadás</div>
+            <div class="sc-prop">Sérült tulajdonság: Availability (Rendelkezésre állás)</div>
+          </div>
+          <div class="sc-badge" style="background:rgba(16,185,129,0.1);color:var(--d);border-color:rgba(16,185,129,0.3)">STRIDE[4]</div>
+        </div>
+        <div class="sc-desc">A szolgáltatás nyújtásához szükséges erőforrások kimerítése — a rendszer elérhetetlenné válik a legitim felhasználók számára.</div>
+        <div class="sc-example">
+          <div class="sc-ex-label" style="color:var(--d)">Példák</div>
+          <div>🌊 DDoS (Distributed Denial of Service) — millió bot egyszerre</div>
+          <div>💥 Amplification attack — DNS/NTP erősítéssel</div>
+          <div>🔄 Slow Loris — lassan küldött HTTP kérések</div>
+          <div>💾 Resource exhaustion — memória / disk feltöltése</div>
+        </div>
+        <div class="sc-mitigation">Rate limiting, CDN (Cloudflare, AWS Shield), auto-skálázás (Kubernetes), resource quoták, kapcsolat limitek, DDoS protection service</div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">😈</div>
+          <div class="bub l"><div class="who" style="color:var(--d)">Támadó</div>
+            1 millió HTTP kérés küldve a login API-nak — 10 másodperc alatt...
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🔒</div>
+          <div class="bub r2"><div class="who" style="color:var(--ops);text-align:right">Cloudflare / WAF</div>
+            Rate limit aktiválva — az IP blokkolt. Auto-skálázás elindult, 3 új pod fut. Üzleti hatás: 0.
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 10. ELEVATION OF PRIVILEGE ───────────────────────────────────
+  {
+    topic:3, threats:[5],
+    render:()=>`
+      <div class="stride-card" style="background:rgba(249,115,22,0.06);border-color:rgba(249,115,22,0.4)">
+        <div class="sc-header">
+          <div class="sc-letter" style="color:var(--e)">E</div>
+          <div class="sc-top">
+            <div class="sc-name" style="color:var(--e)">Elevation of Privilege — Jogosultságszerzés</div>
+            <div class="sc-prop">Sérült tulajdonság: Authorization (Jogosultság)</div>
+          </div>
+          <div class="sc-badge" style="background:rgba(249,115,22,0.1);color:var(--e);border-color:rgba(249,115,22,0.3)">STRIDE[5]</div>
+        </div>
+        <div class="sc-desc">Engedélyezni valakinek, hogy olyasmit tegyen, amire nincs felhatalmazása — vagy egy normál felhasználó admin jogokat szerez, amit nem kellene megkapnia.</div>
+        <div class="sc-example">
+          <div class="sc-ex-label" style="color:var(--e)">Példák</div>
+          <div>⬆️ Privilege escalation — kernel exploit segítségével root jogok</div>
+          <div>🔓 Broken access control — más felhasználó adataihoz hozzáférés</div>
+          <div>🐳 Container escape — konténerből kilépés a host-ra</div>
+          <div>🗄️ SQL injection → DBA jogok megszerzése</div>
+        </div>
+        <div class="sc-mitigation">Least privilege elv (csak ami szükséges jogosultság), RBAC (Role-Based Access Control), rendszeres jogosultság-audit, container security (Aqua Security, Twistlock)</div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--e)"><strong>Least Privilege elv:</strong> Minden felhasználónak, folyamatnak és konténernek csak annyi jogosultság kell, amennyire feltétlenül szüksége van. Ez korlátozza az Elevation támadások kárát is.</div>
+    `
+  },
+
+  // ── 11. SAST ─────────────────────────────────────────────────────
+  {
+    topic:4, threats:[],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(99,102,241,0.5)">🔍</div>
+        <div><div class="stitle">SAST — Static Application Security Testing</div>
+        <div class="ssub">// kódelemzés futtatás nélkül — Code fázis</div></div>
+      </div>
+      <div class="tool-card" style="background:rgba(99,102,241,0.05);border-color:rgba(99,102,241,0.35)">
+        <div class="tc-hdr">
+          <div class="tc-badge" style="background:rgba(99,102,241,0.15);color:var(--sast);border-color:rgba(99,102,241,0.4)">SAST</div>
+          <div>
+            <div class="tc-name" style="color:var(--sast)">Static Application Security Testing</div>
+            <div class="tc-full">Statikus kódelemzés — "fehér doboz" tesztelés</div>
+          </div>
+        </div>
+        <div class="tc-desc">A SAST eszközök a forráskódot, bájtkódot vagy binárist elemzik anélkül, hogy az alkalmazást futtatnák. IDE-be integrálva fejlesztés KÖZBEN is jelzik a problémákat — valós idejű visszajelzés.</div>
+        <div class="tc-tools">
+          <div class="tc-tool" style="background:rgba(99,102,241,0.1);color:var(--sast);border-color:rgba(99,102,241,0.3)">SonarQube</div>
+          <div class="tc-tool" style="background:rgba(99,102,241,0.1);color:var(--sast);border-color:rgba(99,102,241,0.3)">Checkmarx</div>
+          <div class="tc-tool" style="background:rgba(99,102,241,0.1);color:var(--sast);border-color:rgba(99,102,241,0.3)">Veracode</div>
+          <div class="tc-tool" style="background:rgba(99,102,241,0.1);color:var(--sast);border-color:rgba(99,102,241,0.3)">Semgrep</div>
+          <div class="tc-tool" style="background:rgba(99,102,241,0.1);color:var(--sast);border-color:rgba(99,102,241,0.3)">CodeQL</div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--sast)">
+          <div class="cli-i">✅</div>
+          <div><strong>Előnyök</strong>
+          <span>Korai felderítés — fejlesztés közben. Nem kell futtatni az alkalmazást. Automatikusan fut CI-ban. Részletes hibajelentés sorszámmal.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--warn)">
+          <div class="cli-i">⚠️</div>
+          <div><strong>Korlátok</strong>
+          <span>Hamis pozitívok lehetnek (false positive). Runtime sebezhetőségeket nem talál. Business logic hibákat nem detektál. Futási környezet nem ismerős.</span></div>
+        </div>
+      </div>
+      <div class="ibox info-b"><strong>SAST vs Code Review:</strong> A SAST automatizálja a biztonsági kódátvizsgálást — olyan sebezhetőségeket is megtalál, amelyeket emberi reviewer figyelmen kívül hagyhat (SQL injection minták, hardcoded secrets, stb.).</div>
+    `
+  },
+
+  // ── 12. DAST ─────────────────────────────────────────────────────
+  {
+    topic:4, threats:[],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(239,68,68,0.5)">🕷️</div>
+        <div><div class="stitle">DAST — Dynamic Application Security Testing</div>
+        <div class="ssub">// futó alkalmazás tesztelése — Test fázis</div></div>
+      </div>
+      <div class="tool-card" style="background:rgba(239,68,68,0.05);border-color:rgba(239,68,68,0.35)">
+        <div class="tc-hdr">
+          <div class="tc-badge" style="background:rgba(239,68,68,0.15);color:var(--dast);border-color:rgba(239,68,68,0.4)">DAST</div>
+          <div>
+            <div class="tc-name" style="color:var(--dast)">Dynamic Application Security Testing</div>
+            <div class="tc-full">Dinamikus tesztelés — "fekete doboz" — a futó alkalmazáson</div>
+          </div>
+        </div>
+        <div class="tc-desc">A DAST a futó alkalmazást támadja — valódi HTTP kéréseket küld, mint egy igazi támadó. Nem látja a kódot ("fekete doboz") — kívülről próbálkozik különféle támadási vektorokkal.</div>
+        <div class="tc-tools">
+          <div class="tc-tool" style="background:rgba(239,68,68,0.1);color:var(--dast);border-color:rgba(239,68,68,0.3)">OWASP ZAP</div>
+          <div class="tc-tool" style="background:rgba(239,68,68,0.1);color:var(--dast);border-color:rgba(239,68,68,0.3)">Burp Suite</div>
+          <div class="tc-tool" style="background:rgba(239,68,68,0.1);color:var(--dast);border-color:rgba(239,68,68,0.3)">Nikto</div>
+          <div class="tc-tool" style="background:rgba(239,68,68,0.1);color:var(--dast);border-color:rgba(239,68,68,0.3)">Acunetix</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🤖</div>
+          <div class="bub l"><div class="who" style="color:var(--dast)">OWASP ZAP</div>
+            Automatikus scan elindítva: /login oldalon SQL injection próba... ❌ Nem sikerült. XSS próba... ❌ CSP megvéd. CSRF token check... ✅ Megvan! CSRF token hiányzik a /settings oldalon.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🔒</div>
+          <div class="bub r2"><div class="who" style="color:var(--ops);text-align:right">Security mérnök</div>
+            Jira ticket generálva: CSRF védelem hozzáadása a settings oldalhoz. Prioritás: Magas.
+          </div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--dast)"><strong>Etikus hacking + Fuzzolás:</strong> A DevSecOps test fázisban speciális security vizsgálatok is helyet kapnak — etikus hackerek (pentest) és fuzz tesztelés (véletlenszerű input küldése crash-ek keresésére).</div>
+    `
+  },
+
+  // ── 13. IAST & SCA ───────────────────────────────────────────────
+  {
+    topic:4, threats:[],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(168,85,247,0.5)">🔬</div>
+        <div><div class="stitle">IAST &amp; SCA</div>
+        <div class="ssub">// kombinált megközelítés + dependency security</div></div>
+      </div>
+      <div class="tool-card" style="background:rgba(168,85,247,0.05);border-color:rgba(168,85,247,0.35);margin-bottom:0.4rem">
+        <div class="tc-hdr">
+          <div class="tc-badge" style="background:rgba(168,85,247,0.15);color:var(--iast);border-color:rgba(168,85,247,0.4)">IAST</div>
+          <div>
+            <div class="tc-name" style="color:var(--iast)">Interactive Application Security Testing</div>
+            <div class="tc-full">SAST + DAST kombinációja — a legjobb mindkét világból</div>
+          </div>
+        </div>
+        <div class="tc-desc">Beépített agent a futó alkalmazásban figyeli a kód végrehajtását valós forgalom közben. Látja mind a kódot (SAST), mind a runtime viselkedést (DAST). Pontosabb, kevesebb false positive.</div>
+        <div class="tc-tools">
+          <div class="tc-tool" style="background:rgba(168,85,247,0.1);color:var(--iast);border-color:rgba(168,85,247,0.3)">Contrast Security</div>
+          <div class="tc-tool" style="background:rgba(168,85,247,0.1);color:var(--iast);border-color:rgba(168,85,247,0.3)">Seeker (Synopsys)</div>
+        </div>
+      </div>
+      <div class="tool-card" style="background:rgba(16,185,129,0.05);border-color:rgba(16,185,129,0.35)">
+        <div class="tc-hdr">
+          <div class="tc-badge" style="background:rgba(16,185,129,0.15);color:var(--sca);border-color:rgba(16,185,129,0.4)">SCA</div>
+          <div>
+            <div class="tc-name" style="color:var(--sca)">Software Composition Analysis</div>
+            <div class="tc-full">Nyílt forráskódú komponensek biztonsági auditja</div>
+          </div>
+        </div>
+        <div class="tc-desc">A modern szoftverek 70-90%-a nyílt forráskódú komponensekből épül fel. Az SCA ezek ismert sebezhetőségeit keresi — mint pl. a Log4Shell (Log4j) ami millió rendszert érintett 2021-ben.</div>
+        <div class="tc-tools">
+          <div class="tc-tool" style="background:rgba(16,185,129,0.1);color:var(--sca);border-color:rgba(16,185,129,0.3)">Snyk</div>
+          <div class="tc-tool" style="background:rgba(16,185,129,0.1);color:var(--sca);border-color:rgba(16,185,129,0.3)">Dependabot</div>
+          <div class="tc-tool" style="background:rgba(16,185,129,0.1);color:var(--sca);border-color:rgba(16,185,129,0.3)">OWASP Dependency-Check</div>
+          <div class="tc-tool" style="background:rgba(16,185,129,0.1);color:var(--sca);border-color:rgba(16,185,129,0.3)">WhiteSource</div>
+        </div>
+      </div>
+      <div class="ibox ok-b"><strong>Log4Shell példa:</strong> 2021-ben a Log4j (Java logging könyvtár) kritikus sebezhetőséget tartalmazott. Milliárd eszközt érintett. SCA automatikusan azonosítja az ilyen sebezhető függőségeket és frissítésre figyelmeztet.</div>
+    `
+  },
+
+  // ── 14. CONTAINER & CLOUD SECURITY ───────────────────────────────
+  {
+    topic:5, threats:[],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(249,115,22,0.5)">🐳</div>
+        <div><div class="stitle">Konténer &amp; Felhő Biztonság</div>
+        <div class="ssub">// Deploy fázis biztonsági rétege</div></div>
+      </div>
+      <div class="vs-grid">
+        <div style="background:rgba(34,211,238,0.07);border:1.5px solid rgba(34,211,238,0.3);border-radius:10px;padding:0.75rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:#22d3ee;font-weight:700;margin-bottom:0.35rem">🐳 Konténerbiztonság</div>
+          <div class="rc-list" style="display:flex;flex-direction:column;gap:0.15rem">
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Base image sebezhetőségek keresése</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Runtime anomália detektálás</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Container escape védelem</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Eszközök: Aqua Security, Twistlock</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Docker Security Scanning</div>
+          </div>
+        </div>
+        <div style="background:rgba(245,158,11,0.07);border:1.5px solid rgba(245,158,11,0.3);border-radius:10px;padding:0.75rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--warn);font-weight:700;margin-bottom:0.35rem">☁️ Felhőbiztonság</div>
+          <div class="rc-list" style="display:flex;flex-direction:column;gap:0.15rem">
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Misconfigurált S3 bucket detektálás</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ IAM jogosultság audit</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Network security group review</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ AWS Security Hub</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Azure Security Center</div>
+            <div style="font-size:0.7rem;color:rgba(200,215,255,0.75);font-family:'Inconsolata',monospace">▸ Google Cloud Security Command Center</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🔒</div>
+          <div class="bub l"><div class="who" style="color:var(--sec)">Aqua Security</div>
+            🚨 Figyelmeztetés: a "node:16" base image tartalmaz 3 kritikus sebezhetőséget (CVE-2023-xxxx). Ajánlott frissítés: "node:20-alpine" amely clean.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">⚙️</div>
+          <div class="bub r2"><div class="who" style="color:var(--ops);text-align:right">Ops mérnök</div>
+            Dockerfile frissítve. Az új image-en nincs kritikus sebezhetőség. Deploy folytatható.
+          </div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--siem)"><strong>IaC Security:</strong> Checkov és Terrascan az IaC fájlokat (Terraform, CloudFormation) is ellenőrzi — pl. nyilvánosan elérhető adatbázis, titkosítatlan S3 bucket, gyenge security group szabályok.</div>
+    `
+  },
+
+  // ── 15. SIEM ─────────────────────────────────────────────────────
+  {
+    topic:5, threats:[],
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(249,115,22,0.5)">🎰</div>
+        <div><div class="stitle">SIEM — Security Information and Event Management</div>
+        <div class="ssub">// Monitor fázis biztonsági rétege</div></div>
+      </div>
+      <div class="tool-card" style="background:rgba(249,115,22,0.05);border-color:rgba(249,115,22,0.35)">
+        <div class="tc-hdr">
+          <div class="tc-badge" style="background:rgba(249,115,22,0.15);color:var(--siem);border-color:rgba(249,115,22,0.4)">SIEM</div>
+          <div>
+            <div class="tc-name" style="color:var(--siem)">Security Information and Event Management</div>
+            <div class="tc-full">Centralizált biztonsági eseménykezelés éles rendszeren</div>
+          </div>
+        </div>
+        <div class="tc-desc">A SIEM rendszerek valós időben gyűjtik, korrelálják és elemzik a biztonsági eseményeket minden forrásból. Riasztásokat generálnak, jelentéseket készítenek.</div>
+        <div class="tc-tools">
+          <div class="tc-tool" style="background:rgba(249,115,22,0.1);color:var(--siem);border-color:rgba(249,115,22,0.3)">Splunk</div>
+          <div class="tc-tool" style="background:rgba(249,115,22,0.1);color:var(--siem);border-color:rgba(249,115,22,0.3)">ELK Stack</div>
+          <div class="tc-tool" style="background:rgba(249,115,22,0.1);color:var(--siem);border-color:rgba(249,115,22,0.3)">Sumo Logic</div>
+          <div class="tc-tool" style="background:rgba(249,115,22,0.1);color:var(--siem);border-color:rgba(249,115,22,0.3)">IBM QRadar</div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--siem)">
+          <div class="cli-i">📋</div>
+          <div><strong>Naplógyűjtés (Log collection)</strong>
+          <span>Minden szerver, alkalmazás, network device logját egy helyre gyűjti. Kereshető, szűrhető, hosszú ideig tárolja — compliance és forensics célokra.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--siem)">
+          <div class="cli-i">🔗</div>
+          <div><strong>Esemény-korreláció</strong>
+          <span>Több forrásból érkező események összekapcsolása — pl. failed login + privilege escalation próba + fájlhozzáférés = gyanús aktivitás. Riasztás kiadása.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--siem)">
+          <div class="cli-i">🚨</div>
+          <div><strong>Behatolás vizsgálat (IDS)</strong>
+          <span>Intrusion Detection System — ismert támadási minták azonosítása (signature-based) és anomáliák detektálása (behavior-based).</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--siem)">
+          <div class="cli-i">📊</div>
+          <div><strong>Jelentések és compliance</strong>
+          <span>GDPR, ISO 27001, SOC2 megfelelőséghez szükséges biztonsági riportok automatikus generálása.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 16. ÖSSZEFOGLALÁS ────────────────────────────────────────────
+  {
+    topic:0, threats:[0,1,2,3,4,5],
+    render:()=>`
+      <div class="shdr"><div class="sico">∑</div>
+        <div><div class="stitle">Összefoglalás — DevSecOps &amp; STRIDE</div>
+        <div class="ssub">// minden amit tudnod kell a biztonsági megközelítésről</div></div>
+      </div>
+      <div class="sumgrid">
+        <div class="sbox" style="border-top:2px solid var(--sec)">
+          <span class="ico">⬅️</span>
+          <div class="val">Shift Left</div>
+          <div class="lbl">Security az elejétől</div>
+        </div>
+        <div class="sbox" style="border-top:2px solid #a855f7">
+          <span class="ico">⚠️</span>
+          <div class="val">STRIDE</div>
+          <div class="lbl">S·T·R·I·D·E — 6 kategória</div>
+        </div>
+        <div class="sbox">
+          <span class="ico">🧰</span>
+          <div class="val">SAST/DAST</div>
+          <div class="lbl">IAST + SCA</div>
+        </div>
+        <div class="sbox">
+          <span class="ico">🔐</span>
+          <div class="val">SIEM</div>
+          <div class="lbl">Monitor + IDS</div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--s)">
+          <div class="cli-i">🎭</div>
+          <div><strong style="color:var(--s)">S — Spoofing</strong>
+          <span>Hitelesítés meghamisítása. Védekezés: MFA, erős auth, HTTPS.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--t)">
+          <div class="cli-i">✏️</div>
+          <div><strong style="color:var(--t)">T — Tampering</strong>
+          <span>Adat módosítás. Védekezés: digitális aláírás, titkosítás, input validáció.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--r)">
+          <div class="cli-i">🙈</div>
+          <div><strong style="color:var(--r)">R — Repudiation</strong>
+          <span>Tagadás, felelősség elhárítás. Védekezés: audit log, SIEM, digitális aláírás.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--i)">
+          <div class="cli-i">👁️</div>
+          <div><strong style="color:var(--i)">I — Information Disclosure</strong>
+          <span>Adatszivárgás. Védekezés: titkosítás, RBAC, DAST, secret management.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--d)">
+          <div class="cli-i">💥</div>
+          <div><strong style="color:var(--d)">D — Denial of Service</strong>
+          <span>Elérhetőség elleni támadás. Védekezés: rate limiting, CDN, auto-scaling.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--e)">
+          <div class="cli-i">⬆️</div>
+          <div><strong style="color:var(--e)">E — Elevation of Privilege</strong>
+          <span>Jogosulatlan jogosultságszerzés. Védekezés: least privilege, RBAC, container security.</span></div>
+        </div>
+      </div>
+      <div class="ibox"><strong>A DevSecOps eszköztár:</strong> SAST (Code fázis) + SCA (Build fázis) + DAST/IAST (Test fázis) + Container/Cloud Security (Deploy) + SIEM/IDS (Monitor) = teljes biztonsági lefedettség a pipeline minden fázisában.</div>
+    `
+  },
+];
+
+function renderBoard(topicIdx, activeThreats) {
+  document.getElementById('topicSteps').innerHTML = TOPICS.map((t,i) => {
+    const on = i === topicIdx;
+    const done = i < topicIdx;
+    const cls = on ? 'active' : done ? 'done' : '';
+    const c = on ? t.color : done ? t.color : 'var(--muted)';
+    return `<div class="ts-item ${cls}">
+      <div class="ts-dot" style="border-color:${c};color:${c}">${t.icon}</div>
+      <div class="ts-label" style="color:${on?t.color:'var(--muted)'}">${t.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('threatBar').innerHTML = THREATS.map((t,i) => {
+    const on = activeThreats.includes(i);
+    return `<div class="threat-pill ${on?'on':''}" style="border-color:${t.color};color:${t.color}">
+      ${t.icon} ${t.label}
+    </div>`;
+  }).join('');
+}
+
+let cur = 0;
+
+function render() {
+  const s = STEPS[cur];
+  renderBoard(s.topic, s.threats);
+
+  const el = document.getElementById('content');
+  el.innerHTML = s.render();
+  setTimeout(() => {
+    el.querySelectorAll('.msg:not(.show)').forEach((m,i) => {
+      setTimeout(() => m.classList.add('show'), i*160);
+    });
+  }, 60);
+
+  document.getElementById('bprev').disabled = cur === 0;
+  const bn = document.getElementById('bnext');
+  bn.textContent = cur === STEPS.length - 1 ? '↺ Újra' : 'Következő →';
+  document.getElementById('ctr').textContent = `${cur+1} / ${STEPS.length}`;
+}
+
+function next() { cur = cur === STEPS.length-1 ? 0 : cur+1; render(); }
+function prev() { if(cur>0){cur--;render();} }
+
+render();
+</script>
+</body>
+</html>

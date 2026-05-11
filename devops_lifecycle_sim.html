@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevOps Életciklus Szimuláció</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+
+:root {
+  --bg:    #0a0f1e;
+  --surf:  #0f1628;
+  --card:  #141d35;
+  --brd:   #1e2d50;
+  --brd2:  #263a68;
+  --text:  #d8e4ff;
+  --muted: #4a5f8a;
+
+  --plan:    #f59e0b;
+  --code:    #3b82f6;
+  --build:   #6366f1;
+  --test:    #a855f7;
+  --release: #10b981;
+  --deploy:  #22d3ee;
+  --operate: #f97316;
+  --monitor: #ef4444;
+
+  --dev: #3b82f6;
+  --ops: #10b981;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Sora', sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(16,185,129,0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(59,130,246,0.05) 0%, transparent 50%);
+  pointer-events:none; z-index:0;
+}
+
+header {
+  position:relative; z-index:1;
+  padding:1.2rem 1.3rem 0.85rem;
+  border-bottom:1px solid var(--brd2);
+  background:linear-gradient(180deg, rgba(16,185,129,0.05) 0%, transparent 100%);
+}
+
+.hdr-row { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+h1 { font-size:1.4rem; font-weight:800; line-height:1.07; letter-spacing:-0.02em; }
+h1 span { color:var(--release); }
+h1 em   { font-style:normal; color:var(--deploy); }
+.tag {
+  font-family:'Inconsolata', monospace; font-size:0.56rem;
+  padding:0.25rem 0.55rem; border-radius:4px;
+  background:rgba(16,185,129,0.12); color:var(--release);
+  border:1px solid rgba(16,185,129,0.28); white-space:nowrap; margin-top:0.2rem;
+}
+header p { font-size:0.7rem; color:var(--muted); margin-top:0.25rem; font-family:'Inconsolata', monospace; }
+
+/* PIPELINE TOP BAR */
+.pboard {
+  position:relative; z-index:1;
+  background:var(--surf);
+  border-bottom:1px solid var(--brd2);
+  padding:0.75rem 1.3rem 0.65rem;
+}
+.pb-title {
+  font-family:'Inconsolata', monospace; font-size:0.54rem;
+  color:var(--muted); text-transform:uppercase; letter-spacing:0.09em;
+  margin-bottom:0.55rem;
+}
+
+.pipeline {
+  display:flex; align-items:center; gap:0;
+}
+
+.pl-item {
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:0.2rem;
+  position:relative;
+}
+.pl-item:not(:last-child)::after {
+  content:''; position:absolute; right:0; top:14px;
+  width:50%; height:2px; background:var(--brd); z-index:0;
+}
+.pl-item:not(:first-child)::before {
+  content:''; position:absolute; left:0; top:14px;
+  width:50%; height:2px; background:var(--brd); z-index:0;
+}
+.pl-dot {
+  width:28px; height:28px; border-radius:50%;
+  border:2px solid var(--brd2); background:var(--card);
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.65rem; z-index:1; transition:all 0.4s; position:relative;
+}
+.pl-label {
+  font-family:'Inconsolata', monospace; font-size:0.46rem;
+  color:var(--muted); text-align:center; line-height:1.2;
+}
+.pl-item.active .pl-dot { transform:scale(1.3); box-shadow:0 0 14px currentColor; }
+.pl-item.done   .pl-dot { opacity:0.55; }
+.pl-item.active .pl-label { font-weight:700; font-size:0.5rem; }
+
+/* DEV/OPS divider */
+.devops-divider {
+  display:flex; gap:0.3rem; align-items:center; margin-top:0.45rem;
+}
+.dv-bar { height:4px; border-radius:2px; flex:4; }
+.dv-label { font-family:'Inconsolata', monospace; font-size:0.5rem; font-weight:700; }
+
+/* CONTENT */
+.content {
+  position:relative; z-index:1;
+  padding:0.9rem 1.3rem;
+  min-height:280px;
+}
+
+.shdr { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.85rem; }
+.sico {
+  width:36px; height:36px; border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1rem; flex-shrink:0;
+  border:1.5px solid var(--brd2); background:var(--card);
+}
+.stitle { font-size:0.95rem; font-weight:800; letter-spacing:-0.02em; }
+.ssub   { font-family:'Inconsolata', monospace; font-size:0.56rem; color:var(--muted); margin-top:0.03rem; }
+
+/* CHAT */
+.chat { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.7rem; }
+.msg {
+  display:flex; gap:0.4rem; align-items:flex-start;
+  opacity:0; transform:translateY(6px);
+  transition:opacity 0.3s, transform 0.3s;
+}
+.msg.show { opacity:1; transform:translateY(0); }
+.msg.r { flex-direction:row-reverse; }
+.av {
+  width:30px; height:30px; border-radius:7px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.9rem; flex-shrink:0;
+  border:1px solid var(--brd2); background:var(--card);
+}
+.bub {
+  max-width:82%; padding:0.48rem 0.68rem;
+  border-radius:9px; font-size:0.77rem; line-height:1.55;
+  border:1px solid var(--brd2); background:var(--card);
+}
+.bub.l  { border-bottom-left-radius:2px; }
+.bub.r2 { border-bottom-right-radius:2px; text-align:right; }
+.who {
+  font-family:'Inconsolata', monospace; font-size:0.55rem;
+  font-weight:600; text-transform:uppercase; letter-spacing:0.05em;
+  margin-bottom:0.1rem;
+}
+
+/* PHASE DETAIL CARD */
+.phase-detail {
+  border-radius:12px; padding:0.85rem 1rem;
+  margin-bottom:0.6rem; border:2px solid;
+}
+.pd-header { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.5rem; }
+.pd-icon { font-size:2rem; }
+.pd-num {
+  font-family:'Inconsolata', monospace; font-size:0.55rem;
+  font-weight:700; opacity:0.6; letter-spacing:0.06em;
+}
+.pd-name { font-size:1rem; font-weight:800; letter-spacing:-0.02em; }
+.pd-side {
+  font-family:'Inconsolata', monospace; font-size:0.55rem;
+  padding:0.12rem 0.5rem; border-radius:3px; border:1px solid; font-weight:700;
+  margin-left:auto;
+}
+.pd-desc { font-size:0.75rem; line-height:1.6; color:rgba(216,228,255,0.85); margin-bottom:0.4rem; }
+
+/* TOOL PILLS */
+.tool-pills { display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.3rem; }
+.tp {
+  font-family:'Inconsolata', monospace; font-size:0.56rem;
+  padding:0.18rem 0.5rem; border-radius:4px; border:1px solid;
+  font-weight:600;
+}
+
+/* CHECKLIST */
+.cklist { display:flex; flex-direction:column; gap:0.35rem; margin:0.45rem 0; }
+.cli {
+  display:flex; align-items:flex-start; gap:0.5rem;
+  padding:0.42rem 0.65rem; background:var(--card);
+  border:1px solid var(--brd2); border-radius:8px;
+  font-size:0.75rem; line-height:1.45;
+}
+.cli-i { flex-shrink:0; font-size:0.88rem; }
+.cli strong { display:block; font-weight:700; font-size:0.76rem; margin-bottom:0.03rem; }
+.cli span   { color:var(--muted); font-size:0.68rem; font-family:'Inconsolata', monospace; }
+
+/* INFO BOX */
+.ibox {
+  border-radius:8px; padding:0.55rem 0.75rem;
+  font-size:0.74rem; line-height:1.55; margin:0.45rem 0;
+  border:1px solid var(--brd2); background:var(--card);
+  border-left:3px solid var(--release);
+}
+.ibox strong { font-weight:700; }
+
+/* PIPELINE FLOW VISUAL */
+.flow-vis {
+  background:var(--card); border:1.5px solid var(--brd2);
+  border-radius:9px; padding:0.7rem; margin:0.45rem 0;
+}
+.fv-title {
+  font-family:'Inconsolata', monospace; font-size:0.54rem;
+  color:var(--muted); text-transform:uppercase; letter-spacing:0.07em;
+  margin-bottom:0.5rem;
+}
+.fv-row { display:flex; align-items:center; gap:0.3rem; margin:0.3rem 0; font-size:0.7rem; }
+.fv-step {
+  padding:0.3rem 0.5rem; border-radius:6px; font-family:'Inconsolata', monospace;
+  font-size:0.58rem; font-weight:700; border:1px solid; flex-shrink:0;
+}
+.fv-arrow { color:var(--muted); font-size:0.7rem; flex-shrink:0; }
+.fv-desc { font-size:0.68rem; color:var(--muted); }
+.fv-ok { color:#22c55e; font-weight:700; margin-left:auto; font-family:'Inconsolata', monospace; font-size:0.6rem; flex-shrink:0; }
+
+/* SUMGRID */
+.sumgrid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+.sbox { background:var(--card); border:1px solid var(--brd2); border-radius:8px; padding:0.6rem; text-align:center; }
+.sbox .ico { font-size:1.2rem; display:block; margin-bottom:0.15rem; }
+.sbox .val { font-size:0.88rem; font-weight:800; }
+.sbox .lbl { font-family:'Inconsolata', monospace; font-size:0.52rem; color:var(--muted); margin-top:0.04rem; }
+
+/* VS GRID */
+.vs-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+
+/* NAV */
+.nav {
+  position:sticky; bottom:0; z-index:10;
+  background:var(--bg); border-top:1px solid var(--brd2);
+  padding:0.7rem 1.3rem; display:flex; align-items:center; gap:0.5rem;
+}
+.btn {
+  font-family:'Inconsolata', monospace; font-size:0.63rem; font-weight:600;
+  padding:0.52rem 1rem; border-radius:7px; cursor:pointer;
+  transition:all 0.18s; text-transform:uppercase; letter-spacing:0.04em;
+}
+.btnp { background:transparent; color:var(--muted); border:1px solid var(--brd2); }
+.btnp:hover { color:var(--text); }
+.btnp:disabled { opacity:0.2; cursor:not-allowed; }
+.btnn { flex:1; background:rgba(16,185,129,0.12); color:var(--release); border:1px solid rgba(16,185,129,0.3); }
+.btnn:hover { background:rgba(16,185,129,0.22); }
+.ctr { font-family:'Inconsolata', monospace; font-size:0.57rem; color:var(--muted); white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <h1><span>DevOps</span><br>Életciklus<br><em>Pipeline</em></h1>
+    <div class="tag">8 fázis // Plan → Monitor</div>
+  </div>
+  <p>// Plan · Code · Build · Test · Release · Deploy · Operate · Monitor</p>
+</header>
+
+<div class="pboard">
+  <div class="pb-title">// DevOps életciklus — aktuális fázis</div>
+  <div class="pipeline" id="pipeline"></div>
+  <div class="devops-divider" id="devopsDivider"></div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 14</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+
+<script>
+const PHASES = [
+  { label:'Plan',    color:'var(--plan)',    icon:'📋', side:'Dev' },
+  { label:'Code',    color:'var(--code)',    icon:'💻', side:'Dev' },
+  { label:'Build',   color:'var(--build)',   icon:'🔨', side:'Dev' },
+  { label:'Test',    color:'var(--test)',    icon:'🧪', side:'Dev' },
+  { label:'Release', color:'var(--release)', icon:'📦', side:'Ops' },
+  { label:'Deploy',  color:'var(--deploy)',  icon:'🚀', side:'Ops' },
+  { label:'Operate', color:'var(--operate)', icon:'⚙️', side:'Ops' },
+  { label:'Monitor', color:'var(--monitor)', icon:'📊', side:'Ops' },
+];
+
+const STEPS = [
+
+  // ── 0. BEVEZETŐ ──────────────────────────────────────────────────
+  {
+    active:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">♾️</div>
+        <div><div class="stitle">A DevOps életciklus</div>
+        <div class="ssub">// ciklikusan ismétlődő — 8 fázis, 2 oldal</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--release)">Oktató</div>
+            A DevOps életciklus alapvetően egy ciklikusan ismétlődő szekvenciális modell. Két részből áll: Dev (fejlesztési) oldal és Ops (üzemeltetési) oldal — és 8 fázisból.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--dev);text-align:right">Tanuló</div>
+            Mitől más, mint a hagyományos fejlesztési modell?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--release)">Oktató</div>
+            Nincs külön analízis fázis! A tervezés mellett külön van az építés. A kódolásnak kiemeltebb szerepe van. Nincs külön integráció — azt a CI kezeli automatikusan. Áthelyeződnek a hangsúlyok.
+          </div>
+        </div>
+      </div>
+      <div class="flow-vis">
+        <div class="fv-title">// A teljes ciklus — Dev → Ops → visszacsatolás</div>
+        <div class="fv-row">
+          <div class="fv-step" style="background:rgba(59,130,246,0.1);color:var(--dev);border-color:rgba(59,130,246,0.3)">DEV OLDAL</div>
+          <div class="fv-arrow">→</div>
+          <div style="font-size:0.65rem;color:var(--muted)">Plan → Code → Build → Test</div>
+        </div>
+        <div class="fv-row">
+          <div class="fv-step" style="background:rgba(16,185,129,0.1);color:var(--ops);border-color:rgba(16,185,129,0.3)">OPS OLDAL</div>
+          <div class="fv-arrow">→</div>
+          <div style="font-size:0.65rem;color:var(--muted)">Release → Deploy → Operate → Monitor</div>
+        </div>
+        <div class="fv-row">
+          <div class="fv-step" style="background:rgba(249,115,22,0.1);color:var(--operate);border-color:rgba(249,115,22,0.3)">VISSZACSATOLÁS</div>
+          <div class="fv-arrow">→</div>
+          <div style="font-size:0.65rem;color:var(--muted)">Monitor → Plan (a kör bezárul)</div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Eltérések a hagyományostól:</strong> Nincs külön analízis. Nincs külön integráció (CI). A kódolás kiemelkedő szerepű. A monitoring visszavezet a tervezéshez — folyamatos javulás.</div>
+    `
+  },
+
+  // ── 1. PLAN ──────────────────────────────────────────────────────
+  {
+    active:0,
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(245,158,11,0.5)">📋</div>
+        <div><div class="stitle">1. Plan — Tervezés</div>
+        <div class="ssub">// fázis 1/8 · Dev oldal · az alapok lerakása</div></div>
+      </div>
+      <div class="phase-detail" style="background:rgba(245,158,11,0.05);border-color:rgba(245,158,11,0.35)">
+        <div class="pd-header">
+          <div class="pd-icon">📋</div>
+          <div>
+            <div class="pd-num">FÁZIS 01/08 — DEV</div>
+            <div class="pd-name" style="color:var(--plan)">Plan — Tervezés</div>
+          </div>
+          <div class="pd-side" style="background:rgba(59,130,246,0.1);color:var(--dev);border-color:rgba(59,130,246,0.3)">Dev</div>
+        </div>
+        <div class="pd-desc">Az egész fejlesztési ciklus kezdőpontja. Ez az a fázis, ahol meghatározzuk, mit fogunk fejleszteni, milyen sorrendben, milyen erőforrásokkal. Az agilis csapatoknál ez sprint tervezést is jelent.</div>
+        <div class="cklist" style="margin:0">
+          <div class="cli" style="border-left:3px solid var(--plan)">
+            <div class="cli-i">📝</div>
+            <div><strong>Követelmény elemzés</strong>
+            <span>Üzleti igények, user story-k összegyűjtése. Mit akar az ügyfél? Mi a prioritás?</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--plan)">
+            <div class="cli-i">🗓️</div>
+            <div><strong>Sprint / iteráció tervezés</strong>
+            <span>Sprint backlog összeállítása. Feladatok kiosztása csapattagoknak. Kapacitás becslés.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--plan)">
+            <div class="cli-i">🎯</div>
+            <div><strong>Sprint cél meghatározása</strong>
+            <span>Mi az adott sprint egyértelmű, mérhető célja? Mi lesz "done" a sprint végén?</span></div>
+          </div>
+        </div>
+        <div class="tool-pills">
+          <div class="tp" style="background:rgba(245,158,11,0.1);color:var(--plan);border-color:rgba(245,158,11,0.3)">Jira</div>
+          <div class="tp" style="background:rgba(245,158,11,0.1);color:var(--plan);border-color:rgba(245,158,11,0.3)">Confluence</div>
+          <div class="tp" style="background:rgba(245,158,11,0.1);color:var(--plan);border-color:rgba(245,158,11,0.3)">Linear</div>
+          <div class="tp" style="background:rgba(245,158,11,0.1);color:var(--plan);border-color:rgba(245,158,11,0.3)">Trello</div>
+          <div class="tp" style="background:rgba(245,158,11,0.1);color:var(--plan);border-color:rgba(245,158,11,0.3)">ServiceNow</div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--plan)"><strong>DevSecOps kiegészítés:</strong> A Plan fázisban a biztonsági architekt is részt vesz — Threat Modelling-et végez. Még mielőtt egy sor kód születne, azonosítják a lehetséges biztonsági kockázatokat.</div>
+    `
+  },
+
+  // ── 2. CODE ──────────────────────────────────────────────────────
+  {
+    active:1,
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(59,130,246,0.5)">💻</div>
+        <div><div class="stitle">2. Code — Kódolás</div>
+        <div class="ssub">// fázis 2/8 · Dev oldal · kód születik</div></div>
+      </div>
+      <div class="phase-detail" style="background:rgba(59,130,246,0.05);border-color:rgba(59,130,246,0.35)">
+        <div class="pd-header">
+          <div class="pd-icon">💻</div>
+          <div>
+            <div class="pd-num">FÁZIS 02/08 — DEV</div>
+            <div class="pd-name" style="color:var(--code)">Code — Kódolás</div>
+          </div>
+          <div class="pd-side" style="background:rgba(59,130,246,0.1);color:var(--dev);border-color:rgba(59,130,246,0.3)">Dev</div>
+        </div>
+        <div class="pd-desc">A fejlesztők megírják a kódot. A DevOps-ban a kódolás szorosan összefonódik a verziókezeléssel — minden változtatás azonnal nyomon követhető és visszaállítható.</div>
+        <div class="cklist" style="margin:0">
+          <div class="cli" style="border-left:3px solid var(--code)">
+            <div class="cli-i">🌿</div>
+            <div><strong>Feature branch fejlesztés</strong>
+            <span>Minden új funkció saját Git branch-en készül. Elkülönítés biztosítja, hogy a főág mindig stabil marad.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--code)">
+            <div class="cli-i">👀</div>
+            <div><strong>Code review — Pull Request</strong>
+            <span>Merge előtt legalább egy másik fejlesztő átnézi a kódot. Hibák, biztonsági problémák korán kiderülnek.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--code)">
+            <div class="cli-i">🔒</div>
+            <div><strong>DevSecOps: SAST a kódírás közben</strong>
+            <span>Statikus biztonsági elemző (SonarQube, Checkmarx) IDE-be integrálva — real-time figyelmeztet biztonsági hibákra még mentés előtt.</span></div>
+          </div>
+        </div>
+        <div class="tool-pills">
+          <div class="tp" style="background:rgba(59,130,246,0.1);color:var(--code);border-color:rgba(59,130,246,0.3)">Git</div>
+          <div class="tp" style="background:rgba(59,130,246,0.1);color:var(--code);border-color:rgba(59,130,246,0.3)">GitHub</div>
+          <div class="tp" style="background:rgba(59,130,246,0.1);color:var(--code);border-color:rgba(59,130,246,0.3)">GitLab</div>
+          <div class="tp" style="background:rgba(59,130,246,0.1);color:var(--code);border-color:rgba(59,130,246,0.3)">Bitbucket</div>
+          <div class="tp" style="background:rgba(59,130,246,0.1);color:var(--code);border-color:rgba(59,130,246,0.3)">SVN</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">💻</div>
+          <div class="bub l"><div class="who" style="color:var(--dev)">Fejlesztő Anna</div>
+            git checkout -b feature/user-auth · Kész a login funkció — PR nyitva.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">💻</div>
+          <div class="bub r2"><div class="who" style="color:var(--code);text-align:right">Fejlesztő Béla</div>
+            Code review done ✅ — egy kis SQL injection kockázatot találtam a query-ben, javítsd ki. Amúgy jó!
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 3. BUILD ─────────────────────────────────────────────────────
+  {
+    active:2,
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(99,102,241,0.5)">🔨</div>
+        <div><div class="stitle">3. Build — Építés</div>
+        <div class="ssub">// fázis 3/8 · Dev oldal · kódból artifact</div></div>
+      </div>
+      <div class="phase-detail" style="background:rgba(99,102,241,0.05);border-color:rgba(99,102,241,0.35)">
+        <div class="pd-header">
+          <div class="pd-icon">🔨</div>
+          <div>
+            <div class="pd-num">FÁZIS 03/08 — DEV</div>
+            <div class="pd-name" style="color:var(--build)">Build — Építés</div>
+          </div>
+          <div class="pd-side" style="background:rgba(59,130,246,0.1);color:var(--dev);border-color:rgba(59,130,246,0.3)">Dev</div>
+        </div>
+        <div class="pd-desc">A kód lefordítása és csomagolása. A DevOps-ban ez automatikusan történik minden merge után — a CI pipeline első lépése. Az eredmény egy telepíthető artifact (JAR, Docker image, stb.).</div>
+        <div class="cklist" style="margin:0">
+          <div class="cli" style="border-left:3px solid var(--build)">
+            <div class="cli-i">⚙️</div>
+            <div><strong>Automatikus fordítás (Compile)</strong>
+            <span>Maven, Gradle, npm run build — minden push után automatikusan elindul. Ha a fordítás hibát dob, a pipeline leáll és értesít.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--build)">
+            <div class="cli-i">📦</div>
+            <div><strong>Artifact generálás</strong>
+            <span>JAR/WAR fájl, Docker image, npm csomag — ezek lesznek a deployment egységek. Artifact repository-ba töltődnek fel (Nexus, Artifactory).</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--build)">
+            <div class="cli-i">🔍</div>
+            <div><strong>DevSecOps: SCA — dependency scan</strong>
+            <span>Build közben a függőségek (npm, Maven) ismert sebezhetőségeit ellenőrzi (Snyk, Dependabot). Log4Shell típusú sebezhetőségek korai felderítése.</span></div>
+          </div>
+        </div>
+        <div class="tool-pills">
+          <div class="tp" style="background:rgba(99,102,241,0.1);color:var(--build);border-color:rgba(99,102,241,0.3)">Maven</div>
+          <div class="tp" style="background:rgba(99,102,241,0.1);color:var(--build);border-color:rgba(99,102,241,0.3)">Gradle</div>
+          <div class="tp" style="background:rgba(99,102,241,0.1);color:var(--build);border-color:rgba(99,102,241,0.3)">npm</div>
+          <div class="tp" style="background:rgba(99,102,241,0.1);color:var(--build);border-color:rgba(99,102,241,0.3)">Docker build</div>
+          <div class="tp" style="background:rgba(99,102,241,0.1);color:var(--build);border-color:rgba(99,102,241,0.3)">Webpack</div>
+        </div>
+      </div>
+      <div class="flow-vis">
+        <div class="fv-title">// Build pipeline lépései automatikusan</div>
+        <div class="fv-row">
+          <div class="fv-step" style="background:rgba(59,130,246,0.1);color:var(--code);border-color:rgba(59,130,246,0.3)">git push</div>
+          <div class="fv-arrow">→</div>
+          <div class="fv-step" style="background:rgba(99,102,241,0.1);color:var(--build);border-color:rgba(99,102,241,0.3)">mvn compile</div>
+          <div class="fv-arrow">→</div>
+          <div class="fv-step" style="background:rgba(99,102,241,0.1);color:var(--build);border-color:rgba(99,102,241,0.3)">docker build</div>
+          <div class="fv-arrow">→</div>
+          <div class="fv-ok">✅ artifact</div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 4. TEST ──────────────────────────────────────────────────────
+  {
+    active:3,
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(168,85,247,0.5)">🧪</div>
+        <div><div class="stitle">4. Test — Tesztelés</div>
+        <div class="ssub">// fázis 4/8 · Dev oldal · minőségbiztosítás</div></div>
+      </div>
+      <div class="phase-detail" style="background:rgba(168,85,247,0.05);border-color:rgba(168,85,247,0.35)">
+        <div class="pd-header">
+          <div class="pd-icon">🧪</div>
+          <div>
+            <div class="pd-num">FÁZIS 04/08 — DEV</div>
+            <div class="pd-name" style="color:var(--test)">Test — Tesztelés</div>
+          </div>
+          <div class="pd-side" style="background:rgba(59,130,246,0.1);color:var(--dev);border-color:rgba(59,130,246,0.3)">Dev</div>
+        </div>
+        <div class="pd-desc">Automatizált tesztelés — unit, integrációs, E2E és (DevSecOps-ban) biztonsági tesztek. A CI pipeline részeként fut, minden deployment előtt.</div>
+        <div class="cklist" style="margin:0">
+          <div class="cli" style="border-left:3px solid var(--test)">
+            <div class="cli-i">🔬</div>
+            <div><strong>Unit tesztek</strong>
+            <span>Kis egységek izolált tesztelése. Gyorsak, sokat lefednek — JUnit, pytest, Jest. Ezek futnak le elsőként, másodpercek alatt.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--test)">
+            <div class="cli-i">🔗</div>
+            <div><strong>Integrációs tesztek</strong>
+            <span>Komponensek együttműködésének tesztelése. Pl. API + adatbázis együtt. Lassabb, de fontos réteg.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--test)">
+            <div class="cli-i">🖥️</div>
+            <div><strong>E2E tesztek (Selenium, Playwright)</strong>
+            <span>A teljes alkalmazás tesztelése böngészőből, valódi felhasználói folyamatok szimulálásával. Leginkább hasonlít a valós használathoz.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid #ef4444">
+            <div class="cli-i">🔐</div>
+            <div><strong>DevSecOps: DAST + Etikus hacking</strong>
+            <span>Biztonsági tesztelés a futó alkalmazáson. OWASP ZAP, Burp Suite — SQL injection, XSS, stb. automatikusan tesztelve.</span></div>
+          </div>
+        </div>
+        <div class="tool-pills">
+          <div class="tp" style="background:rgba(168,85,247,0.1);color:var(--test);border-color:rgba(168,85,247,0.3)">Selenium</div>
+          <div class="tp" style="background:rgba(168,85,247,0.1);color:var(--test);border-color:rgba(168,85,247,0.3)">Playwright</div>
+          <div class="tp" style="background:rgba(168,85,247,0.1);color:var(--test);border-color:rgba(168,85,247,0.3)">Gremlin</div>
+          <div class="tp" style="background:rgba(168,85,247,0.1);color:var(--test);border-color:rgba(168,85,247,0.3)">Raygun</div>
+          <div class="tp" style="background:rgba(168,85,247,0.1);color:var(--test);border-color:rgba(168,85,247,0.3)">JUnit</div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--test)"><strong>Teszt piramis:</strong> Sok unit teszt (gyors, olcsó) → kevesebb integrációs teszt → még kevesebb E2E teszt (lassú, drága). A DevOps-ban mindhárom automatikusan fut a CI pipeline-ban.</div>
+    `
+  },
+
+  // ── 5. RELEASE ───────────────────────────────────────────────────
+  {
+    active:4,
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(16,185,129,0.5)">📦</div>
+        <div><div class="stitle">5. Release — Kiadás</div>
+        <div class="ssub">// fázis 5/8 · Ops oldal · verziózás és kiadás</div></div>
+      </div>
+      <div class="phase-detail" style="background:rgba(16,185,129,0.05);border-color:rgba(16,185,129,0.35)">
+        <div class="pd-header">
+          <div class="pd-icon">📦</div>
+          <div>
+            <div class="pd-num">FÁZIS 05/08 — OPS</div>
+            <div class="pd-name" style="color:var(--release)">Release — Kiadás</div>
+          </div>
+          <div class="pd-side" style="background:rgba(16,185,129,0.1);color:var(--ops);border-color:rgba(16,185,129,0.3)">Ops</div>
+        </div>
+        <div class="pd-desc">Az összes teszten átment artifact megkapja a verziószámát, release notes készül, és staging környezetbe kerül. A Dev és Ops csapat itt adja egymásnak a stafétát.</div>
+        <div class="cklist" style="margin:0">
+          <div class="cli" style="border-left:3px solid var(--release)">
+            <div class="cli-i">🏷️</div>
+            <div><strong>Verziózás — Semantic Versioning</strong>
+            <span>MAJOR.MINOR.PATCH (pl. 2.3.1). MAJOR: visszafele nem kompatibilis változás. MINOR: új funkció. PATCH: hibajavítás. Git tag automatikusan kerül fel.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--release)">
+            <div class="cli-i">📝</div>
+            <div><strong>Release Notes generálás</strong>
+            <span>Automatikusan generált changelog — melyik commit milyen változást hozott. Stakeholders és felhasználók számára érthető formában.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--release)">
+            <div class="cli-i">🎭</div>
+            <div><strong>Staging környezetbe küldés</strong>
+            <span>Production-közeli tesztkörnyezetbe kerül a release — utolsó manuális ellenőrzés lehetősége deploy előtt.</span></div>
+          </div>
+        </div>
+        <div class="tool-pills">
+          <div class="tp" style="background:rgba(16,185,129,0.1);color:var(--release);border-color:rgba(16,185,129,0.3)">Jenkins</div>
+          <div class="tp" style="background:rgba(16,185,129,0.1);color:var(--release);border-color:rgba(16,185,129,0.3)">Travis CI</div>
+          <div class="tp" style="background:rgba(16,185,129,0.1);color:var(--release);border-color:rgba(16,185,129,0.3)">Bamboo</div>
+          <div class="tp" style="background:rgba(16,185,129,0.1);color:var(--release);border-color:rgba(16,185,129,0.3)">CircleCI</div>
+          <div class="tp" style="background:rgba(16,185,129,0.1);color:var(--release);border-color:rgba(16,185,129,0.3)">GitHub Actions</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🤖</div>
+          <div class="bub l"><div class="who" style="color:var(--release)">Jenkins</div>
+            Release v2.3.1 — minden teszt zöld ✅. Git tag létrehozva. Docker image registry-be feltöltve. Staging deploy elindítva...
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 6. DEPLOY ────────────────────────────────────────────────────
+  {
+    active:5,
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(34,211,238,0.5)">🚀</div>
+        <div><div class="stitle">6. Deploy — Telepítés</div>
+        <div class="ssub">// fázis 6/8 · Ops oldal · élesítés</div></div>
+      </div>
+      <div class="phase-detail" style="background:rgba(34,211,238,0.05);border-color:rgba(34,211,238,0.35)">
+        <div class="pd-header">
+          <div class="pd-icon">🚀</div>
+          <div>
+            <div class="pd-num">FÁZIS 06/08 — OPS</div>
+            <div class="pd-name" style="color:var(--deploy)">Deploy — Telepítés</div>
+          </div>
+          <div class="pd-side" style="background:rgba(16,185,129,0.1);color:var(--ops);border-color:rgba(16,185,129,0.3)">Ops</div>
+        </div>
+        <div class="pd-desc">Az artifact production környezetbe kerül. Modern DevOps-ban ez konténer-alapú (Docker + Kubernetes), zero downtime stratégiákkal. Felhőben zajlik: AWS, Azure, GCP.</div>
+        <div class="cklist" style="margin:0">
+          <div class="cli" style="border-left:3px solid var(--deploy)">
+            <div class="cli-i">🐳</div>
+            <div><strong>Konténer-alapú deploy (Docker + K8s)</strong>
+            <span>A Docker image-eket Kubernetes orchester-eli ki. Automatikus újraindítás, skálázás, terheléselosztás — megbízható élesítés.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--deploy)">
+            <div class="cli-i">🔵</div>
+            <div><strong>Blue-Green Deployment</strong>
+            <span>Két production környezet — blue (jelenlegi) és green (új). A forgalom átvált greenre → ha gond van, azonnal vissza blue-ra. Zero downtime.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--deploy)">
+            <div class="cli-i">🐦</div>
+            <div><strong>Canary Deployment</strong>
+            <span>Először csak a felhasználók 5%-a kapja az új verziót. Ha minden rendben, fokozatosan kerül ki mindenkihez — kockázat minimalizálva.</span></div>
+          </div>
+        </div>
+        <div class="tool-pills">
+          <div class="tp" style="background:rgba(34,211,238,0.1);color:var(--deploy);border-color:rgba(34,211,238,0.3)">Docker</div>
+          <div class="tp" style="background:rgba(34,211,238,0.1);color:var(--deploy);border-color:rgba(34,211,238,0.3)">Kubernetes</div>
+          <div class="tp" style="background:rgba(34,211,238,0.1);color:var(--deploy);border-color:rgba(34,211,238,0.3)">AWS</div>
+          <div class="tp" style="background:rgba(34,211,238,0.1);color:var(--deploy);border-color:rgba(34,211,238,0.3)">Azure</div>
+          <div class="tp" style="background:rgba(34,211,238,0.1);color:var(--deploy);border-color:rgba(34,211,238,0.3)">Google Cloud</div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--deploy)"><strong>IaC a Deploy fázisban:</strong> A production infrastruktúra Terraform/Ansible kóddal van leírva — a deploy maga is kódból fut. Ha valami elromlik, git reset a konfigra és minden visszaáll.</div>
+    `
+  },
+
+  // ── 7. OPERATE ───────────────────────────────────────────────────
+  {
+    active:6,
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(249,115,22,0.5)">⚙️</div>
+        <div><div class="stitle">7. Operate — Működtetés</div>
+        <div class="ssub">// fázis 7/8 · Ops oldal · éles rendszer kezelése</div></div>
+      </div>
+      <div class="phase-detail" style="background:rgba(249,115,22,0.05);border-color:rgba(249,115,22,0.35)">
+        <div class="pd-header">
+          <div class="pd-icon">⚙️</div>
+          <div>
+            <div class="pd-num">FÁZIS 07/08 — OPS</div>
+            <div class="pd-name" style="color:var(--operate)">Operate — Működtetés</div>
+          </div>
+          <div class="pd-side" style="background:rgba(16,185,129,0.1);color:var(--ops);border-color:rgba(16,185,129,0.3)">Ops</div>
+        </div>
+        <div class="pd-desc">Az éles rendszer napi üzemeltetése. Szerverek, konténerek, adatbázisok kezelése. Skálázás, konfiguráció, incident response — az Ops csapat fő feladata.</div>
+        <div class="cklist" style="margin:0">
+          <div class="cli" style="border-left:3px solid var(--operate)">
+            <div class="cli-i">📈</div>
+            <div><strong>Auto-skálázás</strong>
+            <span>Kubernetes HPA (Horizontal Pod Autoscaler) — ha nő a forgalom, több konténer indul automatikusan. Ha csökken, leállnak. Nincs kézi beavatkozás.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--operate)">
+            <div class="cli-i">🔧</div>
+            <div><strong>Konfigurációkezelés</strong>
+            <span>Puppet, Ansible, Chef — minden szerver konfigurációja kódból jön. Nincs "hópihe szerver" — minden szerver azonos, reprodukálható állapotban van.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--operate)">
+            <div class="cli-i">🚨</div>
+            <div><strong>Incident response — On-call</strong>
+            <span>Éjjel-nappal ügyeletes csapat. Ha a monitor riasztást küld, azonnal reagálnak. Playbook-ok szerint járnak el — dokumentált eljárások minden hibatípusra.</span></div>
+          </div>
+        </div>
+        <div class="tool-pills">
+          <div class="tp" style="background:rgba(249,115,22,0.1);color:var(--operate);border-color:rgba(249,115,22,0.3)">Puppet</div>
+          <div class="tp" style="background:rgba(249,115,22,0.1);color:var(--operate);border-color:rgba(249,115,22,0.3)">Ansible</div>
+          <div class="tp" style="background:rgba(249,115,22,0.1);color:var(--operate);border-color:rgba(249,115,22,0.3)">Chef</div>
+          <div class="tp" style="background:rgba(249,115,22,0.1);color:var(--operate);border-color:rgba(249,115,22,0.3)">SaltStack</div>
+          <div class="tp" style="background:rgba(249,115,22,0.1);color:var(--operate);border-color:rgba(249,115,22,0.3)">Terraform</div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 8. MONITOR ───────────────────────────────────────────────────
+  {
+    active:7,
+    render:()=>`
+      <div class="shdr">
+        <div class="sico" style="border-color:rgba(239,68,68,0.5)">📊</div>
+        <div><div class="stitle">8. Monitor — Monitorozás</div>
+        <div class="ssub">// fázis 8/8 · Ops oldal · valós idejű felügyelet</div></div>
+      </div>
+      <div class="phase-detail" style="background:rgba(239,68,68,0.05);border-color:rgba(239,68,68,0.35)">
+        <div class="pd-header">
+          <div class="pd-icon">📊</div>
+          <div>
+            <div class="pd-num">FÁZIS 08/08 — OPS</div>
+            <div class="pd-name" style="color:var(--monitor)">Monitor — Monitorozás</div>
+          </div>
+          <div class="pd-side" style="background:rgba(16,185,129,0.1);color:var(--ops);border-color:rgba(16,185,129,0.3)">Ops</div>
+        </div>
+        <div class="pd-desc">Valós idejű információk a teljesítményről — a Monitor fázis nélkül vakon repülünk. Riasztások, dashboardok, naplók — minden probléma azonnal látható. ÉS visszacsatol a Plan fázisba!</div>
+        <div class="cklist" style="margin:0">
+          <div class="cli" style="border-left:3px solid var(--monitor)">
+            <div class="cli-i">📈</div>
+            <div><strong>Teljesítmény monitoring</strong>
+            <span>Response time, CPU, memory, error rate — minden metrika valós időben. Ha egy API 500ms fölé megy, azonnal riaszt (AppDynamics, Prometheus).</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--monitor)">
+            <div class="cli-i">📋</div>
+            <div><strong>Centralizált loggyűjtés</strong>
+            <span>ELK Stack (Elasticsearch + Logstash + Kibana) — minden szerver naplója egy helyen kereshető. Hibák visszakövetése perceken belül.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid #ef4444">
+            <div class="cli-i">🔍</div>
+            <div><strong>DevSecOps: Behatolás vizsgálat (IDS)</strong>
+            <span>Intrusion Detection System — gyanús aktivitás azonosítása éles rendszeren. SIEM (Splunk) korrelálj naplókat, riaszt támadásoknál.</span></div>
+          </div>
+        </div>
+        <div class="tool-pills">
+          <div class="tp" style="background:rgba(239,68,68,0.1);color:var(--monitor);border-color:rgba(239,68,68,0.3)">AppDynamics</div>
+          <div class="tp" style="background:rgba(239,68,68,0.1);color:var(--monitor);border-color:rgba(239,68,68,0.3)">Prometheus</div>
+          <div class="tp" style="background:rgba(239,68,68,0.1);color:var(--monitor);border-color:rgba(239,68,68,0.3)">ELK Stack</div>
+          <div class="tp" style="background:rgba(239,68,68,0.1);color:var(--monitor);border-color:rgba(239,68,68,0.3)">Splunk</div>
+          <div class="tp" style="background:rgba(239,68,68,0.1);color:var(--monitor);border-color:rgba(239,68,68,0.3)">Grafana</div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--monitor)"><strong>Monitor → Plan visszacsatolás:</strong> A monitor által felderített incidensek, performance problémák és felhasználói visszajelzések bekerülnek a következő Plan fázisba — a ciklus újrakezdődik, folyamatosan javulva.</div>
+    `
+  },
+
+  // ── 9. CI PIPELINE RÉSZLET ───────────────────────────────────────
+  {
+    active:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">🔄</div>
+        <div><div class="stitle">A CI/CD Pipeline részletesen</div>
+        <div class="ssub">// Continuous Integration & Delivery — hogyan néz ki élesben</div></div>
+      </div>
+      <div class="flow-vis">
+        <div class="fv-title">// Egy tipikus CI/CD pipeline lépései</div>
+        <div class="fv-row">
+          <div class="fv-step" style="background:rgba(59,130,246,0.1);color:var(--code);border-color:rgba(59,130,246,0.3)">1. git push</div>
+          <div class="fv-arrow">→</div>
+          <div class="fv-desc">Developer kódot tölt fel feature branchre</div>
+          <div class="fv-ok">trigger</div>
+        </div>
+        <div class="fv-row">
+          <div class="fv-step" style="background:rgba(99,102,241,0.1);color:var(--build);border-color:rgba(99,102,241,0.3)">2. Build</div>
+          <div class="fv-arrow">→</div>
+          <div class="fv-desc">Maven/npm automatikus fordítás és csomagolás</div>
+          <div class="fv-ok">~2 perc</div>
+        </div>
+        <div class="fv-row">
+          <div class="fv-step" style="background:rgba(168,85,247,0.1);color:var(--test);border-color:rgba(168,85,247,0.3)">3. Unit Test</div>
+          <div class="fv-arrow">→</div>
+          <div class="fv-desc">Automatikus unit tesztek futtatása</div>
+          <div class="fv-ok">~3 perc</div>
+        </div>
+        <div class="fv-row">
+          <div class="fv-step" style="background:rgba(168,85,247,0.1);color:var(--test);border-color:rgba(168,85,247,0.3)">4. Integration</div>
+          <div class="fv-arrow">→</div>
+          <div class="fv-desc">Integrációs és E2E tesztek (Selenium)</div>
+          <div class="fv-ok">~8 perc</div>
+        </div>
+        <div class="fv-row">
+          <div class="fv-step" style="background:rgba(239,68,68,0.1);color:#ef4444;border-color:rgba(239,68,68,0.3)">5. SAST/SCA</div>
+          <div class="fv-arrow">→</div>
+          <div class="fv-desc">Biztonsági elemzés (DevSecOps)</div>
+          <div class="fv-ok">~4 perc</div>
+        </div>
+        <div class="fv-row">
+          <div class="fv-step" style="background:rgba(16,185,129,0.1);color:var(--release);border-color:rgba(16,185,129,0.3)">6. Release</div>
+          <div class="fv-arrow">→</div>
+          <div class="fv-desc">Verziózás, Docker image push registry-be</div>
+          <div class="fv-ok">~2 perc</div>
+        </div>
+        <div class="fv-row">
+          <div class="fv-step" style="background:rgba(34,211,238,0.1);color:var(--deploy);border-color:rgba(34,211,238,0.3)">7. Deploy</div>
+          <div class="fv-arrow">→</div>
+          <div class="fv-desc">Kubernetes deploy staging → production</div>
+          <div class="fv-ok">~5 perc</div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--release)"><strong>Összesen ~24 perc</strong> — amíg egy kódsor élesedik. Korábban ez napok, hetek vagy hónapok volt. A CI/CD az értékteremtés sebességét drasztikusan növeli, miközben megőrzi a minőséget.</div>
+    `
+  },
+
+  // ── 10. IaC RÉSZLET ──────────────────────────────────────────────
+  {
+    active:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">🏗️</div>
+        <div><div class="stitle">IaC — Infrastruktúra mint Kód</div>
+        <div class="ssub">// miért forradalom az Ops csapatoknak?</div></div>
+      </div>
+      <div class="vs-grid">
+        <div style="background:rgba(239,68,68,0.07);border:1.5px solid rgba(239,68,68,0.3);border-radius:10px;padding:0.75rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:#ef4444;font-weight:700;margin-bottom:0.35rem">❌ Régi módszer</div>
+          <div class="rc-list">
+            <div class="rc-item">SSH-val bejelentkezni, kézzel konfigurálni</div>
+            <div class="rc-item">Minden szerver kicsit másképp van beállítva</div>
+            <div class="rc-item">"Hópihe szerver" — senki nem tudja mit tartalmaz</div>
+            <div class="rc-item">Dokumentáció hiányos vagy elavult</div>
+            <div class="rc-item">Ha elromlik: újra kézzel kell beállítani</div>
+          </div>
+        </div>
+        <div style="background:rgba(16,185,129,0.07);border:1.5px solid rgba(16,185,129,0.3);border-radius:10px;padding:0.75rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--ops);font-weight:700;margin-bottom:0.35rem">✅ IaC módszer</div>
+          <div class="rc-list">
+            <div class="rc-item">Terraform / Ansible kóddal definiálva</div>
+            <div class="rc-item">Minden szerver azonos, reprodukálható</div>
+            <div class="rc-item">Verziókezelés — git log megmutatja ki mit változtatott</div>
+            <div class="rc-item">Kód a dokumentáció</div>
+            <div class="rc-item">Ha elromlik: git reset → újra futtattam → kész</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">⚙️</div>
+          <div class="bub l"><div class="who" style="color:var(--ops)">Ops mérnök</div>
+            Új production szerver kell — 20 perc. terraform apply és fel van állítva, pontosan ugyanolyan konfiguráció mint a többi szerver.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">💻</div>
+          <div class="bub r2"><div class="who" style="color:var(--dev);text-align:right">Dev csapat</div>
+            Hát régen ez 3 nap volt és mindig valamit elfelejtett beállítani...
+          </div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--ops)"><strong>IaC eszközök:</strong> Terraform (infrastruktúra létrehozása), Ansible (konfiguráció menedzsment), Puppet/Chef (szerver konfiguráció). A DevSecOps stack Checkov/Terrascan-nel ellenőrzi az IaC biztonsági beállításait.</div>
+    `
+  },
+
+  // ── 11. AUTOMATIZÁLÁS MÉLYSÉGBEN ─────────────────────────────────
+  {
+    active:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">🤖</div>
+        <div><div class="stitle">Automatizálás — visszacsatolási hurkok</div>
+        <div class="ssub">// a DevOps szívverése — minden emberi hibát kizárni</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--plan)">
+          <div class="cli-i">📋</div>
+          <div><strong>Plan → Code: automatikus ticket kezelés</strong>
+          <span>Jira ticket lezárása automatikusan, amikor a kapcsolódó branch merge-elve lett. Mindenki látja mi hol tart.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--build)">
+          <div class="cli-i">🔨</div>
+          <div><strong>Code → Build: automatikus CI trigger</strong>
+          <span>Git push → Jenkins/GitHub Actions azonnal elindítja a build-et. Nincs emberi beavatkozás — minden commit tesztelve.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--release)">
+          <div class="cli-i">📦</div>
+          <div><strong>Test → Release: automatikus deploy</strong>
+          <span>Minden teszt zöld → automatikus release és staging deploy. Az emberi jóváhagyás csak production-nál szükséges (és ott is csak egy kattintás).</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--monitor)">
+          <div class="cli-i">🔄</div>
+          <div><strong>Monitor → Plan: automatikus ticket generálás</strong>
+          <span>Ha a monitor riaszt, automatikusan Jira ticket jön létre a hibával, stack trace-szel, érintett szolgáltatással. Az Ops azonnal tudja mi a feladat.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--operate)">
+          <div class="cli-i">📈</div>
+          <div><strong>Operate: automatikus skálázás</strong>
+          <span>CPU 80% felett → Kubernetes új pod-ot indít. Forgalom csökken → pod-ok leállnak. Nincs éjjeli hívás az ops-nak "skálázz fel kézzel".</span></div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Az automatizálás célja:</strong> A fejlesztők és Ops mérnökök ne ismétlődő, robotmunkán töltsék az idejüket — hanem kreatív problémamegoldáson. Minden ami automatizálható, automatizálva kell legyen.</div>
+    `
+  },
+
+  // ── 12. ÖSSZEFOGLALÁS ────────────────────────────────────────────
+  {
+    active:-1,
+    render:()=>`
+      <div class="shdr"><div class="sico">∑</div>
+        <div><div class="stitle">Összefoglalás — DevOps Életciklus</div>
+        <div class="ssub">// 8 fázis + eszközök + lényeg</div></div>
+      </div>
+      <div class="sumgrid">
+        <div class="sbox" style="border-top:2px solid var(--dev)">
+          <span class="ico">💻</span>
+          <div class="val" style="color:var(--dev)">Dev oldal</div>
+          <div class="lbl">Plan · Code · Build · Test</div>
+        </div>
+        <div class="sbox" style="border-top:2px solid var(--ops)">
+          <span class="ico">⚙️</span>
+          <div class="val" style="color:var(--ops)">Ops oldal</div>
+          <div class="lbl">Release · Deploy · Operate · Monitor</div>
+        </div>
+        <div class="sbox">
+          <span class="ico">🔄</span>
+          <div class="val">CI/CD</div>
+          <div class="lbl">Automatikus Build → Deploy</div>
+        </div>
+        <div class="sbox">
+          <span class="ico">🏗️</span>
+          <div class="val">IaC</div>
+          <div class="lbl">Infrastruktúra = Kód</div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--plan)">
+          <div class="cli-i">📋</div>
+          <div><strong>Plan</strong> — <span>Jira, Confluence, Linear</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--code)">
+          <div class="cli-i">💻</div>
+          <div><strong>Code</strong> — <span>Git, GitHub, GitLab, Bitbucket</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--build)">
+          <div class="cli-i">🔨</div>
+          <div><strong>Build</strong> — <span>Maven, Gradle, Docker build</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--test)">
+          <div class="cli-i">🧪</div>
+          <div><strong>Test</strong> — <span>Selenium, JUnit, Playwright, Gremlin</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--release)">
+          <div class="cli-i">📦</div>
+          <div><strong>Release</strong> — <span>Jenkins, Travis CI, Bamboo, CircleCI</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--deploy)">
+          <div class="cli-i">🚀</div>
+          <div><strong>Deploy</strong> — <span>Docker, Kubernetes, AWS/Azure/GCP</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--operate)">
+          <div class="cli-i">⚙️</div>
+          <div><strong>Operate</strong> — <span>Puppet, Ansible, Chef, Terraform</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--monitor)">
+          <div class="cli-i">📊</div>
+          <div><strong>Monitor</strong> — <span>AppDynamics, ELK Stack, Splunk, Grafana</span></div>
+        </div>
+      </div>
+    `
+  },
+];
+
+function renderBoard(activeIdx) {
+  const pl = document.getElementById('pipeline');
+  pl.innerHTML = PHASES.map((p,i) => {
+    const on = i === activeIdx;
+    const done = activeIdx >= 0 && i < activeIdx;
+    const cls = on ? 'active' : done ? 'done' : '';
+    const c = on ? p.color : done ? p.color : 'var(--muted)';
+    return `<div class="pl-item ${cls}">
+      <div class="pl-dot" style="border-color:${c};color:${c}">${p.icon}</div>
+      <div class="pl-label" style="color:${on?p.color:'var(--muted)'}">${p.label}</div>
+    </div>`;
+  }).join('');
+
+  const div = document.getElementById('devopsDivider');
+  div.innerHTML = `
+    <div class="dv-label" style="color:var(--dev)">Dev</div>
+    <div class="dv-bar" style="background:linear-gradient(90deg,rgba(59,130,246,0.5),rgba(99,102,241,0.3))"></div>
+    <div class="dv-label" style="color:var(--muted)">|</div>
+    <div class="dv-bar" style="background:linear-gradient(90deg,rgba(16,185,129,0.3),rgba(239,68,68,0.5))"></div>
+    <div class="dv-label" style="color:var(--ops)">Ops</div>
+  `;
+}
+
+let cur = 0;
+
+function render() {
+  const s = STEPS[cur];
+  renderBoard(s.active);
+
+  const el = document.getElementById('content');
+  el.innerHTML = s.render();
+  setTimeout(() => {
+    el.querySelectorAll('.msg:not(.show)').forEach((m,i) => {
+      setTimeout(() => m.classList.add('show'), i*160);
+    });
+  }, 60);
+
+  document.getElementById('bprev').disabled = cur === 0;
+  const bn = document.getElementById('bnext');
+  bn.textContent = cur === STEPS.length - 1 ? '↺ Újra' : 'Következő →';
+  document.getElementById('ctr').textContent = `${cur+1} / ${STEPS.length}`;
+}
+
+function next() { cur = cur === STEPS.length-1 ? 0 : cur+1; render(); }
+function prev() { if(cur>0){cur--;render();} }
+
+render();
+</script>
+</body>
+</html>
