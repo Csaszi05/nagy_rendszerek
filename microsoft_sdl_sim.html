@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Microsoft SDL — Biztonságos Fejlesztés</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+
+:root {
+  --bg:    #0a0f1e;
+  --surf:  #0f1628;
+  --card:  #141d35;
+  --brd:   #1e2d50;
+  --brd2:  #263a68;
+  --text:  #d8e4ff;
+  --muted: #4a5f8a;
+
+  --s0: #6b7280;   /* Oktatás */
+  --s1: #3b82f6;   /* Követelmény */
+  --s2: #6366f1;   /* Tervezés */
+  --s3: #a855f7;   /* Implementáció */
+  --s4: #f59e0b;   /* Verifikáció */
+  --s5: #10b981;   /* Kiadás */
+  --s6: #ef4444;   /* Utóélet */
+  --acc: #3b82f6;
+  --ok:  #10b981;
+  --crit:#ef4444;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Sora',sans-serif; min-height:100vh; overflow-x:hidden; }
+body::before {
+  content:''; position:fixed; inset:0;
+  background: radial-gradient(ellipse at 20% 0%, rgba(59,130,246,0.05) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 100%, rgba(16,185,129,0.04) 0%, transparent 50%);
+  pointer-events:none; z-index:0;
+}
+
+header {
+  position:relative; z-index:1; padding:1.2rem 1.3rem 0.85rem;
+  border-bottom:1px solid var(--brd2);
+  background:linear-gradient(180deg,rgba(59,130,246,0.05) 0%,transparent 100%);
+}
+.hdr-row { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+h1 { font-size:1.4rem; font-weight:800; line-height:1.07; letter-spacing:-0.02em; }
+h1 span { color:var(--acc); }
+h1 em   { font-style:normal; color:var(--ok); }
+.tag { font-family:'Inconsolata',monospace; font-size:0.56rem; padding:0.25rem 0.55rem; border-radius:4px; background:rgba(59,130,246,0.12); color:var(--acc); border:1px solid rgba(59,130,246,0.28); white-space:nowrap; margin-top:0.2rem; }
+header p { font-size:0.7rem; color:var(--muted); margin-top:0.25rem; font-family:'Inconsolata',monospace; }
+
+/* SDL PHASE BAR */
+.sdlbar { position:relative; z-index:1; background:var(--surf); border-bottom:1px solid var(--brd2); padding:0.75rem 1.3rem 0.65rem; }
+.sb-title { font-family:'Inconsolata',monospace; font-size:0.54rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.09em; margin-bottom:0.5rem; }
+.sdl-steps { display:flex; align-items:center; gap:0; margin-bottom:0.4rem; }
+.sdl-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:0.18rem; position:relative; }
+.sdl-item:not(:last-child)::after { content:''; position:absolute; right:0; top:13px; width:50%; height:2px; background:var(--brd); z-index:0; }
+.sdl-item:not(:first-child)::before { content:''; position:absolute; left:0; top:13px; width:50%; height:2px; background:var(--brd); z-index:0; }
+.sdl-dot { width:26px; height:26px; border-radius:50%; border:2px solid var(--brd2); background:var(--card); display:flex; align-items:center; justify-content:center; font-size:0.62rem; z-index:1; transition:all 0.35s; position:relative; }
+.sdl-label { font-family:'Inconsolata',monospace; font-size:0.44rem; color:var(--muted); text-align:center; line-height:1.2; }
+.sdl-item.active .sdl-dot { transform:scale(1.25); box-shadow:0 0 12px currentColor; }
+.sdl-item.done .sdl-dot { opacity:0.55; }
+.sdl-item.active .sdl-label { font-weight:700; font-size:0.48rem; }
+.concept-chips { display:flex; gap:4px; flex-wrap:wrap; }
+.con-chip { font-family:'Inconsolata',monospace; font-size:0.52rem; font-weight:600; padding:0.14rem 0.4rem; border-radius:3px; border:1px solid; opacity:0.25; transition:opacity 0.3s; }
+.con-chip.on { opacity:1; }
+
+/* CONTENT */
+.content { position:relative; z-index:1; padding:0.9rem 1.3rem; min-height:275px; }
+.shdr { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.85rem; }
+.sico { width:36px; height:36px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1rem; border:1.5px solid var(--brd2); background:var(--card); }
+.stitle { font-size:0.95rem; font-weight:800; letter-spacing:-0.02em; }
+.ssub { font-family:'Inconsolata',monospace; font-size:0.56rem; color:var(--muted); margin-top:0.03rem; }
+
+/* CHAT */
+.chat { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.7rem; }
+.msg { display:flex; gap:0.4rem; align-items:flex-start; opacity:0; transform:translateY(6px); transition:opacity 0.3s, transform 0.3s; }
+.msg.show { opacity:1; transform:translateY(0); }
+.msg.r { flex-direction:row-reverse; }
+.av { width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:0.9rem; flex-shrink:0; border:1px solid var(--brd2); background:var(--card); }
+.bub { max-width:82%; padding:0.48rem 0.68rem; border-radius:9px; font-size:0.77rem; line-height:1.55; border:1px solid var(--brd2); background:var(--card); }
+.bub.l  { border-bottom-left-radius:2px; }
+.bub.r2 { border-bottom-right-radius:2px; text-align:right; }
+.who { font-family:'Inconsolata',monospace; font-size:0.55rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.1rem; }
+
+/* SDL PHASE CARD */
+.sdl-phase-card { border-radius:12px; padding:0.85rem 1rem; margin-bottom:0.5rem; border:2px solid; }
+.spc-hdr { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.45rem; }
+.spc-num { font-family:'Inconsolata',monospace; font-size:1.4rem; font-weight:800; flex-shrink:0; line-height:1; }
+.spc-title { font-size:0.95rem; font-weight:800; letter-spacing:-0.02em; }
+.spc-sub { font-family:'Inconsolata',monospace; font-size:0.56rem; opacity:0.7; margin-top:0.05rem; }
+.spc-badge { font-family:'Inconsolata',monospace; font-size:0.52rem; padding:0.12rem 0.45rem; border-radius:3px; border:1px solid; font-weight:700; margin-left:auto; }
+.spc-desc { font-size:0.74rem; line-height:1.6; color:rgba(216,228,255,0.85); }
+
+/* CODE BLOCK */
+.code-block { background:#0d1117; border:1px solid var(--brd2); border-radius:8px; padding:0.65rem 0.8rem; margin:0.35rem 0; font-family:'Inconsolata',monospace; font-size:0.72rem; line-height:1.7; overflow-x:auto; }
+.cb-label { font-family:'Inconsolata',monospace; font-size:0.52rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.3rem; display:flex; align-items:center; gap:0.4rem; }
+.cb-ok { background:rgba(16,185,129,0.15); color:var(--ok); padding:0.1rem 0.35rem; border-radius:3px; font-weight:700; }
+.cb-bad { background:rgba(239,68,68,0.15); color:var(--crit); padding:0.1rem 0.35rem; border-radius:3px; font-weight:700; }
+.c-kw { color:#ff7b72; }
+.c-fn { color:#d2a8ff; }
+.c-str { color:#a5d6ff; }
+.c-var { color:#ffa657; }
+.c-cmt { color:#8b949e; font-style:italic; }
+.c-bad { background:rgba(239,68,68,0.18); border-radius:3px; padding:0 2px; }
+.c-good { background:rgba(16,185,129,0.15); border-radius:3px; padding:0 2px; }
+
+/* IBOX */
+.ibox { border-radius:8px; padding:0.55rem 0.75rem; font-size:0.74rem; line-height:1.55; margin:0.45rem 0; border:1px solid var(--brd2); background:var(--card); border-left:3px solid var(--acc); }
+.ibox strong { font-weight:700; }
+.ibox.ok-b { border-left-color:var(--ok); }
+.ibox.ok-b strong { color:var(--ok); }
+.ibox.warn-b { border-left-color:#f59e0b; }
+.ibox.warn-b strong { color:#f59e0b; }
+
+/* CHECKLIST */
+.cklist { display:flex; flex-direction:column; gap:0.35rem; margin:0.45rem 0; }
+.cli { display:flex; align-items:flex-start; gap:0.5rem; padding:0.42rem 0.65rem; background:var(--card); border:1px solid var(--brd2); border-radius:8px; font-size:0.75rem; line-height:1.45; }
+.cli-i { flex-shrink:0; font-size:0.88rem; }
+.cli strong { display:block; font-weight:700; font-size:0.76rem; margin-bottom:0.03rem; }
+.cli span { color:var(--muted); font-size:0.68rem; font-family:'Inconsolata',monospace; }
+
+/* CONCEPT GRID */
+.concept-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.35rem; margin:0.45rem 0; }
+.con-card { background:var(--card); border:1px solid var(--brd2); border-radius:8px; padding:0.55rem 0.65rem; border-left:3px solid; }
+.cc-title { font-size:0.77rem; font-weight:800; margin-bottom:0.1rem; }
+.cc-desc { font-size:0.65rem; color:var(--muted); line-height:1.4; font-family:'Inconsolata',monospace; }
+
+/* SUMGRID */
+.sumgrid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+.sbox { background:var(--card); border:1px solid var(--brd2); border-radius:8px; padding:0.6rem; text-align:center; }
+.sbox .ico { font-size:1.2rem; display:block; margin-bottom:0.15rem; }
+.sbox .val { font-size:0.88rem; font-weight:800; }
+.sbox .lbl { font-family:'Inconsolata',monospace; font-size:0.52rem; color:var(--muted); margin-top:0.04rem; }
+
+/* SDL TIMELINE */
+.sdl-timeline { background:var(--card); border:1.5px solid var(--brd2); border-radius:9px; overflow:hidden; margin:0.45rem 0; }
+.sdlt-hdr { background:var(--surf); padding:0.3rem 0.7rem; font-family:'Inconsolata',monospace; font-size:0.52rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; border-bottom:1px solid var(--brd); }
+.sdlt-row { display:flex; align-items:center; padding:0.38rem 0.7rem; border-bottom:1px solid var(--brd); gap:0.5rem; font-size:0.7rem; }
+.sdlt-row:last-child { border-bottom:none; }
+.sdlt-num { font-family:'Inconsolata',monospace; font-size:0.65rem; font-weight:800; width:22px; flex-shrink:0; }
+.sdlt-name { font-weight:700; flex:1; }
+.sdlt-key { font-family:'Inconsolata',monospace; font-size:0.6rem; color:var(--muted); }
+
+/* NAV */
+.nav { position:sticky; bottom:0; z-index:10; background:var(--bg); border-top:1px solid var(--brd2); padding:0.7rem 1.3rem; display:flex; align-items:center; gap:0.5rem; }
+.btn { font-family:'Inconsolata',monospace; font-size:0.63rem; font-weight:600; padding:0.52rem 1rem; border-radius:7px; cursor:pointer; transition:all 0.18s; text-transform:uppercase; letter-spacing:0.04em; }
+.btnp { background:transparent; color:var(--muted); border:1px solid var(--brd2); }
+.btnp:hover { color:var(--text); }
+.btnp:disabled { opacity:0.2; cursor:not-allowed; }
+.btnn { flex:1; background:rgba(59,130,246,0.12); color:var(--acc); border:1px solid rgba(59,130,246,0.3); }
+.btnn:hover { background:rgba(59,130,246,0.22); }
+.ctr { font-family:'Inconsolata',monospace; font-size:0.57rem; color:var(--muted); white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <h1><span>Microsoft</span><br>SDL<br><em>Módszertan</em></h1>
+    <div class="tag">2004 · v5.2 · 7 szakasz</div>
+  </div>
+  <p>// Security Development Lifecycle — biztonságos kód a tervezéstől a kiadásig</p>
+</header>
+
+<div class="sdlbar">
+  <div class="sb-title">// SDL szakaszok — aktuális</div>
+  <div class="sdl-steps" id="sdlSteps"></div>
+  <div class="concept-chips" id="conceptChips"></div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 17</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+
+<script>
+const SDL_PHASES = [
+  { label:'0.\nOktatás',     color:'var(--s0)', icon:'📚' },
+  { label:'1.\nKövetelm.',   color:'var(--s1)', icon:'📋' },
+  { label:'2.\nTervezés',    color:'var(--s2)', icon:'🏗️' },
+  { label:'3.\nImpl.',       color:'var(--s3)', icon:'💻' },
+  { label:'4.\nVerifikáció', color:'var(--s4)', icon:'🧪' },
+  { label:'5.\nKiadás',      color:'var(--s5)', icon:'📦' },
+  { label:'6.\nUtóélet',     color:'var(--s6)', icon:'🔄' },
+];
+
+const CONCEPTS = [
+  { label:'Tám. felület ↓', color:'var(--s2)' },
+  { label:'Mélységi véd.', color:'var(--s3)' },
+  { label:'Legkisebb priv.', color:'var(--s2)' },
+  { label:'Secure default', color:'var(--s2)' },
+  { label:'Threat Model', color:'var(--s1)' },
+];
+
+const STEPS = [
+
+  // ── 0. MI AZ SDL? ────────────────────────────────────────────────
+  {
+    phase:-1, cons:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,0.5)">🛡️</div>
+        <div><div class="stitle">Mi az a Microsoft SDL?</div>
+        <div class="ssub">// Security Development Lifecycle — 2004, Microsoft</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+            A Microsoft SDL egy speciális szoftverfejlesztési folyamat, amelyet a Microsoft fejlesztett ki azután, hogy 2002-ben Bill Gates kiadta a "Trustworthy Computing" memóját.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--s3);text-align:right">Tanuló</div>
+            Mi volt a probléma? A Microsoft kódjában biztonsági hibák voltak?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+            2001-ben a Code Red és Nimda vírusok hónapokon belül követték egymást — mindkettő Windows hibákat használt ki, és dollár milliárdokat okoztak. Microsoft felismerte: a biztonságot a FEJLESZTÉSI FOLYAMATBA kell beépíteni, nem utólag foltozni.
+          </div>
+        </div>
+      </div>
+      <div style="background:rgba(59,130,246,0.05);border:2px solid rgba(59,130,246,0.3);border-radius:11px;padding:0.8rem;margin:0.45rem 0">
+        <div style="font-family:'Inconsolata',monospace;font-size:0.58rem;color:var(--acc);font-weight:700;margin-bottom:0.3rem">MICROSOFT SDL — ALAPADATOK</div>
+        <div class="cklist" style="margin:0">
+          <div class="cli" style="border-left:3px solid var(--acc)">
+            <div class="cli-i">📅</div>
+            <div><strong>2004. január — első verzió</strong>
+            <span>Azóta folyamatosan fejlesztik. Jelenlegi verzió: 5.2 (2012-ben adták ki). A legismertebb biztonsági fejlesztési módszertan.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--acc)">
+            <div class="cli-i">🎯</div>
+            <div><strong>Cél: megbízhatóság növelése</strong>
+            <span>Különös tekintettel a biztonsági hibákra. Nem "patchelni kell ha megtalálják" — hanem "már a tervezéskor kizárni a lehetséges hibát".</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--ok)">
+            <div class="cli-i">📊</div>
+            <div><strong>Eredmény: drámai csökkenés</strong>
+            <span>Az SDL bevezetése után a Windows kritikus biztonsági hibáinak száma 45%-kal csökkent az első évben. A Internet Explorer biztonsági sebezhetőségei 45%-kal estek vissza.</span></div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 1. BIZTONSÁGI KONCEPCIÓK ─────────────────────────────────────
+  {
+    phase:-1, cons:[0,1,2,3],
+    render:()=>`
+      <div class="shdr"><div class="sico">💡</div>
+        <div><div class="stitle">Alapvető biztonsági koncepciók</div>
+        <div class="ssub">// ezekre épül az egész SDL — tanuld meg kívülről</div></div>
+      </div>
+      <div class="concept-grid">
+        <div class="con-card" style="border-color:var(--s2)">
+          <div class="cc-title" style="color:var(--s2)">🎯 Támadási felület ↓</div>
+          <div class="cc-desc">Minél kevesebb "belépési pont" van a rendszerbe, annál kisebb a kockázat. Pl. egy API-nál: kevesebb publikus endpoint = kisebb támadási felület.</div>
+        </div>
+        <div class="con-card" style="border-color:var(--s3)">
+          <div class="cc-title" style="color:var(--s3)">🏰 Mélységi védekezés</div>
+          <div class="cc-desc">Defense in depth — több biztonsági réteg egymás után. Ha az egyik réteg áttörhető, a következő megállítja. Pl. Tűzfal + Auth + Titkosítás + Monitoring.</div>
+        </div>
+        <div class="con-card" style="border-color:var(--s2)">
+          <div class="cc-title" style="color:var(--s2)">🔑 Legkisebb privilégium</div>
+          <div class="cc-desc">Least privilege — csak annyi jogosultságot adjunk amennyire szükség van. Pl. az adatbázis user csak SELECT jogot kapjon, ha nem kell írni.</div>
+        </div>
+        <div class="con-card" style="border-color:var(--s5)">
+          <div class="cc-title" style="color:var(--s5)">🔒 Biztonságos default</div>
+          <div class="cc-desc">Az alapértelmezett konfiguráció a legszigorúbb legyen. A felhasználók "gyengítik" saját igényeikre — nem "erősítik" utólag. Opt-in, nem opt-out.</div>
+        </div>
+      </div>
+      <div class="concept-grid">
+        <div class="con-card" style="border-color:var(--s1)">
+          <div class="cc-title" style="color:var(--s1)">🏗️ Biztonságos architektúra</div>
+          <div class="cc-desc">A rendszer architektúrális döntései meghatározzák a biztonsági szintet. Pl. microservice vs monolit eltérő biztonsági modellt igényel.</div>
+        </div>
+        <div class="con-card" style="border-color:var(--s4)">
+          <div class="cc-title" style="color:var(--s4)">🚨 Válaszadás incidensre</div>
+          <div class="cc-desc">Előre kidolgozott eljárás: ha biztonsági incidens történik, ki mit csinál? Incident Response Plan — nem a tűz közben kell kitalálni.</div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Analógia — Mélységi védekezés:</strong> Egy bank nem csak a széfet zárja be. Van: biztonsági őr az ajtón, kamera, riasztó, páncélüveg, pin kód a belső ajtóhoz, és a széf. Ha valami elmegy — a többi megállítja. Ez a defense in depth.</div>
+    `
+  },
+
+  // ── 2. SDL ÁTTEKINTŐ ─────────────────────────────────────────────
+  {
+    phase:-1, cons:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">🗺️</div>
+        <div><div class="stitle">SDL életciklus — 7 szakasz áttekintő</div>
+        <div class="ssub">// 0-tól 6-ig — minden fázisban security</div></div>
+      </div>
+      <div class="sdl-timeline">
+        <div class="sdlt-hdr">// Microsoft SDL — teljes folyamat</div>
+        <div class="sdlt-row">
+          <div class="sdlt-num" style="color:var(--s0)">0.</div>
+          <div class="sdlt-name">Oktatás</div>
+          <div class="sdlt-key">minden fejlesztő, tesztelő, manager → biztonsági képzés</div>
+        </div>
+        <div class="sdlt-row">
+          <div class="sdlt-num" style="color:var(--s1)">1.</div>
+          <div class="sdlt-name">Követelményspecifikáció</div>
+          <div class="sdlt-key">biztonsági + bizalmassági követelmények, bug bar meghatározása</div>
+        </div>
+        <div class="sdlt-row">
+          <div class="sdlt-num" style="color:var(--s2)">2.</div>
+          <div class="sdlt-name">Tervezés</div>
+          <div class="sdlt-key">biztonságos architektúra, támadási felület minimalizálása, threat modelling</div>
+        </div>
+        <div class="sdlt-row">
+          <div class="sdlt-num" style="color:var(--s3)">3.</div>
+          <div class="sdlt-name">Implementáció</div>
+          <div class="sdlt-key">kód review, tiltott függvények, input validáció, ASLR, biztonságos DB elérés</div>
+        </div>
+        <div class="sdlt-row">
+          <div class="sdlt-num" style="color:var(--s4)">4.</div>
+          <div class="sdlt-name">Verifikáció</div>
+          <div class="sdlt-key">fuzzing, penetrációs teszt, memória korrupció tesztelés</div>
+        </div>
+        <div class="sdlt-row">
+          <div class="sdlt-num" style="color:var(--s5)">5.</div>
+          <div class="sdlt-name">Kiadás</div>
+          <div class="sdlt-key">bizalmasság review, debug letiltása, incident response eljárás</div>
+        </div>
+        <div class="sdlt-row">
+          <div class="sdlt-num" style="color:var(--s6)">6.</div>
+          <div class="sdlt-name">Utóélet</div>
+          <div class="sdlt-key">biztonsági riportok monitorozása, patch kiadása, CVE követés</div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Miért 0-tól?</strong> Az Oktatás (0. szakasz) minden más előtt kell — ha a fejlesztők nem ismerik a biztonsági problémákat, nem tudnak biztonságos kódot írni. Ezért nem a fejlesztés közepén kezdik az oktatást.</div>
+    `
+  },
+
+  // ── 3. 0. SZAKASZ — OKTATÁS ──────────────────────────────────────
+  {
+    phase:0, cons:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(107,114,128,0.5)">📚</div>
+        <div><div class="stitle">0. Szakasz — Oktatás</div>
+        <div class="ssub">// minden részvevő, minden évben — biztonsági kultúra</div></div>
+      </div>
+      <div class="sdl-phase-card" style="background:rgba(107,114,128,0.05);border-color:rgba(107,114,128,0.35)">
+        <div class="spc-hdr">
+          <div class="spc-num" style="color:var(--s0)">0.</div>
+          <div>
+            <div class="spc-title" style="color:var(--s0)">Oktatás</div>
+            <div class="spc-sub">Minden kolléga részvétele kötelező</div>
+          </div>
+          <div class="spc-badge" style="background:rgba(107,114,128,0.1);color:var(--s0);border-color:rgba(107,114,128,0.3)">Előfeltétel</div>
+        </div>
+        <div class="spc-desc">A szoftverfejlesztésben résztvevő minden kolléga részesül biztonsági képzésben — nem csak a "security team". Fejlesztők, tesztelők, managerek egyaránt.</div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--s0)">
+          <div class="cli-i">🐛</div>
+          <div><strong>Biztonsági problémák alapjai</strong>
+          <span>Mi az az SQL injection, XSS, buffer overflow? Hogyan gondolkodik egy hacker? Hogyan ismer fel a fejlesztő sérülékenységet a saját kódjában?</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s0)">
+          <div class="cli-i">📰</div>
+          <div><strong>Legújabb biztonsági problémák</strong>
+          <span>Log4Shell, OWASP Top 10 éves frissítése, új CVE-k — a biztonság folyamatosan változik. Évente frissített oktatás szükséges.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s0)">
+          <div class="cli-i">🛠️</div>
+          <div><strong>Legújabb megoldások és eszközök</strong>
+          <span>SAST eszközök (SonarQube), DAST (OWASP ZAP), dependency scanning (Snyk) — a fejlesztőknek tudniuk kell ezeket használni.</span></div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👔</div>
+          <div class="bub l"><div class="who" style="color:var(--s0)">Microsoft Manager</div>
+            Miért kell a managernek is részt venni a biztonsági oktatáson? Ő nem ír kódot.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🔒</div>
+          <div class="bub r2"><div class="who" style="color:var(--ok);text-align:right">SDL lead</div>
+            Mert a manager dönt: "van időnk code review-ra?" Ha a manager nem érti a kockázatot, beáldozza a biztonságot a határidőért. Kulturális változás kell — top-down.
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 4. 1. SZAKASZ — KÖVETELMÉNYSPECIFIKÁCIÓ ──────────────────────
+  {
+    phase:1, cons:[4],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,0.5)">📋</div>
+        <div><div class="stitle">1. Szakasz — Követelményspecifikáció</div>
+        <div class="ssub">// biztonsági követelmények a projekt elején</div></div>
+      </div>
+      <div class="sdl-phase-card" style="background:rgba(59,130,246,0.05);border-color:rgba(59,130,246,0.35)">
+        <div class="spc-hdr">
+          <div class="spc-num" style="color:var(--s1)">1.</div>
+          <div>
+            <div class="spc-title" style="color:var(--s1)">Követelményspecifikáció</div>
+            <div class="spc-sub">Biztonsági + Bizalmassági követelmények meghatározása</div>
+          </div>
+        </div>
+        <div class="spc-desc">Mielőtt egy sor kódot is írnánk: lefektetjük a biztonsági elvárásokat. Kell-e SDL? Ki a felelős személy? Mi a minimum biztonsági szint?</div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--s1)">
+          <div class="cli-i">✅</div>
+          <div><strong>Szükséges-e SDL alkalmazni?</strong>
+          <span>Nem minden projektre kötelező. Belső tool? Talán nem. Internet-facing, személyes adatokat kezelő rendszer? Kötelező.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s1)">
+          <div class="cli-i">👤</div>
+          <div><strong>Biztonsági felelős kijelölése (Security Lead)</strong>
+          <span>Egy konkrét személy, aki a projekt biztonsági kérdéseiért felelős. Nem "mindenki dolga" — egy konkrét személy neve, aki számon kérhető.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s1)">
+          <div class="cli-i">🐛</div>
+          <div><strong>Bug bar meghatározása (minimális szint)</strong>
+          <span>Előre meghatározzák: milyen biztonsági hibákat TILOS kiszállítani. Pl. "minden Critical és High CVE-t javítani KELL kiadás előtt". Ez a "bar" amit át kell ugorni.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s1)">
+          <div class="cli-i">🔐</div>
+          <div><strong>Bizalmassági követelmények</strong>
+          <span>Milyen személyes adatokat kezelünk? (GDPR!) Ki a felelős kontakt személy? Hogyan tároljuk? Meddig? Kinek van hozzáférése?</span></div>
+        </div>
+      </div>
+      <div class="ibox warn-b"><strong>Threat Modelling itt kezdődik!</strong> Már a követelmény fázisban el kell kezdeni azonosítani a lehetséges fenyegetéseket (STRIDE módszer). Olcsóbb itt megtalálni egy biztonsági lyukat, mint az implementáció után.</div>
+    `
+  },
+
+  // ── 5. SECURITY BUG OKOK ─────────────────────────────────────────
+  {
+    phase:1, cons:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">🐛</div>
+        <div><div class="stitle">Security bug okai — mi hozza létre?</div>
+        <div class="ssub">// amit el kell kerülni — a leggyakoribb root cause-ok</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--s1)">Oktató</div>
+            Az SDL-nek tudnia kell: mi okozza a security bugokat? Ezeket kell a folyamat minden fázisában figyelni és megelőzni.
+          </div>
+        </div>
+      </div>
+      <div class="concept-grid">
+        <div class="con-card" style="border-color:var(--crit)">
+          <div class="cc-title" style="color:var(--crit)">💥 Buffer overflow</div>
+          <div class="cc-desc">Puffer túlcsordulás — strcpy, gets, sprintf korlát nélkül. → strncpy, snprintf</div>
+        </div>
+        <div class="con-card" style="border-color:var(--crit)">
+          <div class="cc-title" style="color:var(--crit)">🗄️ SQL/Script Injection</div>
+          <div class="cc-desc">Input bekerül az SQL/JS kódba validálás nélkül. → Prepared statements, escaping</div>
+        </div>
+        <div class="con-card" style="border-color:var(--s4)">
+          <div class="cc-title" style="color:var(--s4)">➗ Aritmetikai hiba</div>
+          <div class="cc-desc">Integer overflow, underflow — pl. signed/unsigned konverzió. → Range check, safe_add</div>
+        </div>
+        <div class="con-card" style="border-color:var(--s4)">
+          <div class="cc-title" style="color:var(--s4)">📁 Directory traversal</div>
+          <div class="cc-desc">../../../ útvonal az inputban. → Whitelist, realpath() ellenőrzés</div>
+        </div>
+        <div class="con-card" style="border-color:var(--s2)">
+          <div class="cc-title" style="color:var(--s2)">⚡ Race condition</div>
+          <div class="cc-desc">Időzítésfüggő hiba — TOCTOU (Time of Check to Time of Use). → Atomic operations, mutex</div>
+        </div>
+        <div class="con-card" style="border-color:var(--s2)">
+          <div class="cc-title" style="color:var(--s2)">🔐 Kriptográfiai hiba</div>
+          <div class="cc-desc">MD5/SHA1 jelszavakhoz, ECB mode, hardcoded key. → bcrypt, AES-GCM, key management</div>
+        </div>
+        <div class="con-card" style="border-color:var(--s3)">
+          <div class="cc-title" style="color:var(--s3)">🔑 Auth hiba</div>
+          <div class="cc-desc">Gyenge jelszószabályok, nincs MFA, session nem lejár. → OWASP auth ajánlások</div>
+        </div>
+        <div class="con-card" style="border-color:var(--s3)">
+          <div class="cc-title" style="color:var(--s3)">📢 Hibaüzenet hiba</div>
+          <div class="cc-desc">Stack trace, osztálynév, DB struktúra kiszivárgás. → Generikus hibaüzenetek</div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 6. 2. SZAKASZ — TERVEZÉS ─────────────────────────────────────
+  {
+    phase:2, cons:[0,1,2,3],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(99,102,241,0.5)">🏗️</div>
+        <div><div class="stitle">2. Szakasz — Tervezés</div>
+        <div class="ssub">// biztonságos architektúra — a struktúra véd</div></div>
+      </div>
+      <div class="sdl-phase-card" style="background:rgba(99,102,241,0.05);border-color:rgba(99,102,241,0.35)">
+        <div class="spc-hdr">
+          <div class="spc-num" style="color:var(--s2)">2.</div>
+          <div>
+            <div class="spc-title" style="color:var(--s2)">Tervezés</div>
+            <div class="spc-sub">Architektúrális döntések = biztonsági döntések</div>
+          </div>
+        </div>
+        <div class="spc-desc">A tervezési fázisban hozzuk azokat a döntéseket, amelyek a legtöbbet tehetik a biztonságért — sokkal olcsóbb itt megoldani, mint implementáció után.</div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--s2)">
+          <div class="cli-i">🎯</div>
+          <div><strong>Támadási felület minimalizálása</strong>
+          <span>Minden publikus API endpoint = belépési pont. Ha nem kell → ne legyen. Pl. admin felület csak belső hálózatról érhető el, nem internetről.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s2)">
+          <div class="cli-i">🔑</div>
+          <div><strong>Legkisebb jogosultsági szintek</strong>
+          <span>Az adatbázis user csak olvassa a szükséges táblákat. A webszerver nem fut root-ként. A Lambda function csak azt az S3 bucketet éri el, amit kell.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s2)">
+          <div class="cli-i">🔒</div>
+          <div><strong>Biztonságos default installáció</strong>
+          <span>Ha valaki fresh-install a szoftvert: debug módban van? Alapjelszóval? Titkosítás nélkül? NEM! Az alapállapot a legbiztonságosabb — a felhasználó lazít rajta ha akar.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s2)">
+          <div class="cli-i">📝</div>
+          <div><strong>Hibaüzenetek csak szükséges adatot</strong>
+          <span>"Hiba történt" — és a részletes log csak a szerveren, nem a felhasználónak. Stack trace és DB struktúra soha ne jelenjen meg a felhasználónak.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s2)">
+          <div class="cli-i">🍪</div>
+          <div><strong>Session menedzsment</strong>
+          <span>Session timeout meghatározása, HttpOnly + Secure cookie flagek, session token generálás login után (session fixation ellen), logout = valódi token törlés.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 7. 3. SZAKASZ — IMPLEMENTÁCIÓ ────────────────────────────────
+  {
+    phase:3, cons:[1],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,0.5)">💻</div>
+        <div><div class="stitle">3. Szakasz — Implementáció (1. rész)</div>
+        <div class="ssub">// biztonságos kódolási szabályok</div></div>
+      </div>
+      <div class="sdl-phase-card" style="background:rgba(168,85,247,0.05);border-color:rgba(168,85,247,0.35)">
+        <div class="spc-hdr">
+          <div class="spc-num" style="color:var(--s3)">3.</div>
+          <div>
+            <div class="spc-title" style="color:var(--s3)">Implementáció</div>
+            <div class="spc-sub">Kódolás — ahol a hibák keletkeznek</div>
+          </div>
+        </div>
+        <div class="spc-desc">Az implementációs fázisban a fejlesztők a korábban meghatározott biztonsági követelményeket a kódban valósítják meg. Szigorú szabályok vonatkoznak arra, mit szabad és mit nem.</div>
+      </div>
+      <div class="code-block">
+        <div class="cb-label"><div class="cb-bad">TILTOTT C — strcpy (korlátlan másolás)</div></div>
+        <span class="c-fn">strcpy</span>(dest, src);          <span class="c-cmt">// ❌ Buffer overflow lehetséges</span>
+        <br><span class="c-fn">gets</span>(buffer);            <span class="c-cmt">// ❌ Soha ne használd!</span>
+        <br><span class="c-fn">sprintf</span>(buf, fmt, ...); <span class="c-cmt">// ❌ Méretellenőrzés nélkül</span>
+      </div>
+      <div class="code-block">
+        <div class="cb-label"><div class="cb-ok">BIZTONSÁGOS alternatívák</div></div>
+        <span class="c-fn">strncpy</span>(dest, src, <span class="c-fn">sizeof</span>(dest)-<span class="c-num">1</span>); <span class="c-cmt">// ✅ max méret megadva</span>
+        <br><span class="c-fn">fgets</span>(buffer, <span class="c-fn">sizeof</span>(buffer), stdin); <span class="c-cmt">// ✅ gets helyett</span>
+        <br><span class="c-fn">snprintf</span>(buf, <span class="c-fn">sizeof</span>(buf), fmt, ...); <span class="c-cmt">// ✅ biztonságos</span>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--s3)">
+          <div class="cli-i">🔍</div>
+          <div><strong>Kód review eszközök — SAST</strong>
+          <span>SonarQube, Checkmarx — automatikusan megtalálja a tiltott függvények használatát, SQL injection mintákat, hard-coded secreteket. Kötelező CI/CD részének lenni.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s3)">
+          <div class="cli-i">✅</div>
+          <div><strong>Input validáció + Output encoding</strong>
+          <span>Minden külső forrásból jövő adat: validálni. Minden HTML-be kerülő adat: HTML-encode. Ez az XSS, SQL injection, Path Traversal 80%-ának megelőzője.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s3)">
+          <div class="cli-i">🗄️</div>
+          <div><strong>Ad-hoc SQL lekérdezések kerülése</strong>
+          <span>Soha ne fűzzük össze stringekkel az SQL-t. Mindig PreparedStatement / paraméteres lekérdezés. ORM (Hibernate, SQLAlchemy) is segít.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 8. 3. SZAKASZ — IMPLEMENTÁCIÓ (2) ────────────────────────────
+  {
+    phase:3, cons:[1,2],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,0.5)">💻</div>
+        <div><div class="stitle">3. Szakasz — Implementáció (2. rész)</div>
+        <div class="ssub">// ASLR, biztonságos DB, cookie-k</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--s3)">
+          <div class="cli-i">🎲</div>
+          <div><strong>ASLR — Address Space Layout Randomization</strong>
+          <span>Minden natív (C/C++) kódú alkalmazásnál engedélyezni kell. A memória elrendezése minden futtatáskor véletlenszerű → a hacker nem tudja kiszámítani a RET cím célját.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s3)">
+          <div class="cli-i">🗄️</div>
+          <div><strong>Biztonságos adatbáziselérés</strong>
+          <span>LINQ ExecuteQuery kerülése (SQL injection lehetséges). Tárolt eljárásokban EXEC kerülése. Paraméterezett lekérdezések MINDIG. DB user csak a szükséges jogokat kapja.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s3)">
+          <div class="cli-i">🍪</div>
+          <div><strong>Biztonságos cookie-k</strong>
+          <span>Session cookie: Secure flag (csak HTTPS), HttpOnly flag (JS nem olvashatja), SameSite=Strict (CSRF ellen), ésszerű lejárati idő (pl. 30 perc inaktivitás után).</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s3)">
+          <div class="cli-i">🔀</div>
+          <div><strong>Biztonságos redirect</strong>
+          <span>Open redirect sérülékenység: ha a login oldal visszairányít egy tetszőleges URL-re → phishing lehetséges. Csak whitelist-elt URL-ekre szabad irányítani.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--ok)">
+          <div class="cli-i">☕</div>
+          <div><strong>Ahol lehet: managed kód</strong>
+          <span>C# .NET, Java JVM — a managed kódban a runtime kezeli a memóriát, sokkal nehezebb buffer overflowt elkövetni. Ha lehet, kerülni a natív C/C++ kódot.</span></div>
+        </div>
+      </div>
+      <div class="ibox"><strong>A /GS flag (Stack Canary):</strong> MSVC compiler flag — a fordító egy véletlenszerű "canary" értéket tesz a visszatérési cím elé a stack-en. Ha a buffer overflow felülírja → a program crashel a RET előtt, megakadályozva a kód futtatását.</div>
+    `
+  },
+
+  // ── 9. 4. SZAKASZ — VERIFIKÁCIÓ ──────────────────────────────────
+  {
+    phase:4, cons:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,0.5)">🧪</div>
+        <div><div class="stitle">4. Szakasz — Verifikáció</div>
+        <div class="ssub">// fuzzing, penetrációs teszt, memória vizsgálat</div></div>
+      </div>
+      <div class="sdl-phase-card" style="background:rgba(245,158,11,0.05);border-color:rgba(245,158,11,0.35)">
+        <div class="spc-hdr">
+          <div class="spc-num" style="color:var(--s4)">4.</div>
+          <div>
+            <div class="spc-title" style="color:var(--s4)">Verifikáció</div>
+            <div class="spc-sub">Kiadás előtti biztonsági ellenőrzés</div>
+          </div>
+        </div>
+        <div class="spc-desc">A kód elkészült — most szisztematikusan megpróbálják feltörni, mielőtt a hacker megtenné. Automatizált és manuális tesztelés kombinációja.</div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--s4)">
+          <div class="cli-i">🌪️</div>
+          <div><strong>Fuzzing — véletlenszerű input generálás</strong>
+          <span>AFL, LibFuzzer — véletlenszerű (és szándékosan "rossz") inputokat küld a programnak, és figyeli a crasheket. Sok buffer overflow és parser hibát fed fel. A Chrome 60%+ hibáit fuzzerrel találják.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s4)">
+          <div class="cli-i">💥</div>
+          <div><strong>Memória korrupciós tesztek</strong>
+          <span>Valgrind, AddressSanitizer (ASan) — futtatás közben észleli a use-after-free, double-free, heap overflow hibákat. Ezeket normál teszteléssel szinte lehetetlen megtalálni.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s4)">
+          <div class="cli-i">🌐</div>
+          <div><strong>XML parser teszt webszervízeknél</strong>
+          <span>XXE (XML External Entity) injection — rosszindulatú XML a rendszernek. A parser processzálja és pl. kiolvas fájlokat a szerverről. Kifejezetten tesztelni kell.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s4)">
+          <div class="cli-i">🔍</div>
+          <div><strong>Bináris vizsgálat</strong>
+          <span>A lefordított bináris elemzése: engedélyezve van-e az ASLR? DEP (Data Execution Prevention)? /GS stack protector? Ezeket ellenőrizni kell a kiadás előtt.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 10. TESZTELÉSI TÍPUSOK ───────────────────────────────────────
+  {
+    phase:4, cons:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,0.5)">🎯</div>
+        <div><div class="stitle">Tesztelési típusok az SDL-ben</div>
+        <div class="ssub">// pentest, regresszió, auth tesztek, kód review</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--crit)">
+          <div class="cli-i">⚔️</div>
+          <div><strong>Penetrációs teszt (pentest)</strong>
+          <span>Etikus hackerek megpróbálják betörni a rendszert — ugyanazokat az eszközöket és módszereket használva, mint egy valódi támadó. Az eredmény: részletes jelentés a talált hibákról. Pl. HackerOne bug bounty program.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s4)">
+          <div class="cli-i">🔁</div>
+          <div><strong>Regressziós sérülékenység teszt</strong>
+          <span>Korábban megtalált és javított biztonsági hibák automatikus újratesztelése. Célja: ne kerüljön vissza egy régi hiba egy new feature fejlesztéskor. "Biztonsági egység tesztek".</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s2)">
+          <div class="cli-i">🔐</div>
+          <div><strong>Authentikációs tesztek</strong>
+          <span>Brute force teszt: hány próbálkozás után lockol ki? Session teszt: lejár-e időtúllépéskor? Token teszt: predict-elhető-e a token? Password policy teszt.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s2)">
+          <div class="cli-i">📼</div>
+          <div><strong>Visszajátszásos tesztek (Replay attack)</strong>
+          <span>Elfogott érvényes kéréseket újra elküldenek — pl. egy elfogott "utalás" kérés újra lefut-e? Nonce (number used once) véd ellene.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--ok)">
+          <div class="cli-i">👀</div>
+          <div><strong>Biztonsági kód review</strong>
+          <span>Manuális kód áttekintés biztonsági szemszögből — legalább egy másik, biztonsági képzett fejlesztő nézi át. Találja meg amit az automatikus eszközök kihagynak.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 11. 5. SZAKASZ — KIADÁS ──────────────────────────────────────
+  {
+    phase:5, cons:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,0.5)">📦</div>
+        <div><div class="stitle">5. Szakasz — Kiadás</div>
+        <div class="ssub">// utolsó ellenőrzések, debug letiltása, felelős kijelölése</div></div>
+      </div>
+      <div class="sdl-phase-card" style="background:rgba(16,185,129,0.05);border-color:rgba(16,185,129,0.35)">
+        <div class="spc-hdr">
+          <div class="spc-num" style="color:var(--s5)">5.</div>
+          <div>
+            <div class="spc-title" style="color:var(--s5)">Kiadás</div>
+            <div class="spc-sub">Végső review + Incident Response Plan</div>
+          </div>
+        </div>
+        <div class="spc-desc">A kiadás nem a projekt vége — hanem a biztonsági felelősség átmenete. Ezentúl éles rendszerben futnak a felhasználók adata. Minden kiadás előtt kötelező ellenőrzőlista.</div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--s5)">
+          <div class="cli-i">🔍</div>
+          <div><strong>Végső biztonsági review (Final Security Review)</strong>
+          <span>Egy dedikált biztonsági csapat átnézi az összes elvégzett SDL feladatot. Minden pipa megvan? Minden "critical" hibát javítottak? Csak ha igen → mehet ki.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s5)">
+          <div class="cli-i">🔇</div>
+          <div><strong>Trace és Debug letiltása!</strong>
+          <span>Production kódban SOHA ne legyen trace/debug mód aktív. A debug módban könnyen kiszivárognak belső adatok, stack trace-k, development felületek (pl. phpinfo()).</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s5)">
+          <div class="cli-i">👤</div>
+          <div><strong>Biztonsági felelős a kiadás utánra</strong>
+          <span>Ki kezeli a bejelentett biztonsági hibákat kiadás után? security@company.com? Bug bounty program? Ki dönt a patch kiadásáról? Ezeket ELŐRE el kell dönteni.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s5)">
+          <div class="cli-i">🚨</div>
+          <div><strong>Incident Response Plan kidolgozása</strong>
+          <span>Ha biztonsági incidens történik: ki értesít kit? Mikor kell a sajtót értesíteni? Mikor kell hatóságoknak (GDPR: 72 óra!)? Playbook előre megírva.</span></div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">💥</div>
+          <div class="bub l"><div class="who" style="color:var(--crit)">Biztonsági incidens</div>
+            Adatszivárgás! 100 000 felhasználó email + jelszó hash kiszivárgott!
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🔒</div>
+          <div class="bub r2"><div class="who" style="color:var(--ok);text-align:right">Incident Response Lead</div>
+            Playbook aktiválva. 1. Szerver izolálása. 2. Forensics. 3. Értesítjük az érintetteket 24 óra. 4. GDPR hatóság értesítés 72 órán belül. 5. Patch kiadás.
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 12. SDL ÖSSZEFOGLALÁS ────────────────────────────────────────
+  {
+    phase:-1, cons:[0,1,2,3,4],
+    render:()=>`
+      <div class="shdr"><div class="sico">∑</div>
+        <div><div class="stitle">Összefoglalás — Microsoft SDL</div>
+        <div class="ssub">// 7 szakasz + alapelvek + eredmény</div></div>
+      </div>
+      <div class="sumgrid">
+        <div class="sbox" style="border-top:2px solid var(--acc)">
+          <span class="ico">🛡️</span>
+          <div class="val">7 szakasz</div>
+          <div class="lbl">0–6. oktatástól utóéletig</div>
+        </div>
+        <div class="sbox" style="border-top:2px solid var(--ok)">
+          <span class="ico">📉</span>
+          <div class="val">–45%</div>
+          <div class="lbl">kritikus hibák csökkentése</div>
+        </div>
+        <div class="sbox" style="border-top:2px solid var(--s2)">
+          <span class="ico">🏰</span>
+          <div class="val">Defense in Depth</div>
+          <div class="lbl">több réteg véd</div>
+        </div>
+        <div class="sbox" style="border-top:2px solid var(--s3)">
+          <span class="ico">🔑</span>
+          <div class="val">Least Privilege</div>
+          <div class="lbl">csak ami szükséges</div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--s0)">
+          <div class="cli-i">📚</div>
+          <div><strong style="color:var(--s0)">0. Oktatás</strong>
+          <span>Mindenki — fejlesztők, tesztelők, managerek. Biztonsági kultúra top-down.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s1)">
+          <div class="cli-i">📋</div>
+          <div><strong style="color:var(--s1)">1. Követelményspecifikáció</strong>
+          <span>Bug bar, security lead, bizalmassági követelmények. Threat Modelling kezdete.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s2)">
+          <div class="cli-i">🏗️</div>
+          <div><strong style="color:var(--s2)">2. Tervezés</strong>
+          <span>Támadási felület ↓, least privilege, secure default, session management.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s3)">
+          <div class="cli-i">💻</div>
+          <div><strong style="color:var(--s3)">3. Implementáció</strong>
+          <span>Tiltott függvények, input validáció, SAST, ASLR, /GS, secure cookies.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s4)">
+          <div class="cli-i">🧪</div>
+          <div><strong style="color:var(--s4)">4. Verifikáció</strong>
+          <span>Fuzzing, pentest, memória teszt, regressziós bizt. teszt, kód review.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s5)">
+          <div class="cli-i">📦</div>
+          <div><strong style="color:var(--s5)">5. Kiadás</strong>
+          <span>Debug letiltva, FSR, Incident Response Plan, biztonsági felelős kijelölve.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--s6)">
+          <div class="cli-i">🔄</div>
+          <div><strong style="color:var(--s6)">6. Utóélet</strong>
+          <span>CVE monitoring, patch kiadás, CERT bejelentések követése, felhasználók értesítése.</span></div>
+        </div>
+      </div>
+    `
+  },
+];
+
+function renderBoard(phaseIdx, consIdxs) {
+  document.getElementById('sdlSteps').innerHTML = SDL_PHASES.map((p,i)=>{
+    const on = i === phaseIdx, done = phaseIdx >= 0 && i < phaseIdx;
+    const c = on ? p.color : done ? p.color : 'var(--muted)';
+    return `<div class="sdl-item ${on?'active':done?'done':''}">
+      <div class="sdl-dot" style="border-color:${c};color:${c}">${p.icon}</div>
+      <div class="sdl-label" style="color:${on?p.color:'var(--muted)'}">${p.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('conceptChips').innerHTML = CONCEPTS.map((c,i)=>{
+    const on = consIdxs.includes(i);
+    return `<div class="con-chip ${on?'on':''}" style="border-color:${c.color};color:${c.color}">${c.label}</div>`;
+  }).join('');
+}
+
+let cur = 0;
+function render() {
+  const s = STEPS[cur];
+  renderBoard(s.phase, s.cons);
+  const el = document.getElementById('content');
+  el.innerHTML = s.render();
+  setTimeout(()=>{el.querySelectorAll('.msg:not(.show)').forEach((m,i)=>setTimeout(()=>m.classList.add('show'),i*160));},60);
+  document.getElementById('bprev').disabled = cur===0;
+  document.getElementById('bnext').textContent = cur===STEPS.length-1?'↺ Újra':'Következő →';
+  document.getElementById('ctr').textContent = `${cur+1} / ${STEPS.length}`;
+}
+function next(){cur=cur===STEPS.length-1?0:cur+1;render();}
+function prev(){if(cur>0){cur--;render();}}
+render();
+</script>
+</body>
+</html>

