@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rizikó Alapú Tesztelés</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+
+:root {
+  --bg:    #0a0f1e;
+  --surf:  #0f1628;
+  --card:  #141d35;
+  --brd:   #1e2d50;
+  --brd2:  #263a68;
+  --text:  #d8e4ff;
+  --muted: #4a5f8a;
+
+  --rbt:  #a855f7;
+  --high: #ef4444;
+  --med:  #f59e0b;
+  --low:  #10b981;
+  --blue: #3b82f6;
+  --acc:  #a855f7;
+
+  --prob: #3b82f6;
+  --kar:  #ef4444;
+  --kih:  #f59e0b;
+  --teff: #10b981;
+  --prio: #a855f7;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Sora',sans-serif; min-height:100vh; overflow-x:hidden; }
+body::before {
+  content:''; position:fixed; inset:0;
+  background: radial-gradient(ellipse at 20% 0%, rgba(168,85,247,0.06) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 100%, rgba(239,68,68,0.04) 0%, transparent 50%);
+  pointer-events:none; z-index:0;
+}
+
+header {
+  position:relative; z-index:1; padding:1.2rem 1.3rem 0.85rem;
+  border-bottom:1px solid var(--brd2);
+  background:linear-gradient(180deg, rgba(168,85,247,0.06) 0%, transparent 100%);
+}
+.hdr-row { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+h1 { font-size:1.4rem; font-weight:800; line-height:1.07; letter-spacing:-0.02em; }
+h1 span { color:var(--rbt); }
+h1 em { font-style:normal; color:var(--med); }
+.tag { font-family:'Inconsolata',monospace; font-size:0.56rem; padding:0.25rem 0.55rem; border-radius:4px; background:rgba(168,85,247,0.12); color:var(--rbt); border:1px solid rgba(168,85,247,0.28); white-space:nowrap; margin-top:0.2rem; }
+header p { font-size:0.7rem; color:var(--muted); margin-top:0.25rem; font-family:'Inconsolata',monospace; }
+
+/* TOP BAR */
+.topbar { position:relative; z-index:1; background:var(--surf); border-bottom:1px solid var(--brd2); padding:0.75rem 1.3rem 0.65rem; }
+.tb-title { font-family:'Inconsolata',monospace; font-size:0.54rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.09em; margin-bottom:0.5rem; }
+.rbt-steps { display:flex; align-items:center; gap:0; margin-bottom:0.45rem; }
+.rs-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:0.18rem; position:relative; }
+.rs-item:not(:last-child)::after { content:''; position:absolute; right:0; top:12px; width:50%; height:2px; background:var(--brd); z-index:0; }
+.rs-item:not(:first-child)::before { content:''; position:absolute; left:0; top:12px; width:50%; height:2px; background:var(--brd); z-index:0; }
+.rs-dot { width:24px; height:24px; border-radius:50%; border:2px solid var(--brd2); background:var(--card); display:flex; align-items:center; justify-content:center; font-size:0.6rem; z-index:1; transition:all 0.35s; position:relative; }
+.rs-label { font-family:'Inconsolata',monospace; font-size:0.44rem; color:var(--muted); text-align:center; line-height:1.2; }
+.rs-item.active .rs-dot { transform:scale(1.25); box-shadow:0 0 10px currentColor; }
+.rs-item.done .rs-dot { opacity:0.55; }
+.rs-item.active .rs-label { font-weight:700; }
+.formula-bar { display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap; }
+.fb-part { font-family:'Inconsolata',monospace; font-size:0.58rem; font-weight:700; padding:0.15rem 0.45rem; border-radius:4px; border:1px solid; opacity:0.25; transition:opacity 0.3s; }
+.fb-part.on { opacity:1; }
+.fb-op { font-family:'Inconsolata',monospace; font-size:0.65rem; color:var(--muted); opacity:0.4; }
+.fb-op.on { opacity:1; color:var(--text); }
+
+/* CONTENT */
+.content { position:relative; z-index:1; padding:0.9rem 1.3rem; min-height:275px; }
+.shdr { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.85rem; }
+.sico { width:36px; height:36px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1rem; border:1.5px solid var(--brd2); background:var(--card); }
+.stitle { font-size:0.95rem; font-weight:800; letter-spacing:-0.02em; }
+.ssub { font-family:'Inconsolata',monospace; font-size:0.56rem; color:var(--muted); margin-top:0.03rem; }
+
+/* CHAT */
+.chat { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.7rem; }
+.msg { display:flex; gap:0.4rem; align-items:flex-start; opacity:0; transform:translateY(6px); transition:opacity 0.3s, transform 0.3s; }
+.msg.show { opacity:1; transform:translateY(0); }
+.msg.r { flex-direction:row-reverse; }
+.av { width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:0.9rem; flex-shrink:0; border:1px solid var(--brd2); background:var(--card); }
+.bub { max-width:82%; padding:0.48rem 0.68rem; border-radius:9px; font-size:0.77rem; line-height:1.55; border:1px solid var(--brd2); background:var(--card); }
+.bub.l { border-bottom-left-radius:2px; }
+.bub.r2 { border-bottom-right-radius:2px; text-align:right; }
+.who { font-family:'Inconsolata',monospace; font-size:0.55rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.1rem; }
+
+/* IBOX */
+.ibox { border-radius:8px; padding:0.55rem 0.75rem; font-size:0.74rem; line-height:1.55; margin:0.45rem 0; border:1px solid var(--brd2); background:var(--card); border-left:3px solid var(--rbt); }
+.ibox strong { font-weight:700; }
+.ibox.ok-b { border-left-color:var(--low); }
+.ibox.ok-b strong { color:var(--low); }
+.ibox.warn-b { border-left-color:var(--med); }
+.ibox.warn-b strong { color:var(--med); }
+
+/* CHECKLIST */
+.cklist { display:flex; flex-direction:column; gap:0.35rem; margin:0.45rem 0; }
+.cli { display:flex; align-items:flex-start; gap:0.5rem; padding:0.42rem 0.65rem; background:var(--card); border:1px solid var(--brd2); border-radius:8px; font-size:0.75rem; line-height:1.45; }
+.cli-i { flex-shrink:0; font-size:0.88rem; }
+.cli strong { display:block; font-weight:700; font-size:0.76rem; margin-bottom:0.03rem; }
+.cli span { color:var(--muted); font-size:0.68rem; font-family:'Inconsolata',monospace; }
+
+/* SKÁLA */
+.scale-grid { display:flex; flex-direction:column; gap:0.28rem; margin:0.45rem 0; }
+.scale-row { display:flex; align-items:center; gap:0.5rem; padding:0.38rem 0.65rem; background:var(--card); border-radius:7px; border:1px solid var(--brd2); font-size:0.72rem; }
+.scale-num { font-family:'Inconsolata',monospace; font-size:0.75rem; font-weight:800; width:20px; flex-shrink:0; text-align:center; }
+.scale-pct { font-family:'Inconsolata',monospace; font-size:0.58rem; color:var(--muted); width:55px; flex-shrink:0; }
+.scale-bar { height:8px; border-radius:3px; flex-shrink:0; }
+.scale-desc { flex:1; color:rgba(216,228,255,0.82); line-height:1.4; }
+
+/* FOLYAMAT LÉPÉSEK */
+.flow-steps { display:flex; flex-direction:column; gap:0.35rem; margin:0.45rem 0; }
+.flow-step { display:flex; align-items:flex-start; gap:0.5rem; padding:0.5rem 0.65rem; background:var(--card); border-radius:9px; border:1px solid var(--brd2); }
+.fs-num { font-family:'Inconsolata',monospace; font-size:0.65rem; font-weight:800; flex-shrink:0; margin-top:0.05rem; width:22px; }
+.fs-title { font-size:0.8rem; font-weight:800; margin-bottom:0.08rem; }
+.fs-desc { font-size:0.7rem; color:var(--muted); line-height:1.4; font-family:'Inconsolata',monospace; }
+
+/* RIZIKÓ TÁBLÁZAT */
+.risk-table { border-radius:9px; overflow:hidden; border:1.5px solid var(--brd2); margin:0.45rem 0; }
+.rt-hdr { display:grid; background:var(--surf); padding:0.32rem 0.5rem; gap:0.3rem; font-family:'Inconsolata',monospace; font-size:0.5rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; border-bottom:1px solid var(--brd); align-items:center; }
+.rt-row { display:grid; padding:0.38rem 0.5rem; gap:0.3rem; border-bottom:1px solid var(--brd); font-size:0.68rem; align-items:center; transition:background 0.3s; }
+.rt-row:last-child { border-bottom:none; }
+.rt-row.highlight { background:rgba(168,85,247,0.08); }
+.rt-risk { font-size:0.68rem; line-height:1.3; }
+.rt-num { font-family:'Inconsolata',monospace; font-size:0.72rem; font-weight:800; text-align:center; }
+.rt-empty { font-family:'Inconsolata',monospace; font-size:0.6rem; color:var(--brd2); text-align:center; }
+
+/* FORMULA BLOCK */
+.formula-block { background:var(--card); border:1.5px solid var(--brd2); border-radius:9px; padding:0.65rem 0.75rem; margin:0.45rem 0; text-align:center; }
+.fb-title { font-family:'Inconsolata',monospace; font-size:0.52rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.35rem; }
+.fb-formula { font-family:'Inconsolata',monospace; font-size:0.85rem; font-weight:700; display:flex; align-items:center; justify-content:center; gap:0.5rem; flex-wrap:wrap; }
+.fb-term { padding:0.2rem 0.55rem; border-radius:5px; border:1px solid; }
+
+/* PRIORITÁS LISTA */
+.prio-list { display:flex; flex-direction:column; gap:0.3rem; margin:0.45rem 0; }
+.prio-row { display:flex; align-items:center; gap:0.55rem; padding:0.45rem 0.7rem; background:var(--card); border-radius:8px; border:1px solid var(--brd2); }
+.pr-rank { font-family:'Inconsolata',monospace; font-size:0.7rem; font-weight:800; width:20px; flex-shrink:0; text-align:center; }
+.pr-name { flex:1; font-size:0.72rem; line-height:1.3; }
+.pr-score { font-family:'Inconsolata',monospace; font-size:0.68rem; font-weight:800; flex-shrink:0; }
+.pr-bar-wrap { width:70px; flex-shrink:0; }
+.pr-bar { height:6px; border-radius:3px; }
+
+/* SCRUM FLOW */
+.scrum-flow { background:var(--card); border:1.5px solid var(--brd2); border-radius:9px; padding:0.65rem 0.75rem; margin:0.45rem 0; }
+.sf2-title { font-family:'Inconsolata',monospace; font-size:0.52rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.45rem; }
+.sf2-row { display:flex; align-items:center; gap:0.35rem; font-size:0.7rem; margin:0.28rem 0; flex-wrap:wrap; }
+.sf2-box { padding:0.28rem 0.5rem; border-radius:5px; border:1px solid; font-family:'Inconsolata',monospace; font-size:0.58rem; font-weight:700; flex-shrink:0; }
+.sf2-arr { color:var(--muted); font-size:0.7rem; }
+.sf2-desc { color:var(--muted); font-size:0.64rem; }
+
+/* SUMGRID */
+.sumgrid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+.sbox { background:var(--card); border:1px solid var(--brd2); border-radius:8px; padding:0.6rem; text-align:center; }
+.sbox .ico { font-size:1.2rem; display:block; margin-bottom:0.15rem; }
+.sbox .val { font-size:0.88rem; font-weight:800; }
+.sbox .lbl { font-family:'Inconsolata',monospace; font-size:0.52rem; color:var(--muted); margin-top:0.04rem; }
+
+/* NAV */
+.nav { position:sticky; bottom:0; z-index:10; background:var(--bg); border-top:1px solid var(--brd2); padding:0.7rem 1.3rem; display:flex; align-items:center; gap:0.5rem; }
+.btn { font-family:'Inconsolata',monospace; font-size:0.63rem; font-weight:600; padding:0.52rem 1rem; border-radius:7px; cursor:pointer; transition:all 0.18s; text-transform:uppercase; letter-spacing:0.04em; }
+.btnp { background:transparent; color:var(--muted); border:1px solid var(--brd2); }
+.btnp:hover { color:var(--text); }
+.btnp:disabled { opacity:0.2; cursor:not-allowed; }
+.btnn { flex:1; background:rgba(168,85,247,0.12); color:var(--rbt); border:1px solid rgba(168,85,247,0.3); }
+.btnn:hover { background:rgba(168,85,247,0.22); }
+.ctr { font-family:'Inconsolata',monospace; font-size:0.57rem; color:var(--muted); white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <h1><span>Rizikó</span><br>Alapú<br><em>Tesztelés</em></h1>
+    <div class="tag">RBT // evosoft</div>
+  </div>
+  <p>// Azonosítás · Analízis · Reagálás · Prioritizálás · Teszttervezés</p>
+</header>
+
+<div class="topbar">
+  <div class="tb-title">// RBT folyamat lépései</div>
+  <div class="rbt-steps" id="rbtSteps"></div>
+  <div class="formula-bar" id="formulaBar"></div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 18</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+
+<script>
+const PHASES = [
+  { label:'Tesztelés\nalapjai',    color:'var(--blue)', icon:'📋' },
+  { label:'Rizikó\nazonosítás',   color:'var(--rbt)',  icon:'🔍' },
+  { label:'Rizikó\nanalízis',     color:'var(--med)',  icon:'📊' },
+  { label:'Prioriti\nzálás',      color:'var(--high)', icon:'🎯' },
+  { label:'Teszт\ntervezés',      color:'var(--low)',  icon:'✅' },
+  { label:'Scrum\n& Összef.',     color:'#22d3ee',    icon:'∑'  },
+];
+
+const FORMULA_PARTS = [
+  { label:'Valószínűség',  color:'var(--prob)', on:false },
+  { label:'×', op:true },
+  { label:'Kár',           color:'var(--kar)',  on:false },
+  { label:'=', op:true },
+  { label:'Kihatás',       color:'var(--kih)',  on:false },
+  { label:'×', op:true },
+  { label:'Teszt hatékonyság', color:'var(--teff)', on:false },
+  { label:'=', op:true },
+  { label:'PRIORITÁS',     color:'var(--prio)', on:false },
+];
+
+// Az Android osztott képernyő rizikók
+const RISKS = [
+  { name:'A Vissza gomb rossz alkalmazást zár be', prob:2, kar:3, kihatas:6, teff:3, prio:18 },
+  { name:'A billentyűzet a másik alkalmazásban lesz aktív', prob:3, kar:5, kihatas:15, teff:5, prio:75 },
+  { name:'Kétujjas nagyítás nem jól működik', prob:5, kar:2, kihatas:10, teff:2, prio:20 },
+  { name:'Hang megosztása nem működik jól', prob:1, kar:1, kihatas:1, teff:4, prio:4 },
+  { name:'Túl gyorsan lemeríti az akkut', prob:4, kar:4, kihatas:16, teff:1, prio:16 },
+];
+
+// Rendezve prioritás szerint
+const RISKS_SORTED = [...RISKS].sort((a,b)=>b.prio-a.prio);
+
+function riskTableHtml(showProb, showKar, showKih, showTeff, showPrio, highlightIdx=-1) {
+  const cols = ['1fr','40px','40px','40px','40px','50px'].filter((_,i)=>{
+    if(i===0) return true;
+    if(i===1) return showProb;
+    if(i===2) return showKar;
+    if(i===3) return showKih;
+    if(i===4) return showTeff;
+    if(i===5) return showPrio;
+    return false;
+  }).join(' ');
+
+  const headers = ['Rizikó', showProb?'Való-\nszínűség':'', showKar?'Kár':'', showKih?'Kihatás':'', showTeff?'Teszt\nhatékony.':'', showPrio?'Prioritás':''].filter(Boolean);
+  const headerCols = [showProb, showKar, showKih, showTeff, showPrio].filter(Boolean);
+  const headerColors = [showProb?'var(--prob)':'', showKar?'var(--kar)':'', showKih?'var(--kih)':'', showTeff?'var(--teff)':'', showPrio?'var(--prio)':''].filter(Boolean);
+
+  return `<div class="risk-table">
+    <div class="rt-hdr" style="grid-template-columns:${cols}">
+      <div>Rizikó</div>
+      ${showProb?'<div style="color:var(--prob);text-align:center">Valósz.</div>':''}
+      ${showKar?'<div style="color:var(--kar);text-align:center">Kár</div>':''}
+      ${showKih?'<div style="color:var(--kih);text-align:center">Kihatás</div>':''}
+      ${showTeff?'<div style="color:var(--teff);text-align:center">T.hat.</div>':''}
+      ${showPrio?'<div style="color:var(--prio);text-align:center">Prio.</div>':''}
+    </div>
+    ${RISKS.map((r,i)=>`
+      <div class="rt-row ${i===highlightIdx?'highlight':''}" style="grid-template-columns:${cols}">
+        <div class="rt-risk">${r.name}</div>
+        ${showProb?`<div class="rt-num" style="color:var(--prob)">${r.prob}</div>`:''}
+        ${showKar?`<div class="rt-num" style="color:var(--kar)">${r.kar}</div>`:''}
+        ${showKih?`<div class="rt-num" style="color:var(--kih)">${r.prob*r.kar}</div>`:''}
+        ${showTeff?`<div class="rt-num" style="color:var(--teff)">${r.teff}</div>`:''}
+        ${showPrio?`<div class="rt-num" style="color:var(--prio);font-size:0.78rem">${r.prio}</div>`:''}
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+function sortedTableHtml() {
+  return `<div class="prio-list">
+    ${RISKS_SORTED.map((r,i)=>{
+      const maxPrio = RISKS_SORTED[0].prio;
+      const barW = Math.round((r.prio/maxPrio)*100);
+      const col = r.prio>=50?'var(--high)':r.prio>=20?'var(--med)':r.prio>=10?'var(--kih)':'var(--low)';
+      return `<div class="prio-row">
+        <div class="pr-rank" style="color:${col}">${i+1}.</div>
+        <div class="pr-name">${r.name}</div>
+        <div class="pr-bar-wrap"><div class="pr-bar" style="width:${barW}%;background:${col}"></div></div>
+        <div class="pr-score" style="color:${col}">${r.prio}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+const STEPS = [
+
+  // ── 0. BEVEZETŐ ─────────────────────────────────────────────────
+  {
+    phase:0, formula:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">📋</div>
+        <div><div class="stitle">Tesztelés alapvető folyamata</div>
+        <div class="ssub">// Tervezés → Végrehajtás → Zárás</div></div>
+      </div>
+      <div class="flow-steps">
+        <div class="flow-step" style="border-left:3px solid var(--blue)">
+          <div class="fs-num" style="color:var(--blue)">1.</div>
+          <div>
+            <div class="fs-title">Tervezés</div>
+            <div class="fs-desc">A teszttervezés definiálja a tesztelés céljait és a célok elérésének módját. Meghatározza: milyen teszttechnikák, milyen ütemterv, milyen határidők.</div>
+          </div>
+        </div>
+        <div class="flow-step" style="border-left:3px solid var(--rbt)">
+          <div class="fs-num" style="color:var(--rbt)">2.</div>
+          <div>
+            <div class="fs-title">Végrehajtás</div>
+            <div class="fs-desc">A tesztkészleteket a tesztvégrehajtási ütemtervben meghatározott sorrendben futtatják. A hibákat dokumentálják és bejelentik.</div>
+          </div>
+        </div>
+        <div class="flow-step" style="border-left:3px solid var(--low)">
+          <div class="fs-num" style="color:var(--low)">3.</div>
+          <div>
+            <div class="fs-title">Zárás</div>
+            <div class="fs-desc">Tapasztalatok, tesztver és releváns információk véglegesítése. Projekt mérföldkövek elérésekor: release, iteráció vége, tesztszint befejezése.</div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox"><strong>V-modell vs Scrum tesztelés:</strong> V-modell: minden fejlesztési fázishoz tartozik egy tesztelési szint (egység → integrációs → rendszer → átvételi teszt). Scrumban: 24h Daily-k alatt is tesztelés zajlik, minden sprint végén átadható termék.</div>
+    `
+  },
+
+  // ── 1. MI A BAJ A KLASSZIKUS TESZTELÉSSEL? ──────────────────────
+  {
+    phase:0, formula:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">😤</div>
+        <div><div class="stitle">Mi a baj a klasszikus tesztelési módszerrel?</div>
+        <div class="ssub">// 7 valódi probléma — miért nem működik</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--high)">
+          <div class="cli-i">⏰</div>
+          <div><strong>Tesztek túl közel esnek a határidőkhöz</strong>
+          <span>A tesztelők túl sok tesztelendő funkciót kapnak egyszerre a sprint végén — "nagy bumm" tesztelés, nem folyamatos.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--high)">
+          <div class="cli-i">🐢</div>
+          <div><strong>A fejlesztés túl késő kap visszajelzést</strong>
+          <span>Ha a tesztelés a fejlesztés UTÁN indul, és hibát találnak, az egész feature-t újra kell írni. Korai feedback = olcsóbb javítás.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--med)">
+          <div class="cli-i">😊</div>
+          <div><strong>Fejlesztők főleg pozitív tesztesetekre fókuszálnak</strong>
+          <span>"Működik a happy path" — de mi van ha a felhasználó negatív számot ír be az árba? Ezt a tesztelő kell megtalálja, nem a fejlesztő.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--med)">
+          <div class="cli-i">🎯</div>
+          <div><strong>Kritikus pontokat csak későn ismerjük fel</strong>
+          <span>Amikor kiderül, hogy a payment modul az egész app legkritikusabb része — már 3 sprint mögöttünk van és nehéz változtatni.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--low)">
+          <div class="cli-i">🌊</div>
+          <div><strong>Mellékhatások felderítésére nincs idő</strong>
+          <span>Az új feature törte el a régi funkciót? Regressziós teszt nincs — a felhasználó fogja megtalálni production-ban.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--low)">
+          <div class="cli-i">🔁</div>
+          <div><strong>Több csapat is leteszteli ugyanazt</strong>
+          <span>A backend team leteszteli, a frontend team leteszteli, a QA leteszteli... ugyanazt a funkciót háromszor. Ez pazarlás.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 2. A KULCSMONDAT ─────────────────────────────────────────────
+  {
+    phase:0, formula:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">💡</div>
+        <div><div class="stitle">A legfontosabb felismerés</div>
+        <div class="ssub">// ami miatt az RBT megszületett</div></div>
+      </div>
+      <div style="background:rgba(168,85,247,0.06);border:2px solid rgba(168,85,247,0.35);border-radius:12px;padding:1rem 1.1rem;margin:0.45rem 0;text-align:center">
+        <div style="font-size:1rem;font-weight:800;line-height:1.4;color:var(--rbt)">A fejlesztők sokszor nincsenek tudatában annak, hogy milyen RIZIKÓKAT vállalnak be!</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:0.58rem;color:var(--muted);margin-top:0.5rem">— Borik Márió, evosoft</div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">💻</div>
+          <div class="bub l"><div class="who" style="color:var(--blue)">Fejlesztő</div>
+            Az osztott képernyős funkciót kész vagyok, push-olom main-re! Gyors volt.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🧪</div>
+          <div class="bub r2"><div class="who" style="color:var(--rbt);text-align:right">Tesztelő (RBT szemlélettel)</div>
+            Megkérdezhetlek valamit? Mi van ha a billentyűzet átugrik a másik appba? Mi van ha a Vissza gomb rossz appot zár be?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">💻</div>
+          <div class="bub l"><div class="who" style="color:var(--blue)">Fejlesztő</div>
+            Ó... ezt nem is gondoltam végig. Várjunk a push-sal.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.45s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub r2"><div class="who" style="color:var(--rbt);text-align:right">Oktató</div>
+            Ez az RBT lényege: MIELŐTT kódolunk, azonosítjuk a rizikókat. Így a fejlesztő tudatosan vállal be egy kockázatot — vagy megelőzi.
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 3. MI AZ RBT? ───────────────────────────────────────────────
+  {
+    phase:1, formula:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,0.5)">🎯</div>
+        <div><div class="stitle">Mi az a Rizikó Alapú Tesztelés?</div>
+        <div class="ssub">// teszt stratégia — rizikókra fókuszálva</div></div>
+      </div>
+      <div style="background:rgba(168,85,247,0.06);border:1.5px solid rgba(168,85,247,0.3);border-radius:10px;padding:0.8rem;margin-bottom:0.45rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:0.56rem;color:var(--rbt);font-weight:700;margin-bottom:0.2rem">DEFINÍCIÓ</div>
+        <div style="font-size:0.82rem;line-height:1.6">A Rizikó Alapú Tesztelés egy teszt stratégia, amely a <strong>rizikókra fókuszál a tesztesetek helyett</strong>, és a tesztelés a rizikók mentén történik.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;margin:0.45rem 0">
+        <div style="background:rgba(239,68,68,0.07);border:1.5px solid rgba(239,68,68,0.3);border-radius:9px;padding:0.7rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.58rem;color:var(--high);font-weight:700;margin-bottom:0.25rem">❌ Klasszikus tesztelés</div>
+          <div style="font-size:0.7rem;line-height:1.5;color:rgba(216,228,255,0.8)">Tesztesetek → lefuttatjuk → "minden zöld" → kész. De kit tesztelünk? Fontos-e amit teszteltünk? Mit hagytunk ki?</div>
+        </div>
+        <div style="background:rgba(168,85,247,0.07);border:1.5px solid rgba(168,85,247,0.3);border-radius:9px;padding:0.7rem">
+          <div style="font-family:'Inconsolata',monospace;font-size:0.58rem;color:var(--rbt);font-weight:700;margin-bottom:0.25rem">✅ RBT megközelítés</div>
+          <div style="font-size:0.7rem;line-height:1.5;color:rgba(216,228,255,0.8)">Rizikók azonosítása → priorizálás → a legkockázatosabb dolgokat teszteljük LEGTÖBBET. Tudatos döntés: mit nem tesztelünk.</div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Teszt vezérelt koncepciók spektruma:</strong> RBT (Követelményektől indul, könnyen bevezethető) → Specification by Example → Given-When-Then / Arrange-Act-Assert → TDD (Kódtól indul, nehezen bevezethető). Minél balra, annál könnyebb elkezdeni.</div>
+    `
+  },
+
+  // ── 4. RBT ÁLTALÁNOS FOLYAMAT ────────────────────────────────────
+  {
+    phase:1, formula:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,0.5)">🗺️</div>
+        <div><div class="stitle">Az RBT általános folyamata</div>
+        <div class="ssub">// 5 lépés — azonosítástól a teszttervezésig</div></div>
+      </div>
+      <div class="flow-steps">
+        <div class="flow-step" style="border-left:3px solid var(--rbt)">
+          <div class="fs-num" style="color:var(--rbt)">1.</div>
+          <div>
+            <div class="fs-title">Rizikó azonosítás</div>
+            <div class="fs-desc">Azonosítsd és csoportosítsd a rizikókat — szakértők bevonásával. Brainstorming, checklista, tapasztalat. Pl. "mi minden romolhat el ennél a funkcióknál?"</div>
+          </div>
+        </div>
+        <div class="flow-step" style="border-left:3px solid var(--med)">
+          <div class="fs-num" style="color:var(--med)">2.</div>
+          <div>
+            <div class="fs-title">Rizikó analízis</div>
+            <div class="fs-desc">Rendelj hozzá <strong>Valószínűséget</strong> (1-5) és <strong>Kárt</strong> (1-5). A szorzatuk a <strong>Kihatás</strong>. Ez alapján látjuk melyik rizikó "nagy".</div>
+          </div>
+        </div>
+        <div class="flow-step" style="border-left:3px solid var(--teff)">
+          <div class="fs-num" style="color:var(--teff)">3.</div>
+          <div>
+            <div class="fs-title">Rizikóra reagálás</div>
+            <div class="fs-desc">Rendelj hozzá <strong>Teszt hatékonyságot</strong> (1-5): mennyire csökkenti a tesztelés ezt a rizikót? Kihatás × Teff = <strong>Prioritás</strong>.</div>
+          </div>
+        </div>
+        <div class="flow-step" style="border-left:3px solid var(--high)">
+          <div class="fs-num" style="color:var(--high)">4.</div>
+          <div>
+            <div class="fs-title">Ellenőrzés & Döntés</div>
+            <div class="fs-desc">Közös megegyezés: mindenki egyetért az eredménnyel? Belefér minden kockázat csökkentése a következő sprintbe?</div>
+          </div>
+        </div>
+        <div class="flow-step" style="border-left:3px solid var(--low)">
+          <div class="fs-num" style="color:var(--low)">5.</div>
+          <div>
+            <div class="fs-title">Teszt tervezés</div>
+            <div class="fs-desc">Teszt szint definiálása és felelős kiválasztása. Pl. "A billentyűzet rizikót Integration teszttel fedjük le, felelős: Kovács István."</div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 5. RIZIKÓ AZONOSÍTÁS PÉLDA ───────────────────────────────────
+  {
+    phase:1, formula:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,0.5)">🔍</div>
+        <div><div class="stitle">1. lépés — Rizikó azonosítás</div>
+        <div class="ssub">// Android osztott képernyő funkció — mi romolhat el?</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--rbt)">Oktató</div>
+            Feladat: fejlesztünk egy Android osztott képernyős funkciót (split screen). Gyűjtsük össze a rizikókat! Mi minden romolhat el?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--blue);text-align:right">Tanuló A</div>
+            A Vissza gomb talán rossz appot zár be?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">🙋</div>
+          <div class="bub l"><div class="who" style="color:var(--med)">Tanuló B</div>
+            A billentyűzet fókusz — melyik appban lesz aktív?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.45s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--low);text-align:right">Tanuló C</div>
+            A kétujjas zoom gesture biztosan összeakad a split-tel!
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--card);border:1.5px solid rgba(168,85,247,0.3);border-radius:9px;overflow:hidden;margin:0.45rem 0">
+        <div style="background:var(--surf);padding:0.3rem 0.7rem;font-family:'Inconsolata',monospace;font-size:0.52rem;color:var(--rbt);text-transform:uppercase;letter-spacing:0.07em;border-bottom:1px solid var(--brd)">// Azonosított rizikók — Android Split Screen</div>
+        ${RISKS.map((r,i)=>`
+          <div style="display:flex;align-items:center;gap:0.5rem;padding:0.38rem 0.7rem;border-bottom:${i<RISKS.length-1?'1px solid var(--brd)':'none'};font-size:0.7rem">
+            <div style="font-family:'Inconsolata',monospace;font-size:0.6rem;color:var(--rbt);font-weight:700;width:16px;flex-shrink:0">R${i+1}</div>
+            <div>${r.name}</div>
+          </div>`).join('')}
+      </div>
+      <div class="ibox warn-b"><strong>Kik vesznek részt?</strong> A rizikó azonosítás csapatmunka — fejlesztők, tesztelők, PO, és domain szakértők együtt brainstorminggolnak. Minél több szempont, annál teljesebb a kép. Tapasztalt csapatoknál van "rizikó checklista" korábbi projektekből.</div>
+    `
+  },
+
+  // ── 6. VALÓSZÍNŰSÉG SKÁLA ────────────────────────────────────────
+  {
+    phase:2, formula:[0],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,0.5)">📊</div>
+        <div><div class="stitle">2. lépés — Valószínűség skála</div>
+        <div class="ssub">// Probability: mekkora az esélye hogy bekövetkezik?</div></div>
+      </div>
+      <div class="formula-block">
+        <div class="fb-title">// Aktuális lépés a formulában</div>
+        <div class="fb-formula">
+          <div class="fb-term" style="background:rgba(59,130,246,0.15);color:var(--prob);border-color:rgba(59,130,246,0.4)">Valószínűség</div>
+          <span style="color:var(--muted)">×</span>
+          <div class="fb-term" style="background:rgba(30,45,80,0.5);color:var(--muted);border-color:var(--brd2)">Kár</div>
+          <span style="color:var(--muted)">=</span>
+          <div class="fb-term" style="background:rgba(30,45,80,0.5);color:var(--muted);border-color:var(--brd2)">Kihatás</div>
+        </div>
+      </div>
+      <div class="scale-grid">
+        <div class="scale-row">
+          <div class="scale-num" style="color:var(--low)">1</div>
+          <div class="scale-pct" style="color:var(--muted)">1–20%</div>
+          <div class="scale-bar" style="width:20px;background:var(--low)"></div>
+          <div class="scale-desc"><strong>Erősen valószínűtlen</strong> — szinte biztosan nem fordul elő. Pl. az app teljesen lefagy normál használatkor.</div>
+        </div>
+        <div class="scale-row">
+          <div class="scale-num" style="color:#22c55e">2</div>
+          <div class="scale-pct" style="color:var(--muted)">21–40%</div>
+          <div class="scale-bar" style="width:40px;background:#22c55e"></div>
+          <div class="scale-desc"><strong>Valószínűtlen</strong> — nem valószínű hogy megtörténik. Pl. a Vissza gomb rossz appot zár be.</div>
+        </div>
+        <div class="scale-row">
+          <div class="scale-num" style="color:var(--med)">3</div>
+          <div class="scale-pct" style="color:var(--muted)">41–60%</div>
+          <div class="scale-bar" style="width:60px;background:var(--med)"></div>
+          <div class="scale-desc"><strong>Kérdéses</strong> — nagyjából 50/50. Pl. billentyűzet fókusz gond osztott módban.</div>
+        </div>
+        <div class="scale-row">
+          <div class="scale-num" style="color:var(--high)">4</div>
+          <div class="scale-pct" style="color:var(--muted)">61–80%</div>
+          <div class="scale-bar" style="width:80px;background:var(--high)"></div>
+          <div class="scale-desc"><strong>Valószínű</strong> — jó eséllyel megtörténik. Pl. akkulemerítési probléma split screen módban.</div>
+        </div>
+        <div class="scale-row">
+          <div class="scale-num" style="color:#7f1d1d">5</div>
+          <div class="scale-pct" style="color:var(--muted)">81–99%</div>
+          <div class="scale-bar" style="width:100px;background:#7f1d1d"></div>
+          <div class="scale-desc"><strong>Szinte biztos</strong> — szinte biztosan bekövetkezik. Pl. kétujjas gesture konflikusa split-tel.</div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 7. KÁR SKÁLA ─────────────────────────────────────────────────
+  {
+    phase:2, formula:[0,2],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,0.5)">💥</div>
+        <div><div class="stitle">2. lépés — Kár skála</div>
+        <div class="ssub">// Impact: ha megtörténik, mekkora kárt okoz?</div></div>
+      </div>
+      <div class="formula-block">
+        <div class="fb-title">// Aktuális lépés a formulában</div>
+        <div class="fb-formula">
+          <div class="fb-term" style="background:rgba(59,130,246,0.15);color:var(--prob);border-color:rgba(59,130,246,0.4)">Valószínűség</div>
+          <span style="color:var(--text)">×</span>
+          <div class="fb-term" style="background:rgba(239,68,68,0.15);color:var(--kar);border-color:rgba(239,68,68,0.4)">Kár</div>
+          <span style="color:var(--muted)">=</span>
+          <div class="fb-term" style="background:rgba(30,45,80,0.5);color:var(--muted);border-color:var(--brd2)">Kihatás</div>
+        </div>
+      </div>
+      <div class="scale-grid">
+        <div class="scale-row">
+          <div class="scale-num" style="color:var(--low)">1</div>
+          <div class="scale-pct"></div>
+          <div class="scale-bar" style="width:20px;background:var(--low)"></div>
+          <div class="scale-desc"><strong>Negligible (Elhanyagolható)</strong> — nincs észrevehető hatás az üzletre. Pl. egy ikon 2px-cel eltolódik.</div>
+        </div>
+        <div class="scale-row">
+          <div class="scale-num" style="color:#22c55e">2</div>
+          <div class="scale-pct"></div>
+          <div class="scale-bar" style="width:40px;background:#22c55e"></div>
+          <div class="scale-desc"><strong>Low (Alacsony)</strong> — az üzlet enyhén érintett. Pl. egy ritkán használt beállítás nem menti el az értéket.</div>
+        </div>
+        <div class="scale-row">
+          <div class="scale-num" style="color:var(--med)">3</div>
+          <div class="scale-pct"></div>
+          <div class="scale-bar" style="width:60px;background:var(--med)"></div>
+          <div class="scale-desc"><strong>Moderate (Közepes)</strong> — üzleti célok érintve. Pl. a Vissza gomb rossz appot zár be — felhasználói frusztráció.</div>
+        </div>
+        <div class="scale-row">
+          <div class="scale-num" style="color:var(--high)">4</div>
+          <div class="scale-pct"></div>
+          <div class="scale-bar" style="width:80px;background:var(--high)"></div>
+          <div class="scale-desc"><strong>High (Magas)</strong> — üzleti célok veszélybe kerülnek. Pl. a billentyűzet nem a jó appban van aktív → munkafolyamat megakad.</div>
+        </div>
+        <div class="scale-row">
+          <div class="scale-num" style="color:#7f1d1d">5</div>
+          <div class="scale-pct"></div>
+          <div class="scale-bar" style="width:100px;background:#7f1d1d"></div>
+          <div class="scale-desc"><strong>Critical (Kritikus)</strong> — üzleti célok NEM érhetők el. Pl. fizetési funkció nem működik → senki nem tud vásárolni.</div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 8. KIHATÁS SZÁMÍTÁS ──────────────────────────────────────────
+  {
+    phase:2, formula:[0,2,4],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,0.5)">🧮</div>
+        <div><div class="stitle">Kihatás = Valószínűség × Kár</div>
+        <div class="ssub">// az 5 Android rizikó kiszámítva lépésről lépésre</div></div>
+      </div>
+      <div class="formula-block">
+        <div class="fb-title">// A kihatás képlete</div>
+        <div class="fb-formula">
+          <div class="fb-term" style="background:rgba(59,130,246,0.15);color:var(--prob);border-color:rgba(59,130,246,0.4)">Valószínűség</div>
+          <span style="color:var(--text);font-size:1rem">×</span>
+          <div class="fb-term" style="background:rgba(239,68,68,0.15);color:var(--kar);border-color:rgba(239,68,68,0.4)">Kár</div>
+          <span style="color:var(--text);font-size:1rem">=</span>
+          <div class="fb-term" style="background:rgba(245,158,11,0.15);color:var(--kih);border-color:rgba(245,158,11,0.4)">Kihatás</div>
+        </div>
+      </div>
+      ${riskTableHtml(true, true, true, false, false)}
+      <div class="ibox warn-b"><strong>Figyeld meg:</strong> A "Kétujjas nagyítás" Valószínűsége magas (5), de a Kárja alacsony (2) → Kihatás: 10. A "Billentyűzet" Valószínűsége közepes (3), de a Kárja nagyon magas (5) → Kihatás: 15. A magas kár kompenzálja az alacsonyabb valószínűséget!</div>
+    `
+  },
+
+  // ── 9. TESZT HATÉKONYSÁG ─────────────────────────────────────────
+  {
+    phase:3, formula:[0,2,4,6],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,0.5)">🛡️</div>
+        <div><div class="stitle">3. lépés — Teszt hatékonyság</div>
+        <div class="ssub">// mennyire csökkenti a tesztelés ezt a kockázatot?</div></div>
+      </div>
+      <div class="formula-block">
+        <div class="fb-title">// Teszt hatékonyság hozzáadva</div>
+        <div class="fb-formula">
+          <div class="fb-term" style="background:rgba(245,158,11,0.15);color:var(--kih);border-color:rgba(245,158,11,0.4)">Kihatás</div>
+          <span style="color:var(--text);font-size:1rem">×</span>
+          <div class="fb-term" style="background:rgba(16,185,129,0.15);color:var(--teff);border-color:rgba(16,185,129,0.4)">Teszt hatékonyság</div>
+          <span style="color:var(--muted);font-size:1rem">=</span>
+          <div class="fb-term" style="background:rgba(30,45,80,0.5);color:var(--muted);border-color:var(--brd2)">Prioritás</div>
+        </div>
+      </div>
+      <div class="scale-grid">
+        <div class="scale-row">
+          <div class="scale-num" style="color:var(--high)">1</div>
+          <div class="scale-desc"><strong>Tesztelés NEM oldja meg ezt a rizikót</strong> — vagy a teszt objektív elérhetetlen. Pl. bizonyos hardware-specifikus bugok csak a valódi eszközön derülnek ki, szimulátorral nem.</div>
+        </div>
+        <div class="scale-row">
+          <div class="scale-num" style="color:#22c55e">5</div>
+          <div class="scale-desc"><strong>Nagy bizalom</strong> — a tesztelés nagy valószínűséggel megtalálja a hibát és bizonyítékot ad arra, hogy a rizikó kezelt. Pl. automatizált UI teszt a billentyűzet fókuszra.</div>
+        </div>
+      </div>
+      ${riskTableHtml(true, true, true, true, false)}
+      <div class="ibox ok-b"><strong>"Túl gyorsan lemeríti az akkut" — T.hat.: 1</strong> Az akkulemerítést tesztelni nagyon nehéz automatikusan: függ az eszköztől, a CPU hőmérsékletétől, más futó apptól. Ezért a teszt hatékonysága alacsony — más megoldás kell (kódoptimalizálás inkább).</div>
+    `
+  },
+
+  // ── 10. PRIORITÁS SZÁMÍTÁS ───────────────────────────────────────
+  {
+    phase:3, formula:[0,2,4,6,8],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,0.5)">🎯</div>
+        <div><div class="stitle">PRIORITÁS = Kihatás × Teszt hatékonyság</div>
+        <div class="ssub">// a teljes táblázat — ki a legfontosabb?</div></div>
+      </div>
+      <div class="formula-block">
+        <div class="fb-title">// A teljes RBT formula</div>
+        <div class="fb-formula">
+          <div class="fb-term" style="background:rgba(59,130,246,0.12);color:var(--prob);border-color:rgba(59,130,246,0.35)">Val.</div>
+          <span style="color:var(--text)">×</span>
+          <div class="fb-term" style="background:rgba(239,68,68,0.12);color:var(--kar);border-color:rgba(239,68,68,0.35)">Kár</div>
+          <span style="color:var(--text)">=</span>
+          <div class="fb-term" style="background:rgba(245,158,11,0.12);color:var(--kih);border-color:rgba(245,158,11,0.35)">Kihatás</div>
+          <span style="color:var(--text)">×</span>
+          <div class="fb-term" style="background:rgba(16,185,129,0.12);color:var(--teff);border-color:rgba(16,185,129,0.35)">T.hat.</div>
+          <span style="color:var(--text)">=</span>
+          <div class="fb-term" style="background:rgba(168,85,247,0.15);color:var(--prio);border-color:rgba(168,85,247,0.4)">PRIORITÁS</div>
+        </div>
+      </div>
+      ${riskTableHtml(true, true, true, true, true)}
+    `
+  },
+
+  // ── 11. RENDEZETT PRIORITÁS LISTA ────────────────────────────────
+  {
+    phase:3, formula:[0,2,4,6,8],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,0.5)">🏆</div>
+        <div><div class="stitle">Végeredmény — Prioritizált rizikólista</div>
+        <div class="ssub">// ezeket teszteljük először és legtöbbet</div></div>
+      </div>
+      ${sortedTableHtml()}
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--rbt)">Oktató</div>
+            Mit vegyünk észre? A "Kétujjas nagyítás" Valószínűsége 5 (szinte biztos) — de a Prioritása csak 20, mert a Kár alacsony (2) és a Teszt hatékonysága is alacsony (2).
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--blue);text-align:right">Tanuló</div>
+            Tehát ha valami szinte biztosan elromlik, de nem nagy a kár — nem kell feltétlenül legtöbbet tesztelni?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--rbt)">Oktató</div>
+            Pontosan! Az RBT nem azt mondja "teszteld ami legvalószínűbb" — hanem "teszteld ami legfontosabb". A billentyűzet prioritása 75 — az a legkritikusabb!
+          </div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Összesen: 75 + 20 + 18 + 16 + 4 = 133 prioritáspont.</strong> Ha szűk az idő és csak 50 pontnyit tesztelhetünk, az 1. (75p) rizikóra koncentrálunk. Tudatos döntés — nem véletlen.</div>
+    `
+  },
+
+  // ── 12. ELLENŐRZÉS & DÖNTÉS ──────────────────────────────────────
+  {
+    phase:4, formula:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,0.5)">🤝</div>
+        <div><div class="stitle">4. lépés — Ellenőrzés & Döntés</div>
+        <div class="ssub">// közös megegyezés az eredménnyel</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">🧪</div>
+          <div class="bub l"><div class="who" style="color:var(--rbt)">Teszt lead</div>
+            A billentyűzet rizikó Prioritása 75 — ez messze a legfontosabb. Mindenki egyetért?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">💼</div>
+          <div class="bub r2"><div class="who" style="color:var(--blue);text-align:right">Product Owner</div>
+            Igen, ez valódi felhasználói panasz forrása lenne. Belefér a sprintbe ennek lefedése?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">💻</div>
+          <div class="bub l"><div class="who" style="color:var(--low)">Fejlesztő</div>
+            Az akkulemerítés (Prio: 16) tesztelése nehéz automatikusan — inkább refaktorálással csökkentjük a kockázatot.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.45s">
+          <div class="av">🧪</div>
+          <div class="bub r2"><div class="who" style="color:var(--rbt);text-align:right">Teszt lead</div>
+            Rendben! Ezt rögzítjük: akkulemerítés → nem teszt megoldás, fejlesztési feladat. A többi rizikó → teszt tervezés következik.
+          </div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--rbt)">
+          <div class="cli-i">✅</div>
+          <div><strong>Mindenki ért egyet?</strong>
+          <span>Ha valaki úgy érzi hogy alul/fölül van értékelve egy rizikó — most kell elmondani. A számok szubjektívek, a csapat konszenzusa a cél.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--rbt)">
+          <div class="cli-i">⏱️</div>
+          <div><strong>Belefér a sprintbe?</strong>
+          <span>Nem kell MINDEN rizikót csökkenteni — csak amit a csapat vállal. Amit nem vállalnak: tudatos kockázatvállalás, dokumentálva.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--rbt)">
+          <div class="cli-i">📝</div>
+          <div><strong>Dokumentálás</strong>
+          <span>Az elfogadott rizikólista és a döntések írásba kerülnek. 3 hónap múlva is visszakereshető: miért döntöttünk így?</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 13. TESZT TERVEZÉS ────────────────────────────────────────────
+  {
+    phase:4, formula:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,0.5)">✅</div>
+        <div><div class="stitle">5. lépés — Teszt tervezés</div>
+        <div class="ssub">// melyik teszt szinten fedjük le? ki a felelős?</div></div>
+      </div>
+      <div style="background:var(--card);border:1.5px solid var(--brd2);border-radius:9px;overflow:hidden;margin:0.45rem 0">
+        <div style="background:var(--surf);padding:0.3rem 0.7rem;font-family:'Inconsolata',monospace;font-size:0.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;border-bottom:1px solid var(--brd)">// Teszt tervezés — ki mit, hogyan fed le</div>
+        ${RISKS_SORTED.map((r,i)=>{
+          const testLevels = ['Integration teszt','E2E UI teszt','Unit teszt','Exploratory','—'];
+          const owners = ['Nagy Péter','Kovács István','Szabó Anna','Kiss Béla','N/A'];
+          const col = r.prio>=50?'var(--high)':r.prio>=20?'var(--med)':r.prio>=10?'var(--kih)':'var(--low)';
+          return `<div style="padding:0.4rem 0.7rem;border-bottom:${i<4?'1px solid var(--brd)':'none'};display:grid;grid-template-columns:1fr 100px 80px;gap:0.5rem;align-items:center;font-size:0.68rem">
+            <div><span style="font-family:'Inconsolata',monospace;font-weight:700;color:${col}">#${i+1} P=${r.prio}</span> ${r.name}</div>
+            <div style="font-family:'Inconsolata',monospace;font-size:0.58rem;color:var(--teff)">${testLevels[i]}</div>
+            <div style="font-size:0.62rem;color:var(--muted)">${owners[i]}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--low)">
+          <div class="cli-i">🎯</div>
+          <div><strong>Teszt szint meghatározása</strong>
+          <span>Unit teszt (izolált függvény), Integration teszt (modulok együtt), E2E teszt (teljes felhasználói folyamat), Exploratory (felfedező, emberi intuíció).</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--low)">
+          <div class="cli-i">👤</div>
+          <div><strong>Felelős kijelölése</strong>
+          <span>Egy konkrét személy felelős a teszt végrehajtásáért. Nem "mindenki felelős" — az azt jelenti senki nem felelős.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 14. RBT A SCRUM-BAN ──────────────────────────────────────────
+  {
+    phase:5, formula:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(34,211,238,0.5)">🏃</div>
+        <div><div class="stitle">RBT a Scrum-ban</div>
+        <div class="ssub">// hogyan illeszkedik a sprint folyamatba?</div></div>
+      </div>
+      <div class="scrum-flow">
+        <div class="sf2-title">// RBT + Scrum — integrált folyamat</div>
+        <div class="sf2-row">
+          <div class="sf2-box" style="background:rgba(59,130,246,0.1);color:var(--blue);border-color:rgba(59,130,246,0.3)">PO</div>
+          <div class="sf2-arr">→</div>
+          <div class="sf2-box" style="background:rgba(168,85,247,0.1);color:var(--rbt);border-color:rgba(168,85,247,0.3)">Új User Story</div>
+          <div class="sf2-arr">→</div>
+          <div class="sf2-box" style="background:rgba(245,158,11,0.1);color:var(--med);border-color:rgba(245,158,11,0.3)">Refinement</div>
+        </div>
+        <div style="font-family:'Inconsolata',monospace;font-size:0.58rem;color:var(--muted);margin:0.2rem 0 0.3rem 0">↓ RBT meeting (rizikó azonosítás + analízis itt történik!)</div>
+        <div class="sf2-row">
+          <div class="sf2-box" style="background:rgba(168,85,247,0.1);color:var(--rbt);border-color:rgba(168,85,247,0.3)">Alap rizikók</div>
+          <div class="sf2-arr">→</div>
+          <div class="sf2-box" style="background:rgba(245,158,11,0.1);color:var(--med);border-color:rgba(245,158,11,0.3)">Bővített, priorizált rizikók</div>
+          <div class="sf2-arr">→</div>
+          <div class="sf2-box" style="background:rgba(16,185,129,0.1);color:var(--low);border-color:rgba(16,185,129,0.3)">Sprint Planning</div>
+        </div>
+        <div style="font-family:'Inconsolata',monospace;font-size:0.58rem;color:var(--muted);margin:0.2rem 0 0.3rem 0">↓ Teszttervezés + Fejlesztés párhuzamosan</div>
+        <div class="sf2-row">
+          <div class="sf2-box" style="background:rgba(99,102,241,0.1);color:#818cf8;border-color:rgba(99,102,241,0.3)">Sprint (fejlesztés + tesztelés)</div>
+          <div class="sf2-arr">→</div>
+          <div class="sf2-box" style="background:rgba(34,211,238,0.1);color:#22d3ee;border-color:rgba(34,211,238,0.3)">DEMO</div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--rbt)">
+          <div class="cli-i">🔍</div>
+          <div><strong>RBT meeting = Refinement (Grooming) részeként</strong>
+          <span>A PO bemutatja az új user story-t. A csapat azonnal azonosítja a rizikókat — még mielőtt a fejlesztés elkezdődne. Így a Sprint Planning-re már kész a priorizált lista.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--low)">
+          <div class="cli-i">⚡</div>
+          <div><strong>Korai feedback — a fejlesztés azonnal tudja</strong>
+          <span>A fejlesztő a sprint elején látja: "A billentyűzet fókusz Prioritás: 75 — erre különösen figyelj fejlesztés közben!" Nem utólag derül ki a probléma.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--med)">
+          <div class="cli-i">🔄</div>
+          <div><strong>Iteratív rizikókezelés</strong>
+          <span>Minden sprintben frissítjük a rizikólistát. Ami az előző sprintben magas prioritású volt, esetleg megoldódott. Új user story → új rizikók.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 15. ÖSSZEFOGLALÁS ─────────────────────────────────────────────
+  {
+    phase:5, formula:[0,2,4,6,8],
+    render:()=>`
+      <div class="shdr"><div class="sico">∑</div>
+        <div><div class="stitle">Összefoglalás — Rizikó Alapú Tesztelés</div>
+        <div class="ssub">// a teljes folyamat egy helyen</div></div>
+      </div>
+      <div class="sumgrid">
+        <div class="sbox" style="border-top:2px solid var(--rbt)">
+          <span class="ico">🎯</span>
+          <div class="val">5 lépés</div>
+          <div class="lbl">Azonosítás→Analízis→Reagálás→Döntés→Tervezés</div>
+        </div>
+        <div class="sbox" style="border-top:2px solid var(--prio)">
+          <span class="ico">🧮</span>
+          <div class="val">P = V×K×T</div>
+          <div class="lbl">Valószínűség × Kár × Teszt hat.</div>
+        </div>
+        <div class="sbox" style="border-top:2px solid var(--med)">
+          <span class="ico">📊</span>
+          <div class="lbl">Skálák: 1–5</div>
+          <div class="val" style="font-size:0.72rem">Minden dimenzió</div>
+        </div>
+        <div class="sbox" style="border-top:2px solid var(--low)">
+          <span class="ico">🏃</span>
+          <div class="val">Scrum kész</div>
+          <div class="lbl">Refinement-be integrálva</div>
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--rbt)">
+          <div class="cli-i">💡</div>
+          <div><strong>Miért RBT és nem klasszikus tesztelés?</strong>
+          <span>Véges idő és erőforrás van. A klasszikus tesztelés random lefedi a funkciókat. Az RBT tudatosan a legkritikusabb dolgokat teszteli legtöbbet — és vállalja a kevésbé fontosat.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--prob)">
+          <div class="cli-i">📊</div>
+          <div><strong>Valószínűség × Kár = Kihatás</strong>
+          <span>1–5 skálán mindkettő. Magas valószínűség + alacsony kár ≠ legfontosabb. Alacsony valószínűség + kritikus kár = nagyon fontos!</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--teff)">
+          <div class="cli-i">🛡️</div>
+          <div><strong>Kihatás × Teszt hatékonyság = Prioritás</strong>
+          <span>Ha a tesztelés NEM oldja meg a rizikót (T.hat. = 1), az más megoldást igényel (fejlesztési döntés, kockázatvállalás). Prioritás = 1 még 16-os Kihatásnál is!</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--low)">
+          <div class="cli-i">🏃</div>
+          <div><strong>Android példa eredmény</strong>
+          <span>1. Billentyűzet (75) · 2. Kétujjas nagyítás (20) · 3. Vissza gomb (18) · 4. Akkulemerítés (16) · 5. Hang megosztás (4)</span></div>
+        </div>
+      </div>
+    `
+  },
+];
+
+function renderBoard(phaseIdx, formulaIdxs) {
+  document.getElementById('rbtSteps').innerHTML = PHASES.map((p,i)=>{
+    const on=i===phaseIdx, done=i<phaseIdx;
+    const c = on?p.color:done?p.color:'var(--muted)';
+    return `<div class="rs-item ${on?'active':done?'done':''}">
+      <div class="rs-dot" style="border-color:${c};color:${c}">${p.icon}</div>
+      <div class="rs-label" style="color:${on?p.color:'var(--muted)'}">${p.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('formulaBar').innerHTML = FORMULA_PARTS.map((p,i)=>{
+    if(p.op) return `<div class="fb-op ${formulaIdxs.includes(i)?'on':''}">${p.label}</div>`;
+    const on = formulaIdxs.includes(i);
+    return `<div class="fb-part ${on?'on':''}" style="border-color:${p.color};color:${p.color}">${p.label}</div>`;
+  }).join('');
+}
+
+let cur = 0;
+function render() {
+  const s = STEPS[cur];
+  renderBoard(s.phase, s.formula);
+  const el = document.getElementById('content');
+  el.innerHTML = s.render();
+  setTimeout(()=>{el.querySelectorAll('.msg:not(.show)').forEach((m,i)=>setTimeout(()=>m.classList.add('show'),i*160));},60);
+  document.getElementById('bprev').disabled = cur===0;
+  document.getElementById('bnext').textContent = cur===STEPS.length-1?'↺ Újra':'Következő →';
+  document.getElementById('ctr').textContent = `${cur+1} / ${STEPS.length}`;
+}
+function next(){cur=cur===STEPS.length-1?0:cur+1;render();}
+function prev(){if(cur>0){cur--;render();}}
+render();
+</script>
+</body>
+</html>
