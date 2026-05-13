@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Puska — Nagy Rendszerek</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inconsolata:wght@400;500;600;700&display=swap');
+:root {
+  --bg:#0a0f1e; --surf:#0f1628; --card:#141d35; --brd:#1e2d50; --brd2:#263a68;
+  --text:#d8e4ff; --muted:#7a96b5;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 0% 0%,rgba(59,130,246,.05) 0%,transparent 50%),radial-gradient(ellipse at 100% 100%,rgba(168,85,247,.05) 0%,transparent 50%);pointer-events:none;z-index:0;}
+
+.wrap{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:24px 18px 60px;}
+
+header{text-align:center;margin-bottom:25px;padding-bottom:18px;border-bottom:1px solid var(--brd2);}
+.eyebrow{display:inline-block;padding:4px 12px;background:var(--card);border:1px solid var(--brd);border-radius:100px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;font-family:'Inconsolata',monospace;}
+h1{font-size:clamp(28px,5vw,42px);font-weight:900;letter-spacing:-1px;line-height:1.1;margin-bottom:8px;background:linear-gradient(135deg,#60a5fa 0%,#a78bfa 50%,#f472b6 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.subtitle{font-size:14px;color:var(--muted);max-width:580px;margin:0 auto;line-height:1.5;}
+.back{display:inline-flex;align-items:center;gap:6px;font-family:'Inconsolata',monospace;font-size:11px;color:var(--muted);padding:5px 12px;background:var(--card);border:1px solid var(--brd);border-radius:6px;text-decoration:none;margin-bottom:14px;}
+.back:hover{color:var(--text);}
+
+.section{font-family:'Inconsolata',monospace;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text);margin:28px 0 12px;padding-left:6px;display:flex;align-items:center;gap:10px;border-left:3px solid var(--accent,#60a5fa);}
+.section::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--brd) 0%,transparent 100%);}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;}
+
+.cheat{background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:10px 12px;position:relative;overflow:hidden;break-inside:avoid;page-break-inside:avoid;}
+.cheat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);}
+
+.ct-hdr{display:flex;align-items:flex-start;gap:8px;margin-bottom:7px;}
+.ct-ico{font-size:18px;flex-shrink:0;line-height:1;}
+.ct-ttl{font-size:13px;font-weight:800;line-height:1.2;letter-spacing:-.2px;}
+.ct-sub{font-family:'Inconsolata',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
+
+.ct-body{font-size:11px;line-height:1.45;}
+.ct-row{display:flex;gap:5px;margin:3px 0;font-family:'Inconsolata',monospace;font-size:10.5px;}
+.ct-label{color:var(--accent);font-weight:700;flex-shrink:0;min-width:38px;}
+.ct-val{color:var(--text);line-height:1.4;}
+
+.ct-list{margin:4px 0;}
+.ct-item{font-size:10.5px;line-height:1.45;color:var(--text);padding:1px 0;font-family:'Inconsolata',monospace;}
+.ct-item strong{color:var(--accent);font-weight:700;}
+
+.ct-key{background:rgba(255,255,255,.04);border-radius:5px;padding:5px 7px;margin:5px 0;font-size:10px;line-height:1.45;color:var(--text);font-family:'Inconsolata',monospace;border-left:2px solid var(--accent);}
+.ct-key b{color:var(--accent);font-weight:700;}
+
+.ct-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;}
+.ct-tag{font-family:'Inconsolata',monospace;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.06);border:1px solid var(--brd2);color:var(--text);}
+
+.ct-formula{font-family:'Inconsolata',monospace;font-size:10.5px;font-weight:700;background:rgba(0,0,0,.3);padding:5px 7px;border-radius:5px;margin:5px 0;text-align:center;color:var(--accent);}
+
+.ct-numbers{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:5px 0;}
+.ct-num{background:rgba(255,255,255,.05);border-radius:4px;padding:4px 6px;text-align:center;}
+.ct-num-val{font-family:'Inconsolata',monospace;font-size:11px;font-weight:800;color:var(--accent);}
+.ct-num-lbl{font-family:'Inconsolata',monospace;font-size:8.5px;color:var(--muted);margin-top:1px;}
+
+@media print {
+  body{background:#fff;color:#000;}
+  body::before{display:none;}
+  .back, .subtitle{display:none;}
+  .wrap{max-width:none;padding:10px;}
+  .cheat{background:#fff;border:1px solid #ccc;color:#000;}
+  .ct-key{background:#f0f0f0;color:#000;}
+  .ct-num, .ct-tag{background:#f0f0f0;color:#000;}
+  .ct-num-val{color:#000;}
+  .ct-num-lbl{color:#555;}
+  h1{-webkit-text-fill-color:#000;color:#000;background:none;}
+  .section{color:#000;}
+  .ct-ttl, .ct-row, .ct-item, .ct-val{color:#000;}
+  .ct-sub, .ct-num-lbl{color:#555;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="back" href="index.html">← Vissza</a>
+    <div class="eyebrow">Összefoglaló · Cheat Sheet</div>
+    <h1>Puska 📋</h1>
+    <p class="subtitle">Minden téma egy kis kártyán — gyors átismétlés vizsga előtt. Ctrl+P-vel kinyomtatható.</p>
+  </header>
+
+  <!-- FOLYAMATMODELLEK -->
+  <div class="section" style="--accent:#f59e0b">📊 Folyamatmodellek</div>
+  <div class="grid">
+
+    <div class="cheat" style="--accent:#f59e0b">
+      <div class="ct-hdr"><div class="ct-ico">🌀</div><div><div class="ct-ttl">Spirál modell</div><div class="ct-sub">Boehm, 1986</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>1.</strong> Tervezés (célok, alternatívák)</div>
+        <div class="ct-item"><strong>2.</strong> Kockázatelemzés (risk!)</div>
+        <div class="ct-item"><strong>3.</strong> Fejlesztés + tesztelés</div>
+        <div class="ct-item"><strong>4.</strong> Értékelés + következő iteráció</div>
+      </div>
+      <div class="ct-key">Iteratív + <b>kockázat-alapú</b>. Minden ciklusban prototípus. Drága projektekre ahol a kockázat magas.</div>
+    </div>
+
+    <div class="cheat" style="--accent:#10b981">
+      <div class="ct-hdr"><div class="ct-ico">⚡</div><div><div class="ct-ttl">RAD</div><div class="ct-sub">Rapid App Development</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>60–90 nap</strong> alatt kész</div>
+        <div class="ct-item">Időboxolt fejlesztés</div>
+        <div class="ct-item">Gyors prototípus iterációk</div>
+        <div class="ct-item">Erős eszköztámogatás (CASE)</div>
+      </div>
+      <div class="ct-key">Kis-közepes projekt, jól ismert domain, motivált csapat. Nem alkalmas: kritikus, nagy projektek.</div>
+    </div>
+
+    <div class="cheat" style="--accent:#3b82f6">
+      <div class="ct-hdr"><div class="ct-ico">🔀</div><div><div class="ct-ttl">Konkurens modell</div><div class="ct-sub">Párhuzamos tevékenységek</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">Tevékenységek párhuzamosan</div>
+        <div class="ct-item">Állapot-átmenetek nyomonkövetése</div>
+        <div class="ct-item">"Hol tartunk épp?" mindig látható</div>
+      </div>
+      <div class="ct-key">Több részfolyamat egyszerre fut — minden ágnak saját állapot-gépe.</div>
+    </div>
+
+    <div class="cheat" style="--accent:#8b5cf6">
+      <div class="ct-hdr"><div class="ct-ico">📐</div><div><div class="ct-ttl">RUP</div><div class="ct-sub">Rational Unified Process</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>4 fázis:</strong> Inception · Elaboration · Construction · Transition</div>
+        <div class="ct-item"><strong>9 diszciplína</strong> (üzleti modellezés, követelmény, elemzés, impl., teszt, deploy, konfig, projekt mgmt, környezet)</div>
+        <div class="ct-item">UML alapú, iteratív</div>
+      </div>
+      <div class="ct-key">IBM Rational fejlesztette. Nehézsúlyú agilis. Mérföldkövekkel zárul minden fázis.</div>
+    </div>
+
+  </div>
+
+  <!-- AGILIS MÓDSZERTANOK -->
+  <div class="section" style="--accent:#22c55e">🌱 Fejlesztési módszertanok</div>
+  <div class="grid">
+
+    <div class="cheat" style="--accent:#22c55e">
+      <div class="ct-hdr"><div class="ct-ico">🌱</div><div><div class="ct-ttl">Agilis 12 alapelv</div><div class="ct-sub">Manifesto 2001</div></div></div>
+      <div class="ct-key">Individuals over processes · Working software over docs · Customer collaboration over contract · Responding to change over plan</div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>4 érték + 12 alapelv</strong></div>
+        <div class="ct-item">Ügyfél-elégedettség · korai szállítás</div>
+        <div class="ct-item">Változás támogatása</div>
+        <div class="ct-item">Önszerveződő csapat</div>
+        <div class="ct-item">Folyamatos visszajelzés</div>
+      </div>
+    </div>
+
+    <div class="cheat" style="--accent:#14b8a6">
+      <div class="ct-hdr"><div class="ct-ico">🏃</div><div><div class="ct-ttl">Scrum</div><div class="ct-sub">Takeuchi&Nonaka 1986</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>3 disznó:</strong> Scrum Master, PO, Team</div>
+        <div class="ct-item"><strong>2 csirke:</strong> Stakeholder, Manager</div>
+        <div class="ct-item"><strong>5 lépés:</strong> Planning → Sprint (1-4 hét) → Daily → Review → Retro</div>
+        <div class="ct-item"><strong>4 elem:</strong> Product Backlog · Sprint Backlog · Burndown · Finished work</div>
+      </div>
+      <div class="ct-key"><b>Team: 5-9 fő</b>. Daily max 15 perc, állva. Sprint közben Backlog NEM változtatható.</div>
+    </div>
+
+    <div class="cheat" style="--accent:#06b6d4">
+      <div class="ct-hdr"><div class="ct-ico">🧩</div><div><div class="ct-ttl">Komponens alapú</div><div class="ct-sub">Reusability</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">Újrafelhasználható komponensek</div>
+        <div class="ct-item">Well-defined interfész</div>
+        <div class="ct-item">Black-box használat</div>
+        <div class="ct-item">"Build vs Buy" döntés</div>
+      </div>
+      <div class="ct-key">Komponens-piac, library-k. Pl. npm csomagok, Maven artifactok. Verziókövetés kritikus!</div>
+    </div>
+
+    <div class="cheat" style="--accent:#ec4899">
+      <div class="ct-hdr"><div class="ct-ico">🎯</div><div><div class="ct-ttl">AOP</div><div class="ct-sub">Aspect-Oriented Prog.</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>Cross-cutting concerns</strong></div>
+        <div class="ct-item">Logging, security, transaction</div>
+        <div class="ct-item">Aspect, Pointcut, Advice, Join Point</div>
+        <div class="ct-item">Pl. Spring AOP, AspectJ</div>
+      </div>
+      <div class="ct-key">Üzleti logika szétválasztása a "körülöleli" feladatoktól. Pl. @Transactional annotáció.</div>
+    </div>
+
+    <div class="cheat" style="--accent:#e11d48">
+      <div class="ct-hdr"><div class="ct-ico">∑</div><div><div class="ct-ttl">Formális módszerek</div><div class="ct-sub">Math precision</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">Matematikai szoftverspecifikáció</div>
+        <div class="ct-item">Formális verifikáció</div>
+        <div class="ct-item">Pl. Z notation, VDM, B-method</div>
+        <div class="ct-item">Bizonyítható helyességi tételek</div>
+      </div>
+      <div class="ct-key">Kritikus rendszerekre: űr, repülő, orvosi, atomerőmű. Drága, lassú, de garantáltan helyes.</div>
+    </div>
+
+  </div>
+
+  <!-- ARCHITEKTÚRA -->
+  <div class="section" style="--accent:#3b82f6">🏛️ Architektúra</div>
+  <div class="grid">
+
+    <div class="cheat" style="--accent:#3b82f6">
+      <div class="ct-hdr"><div class="ct-ico">🏛️</div><div><div class="ct-ttl">Arch alapok</div><div class="ct-sub">10K láb · F-16</div></div></div>
+      <div class="ct-key"><b>F-16 tanulság:</b> 2.5 Mach kérés mögött "menekülés a harcból" valódi igény. <b>Mindig kérdezd: MIÉRT?</b></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>FR:</strong> Funkcionális (MIT)</div>
+        <div class="ct-item"><strong>NFR:</strong> Nem-funkcionális (HOGYAN)</div>
+        <div class="ct-item"><strong>Arch:</strong> költséges változtatni</div>
+        <div class="ct-item"><strong>Design:</strong> ma refaktorálható</div>
+      </div>
+      <div class="ct-tags">
+        <div class="ct-tag">MVC=arch</div>
+        <div class="ct-tag">Singleton=design</div>
+      </div>
+    </div>
+
+    <div class="cheat" style="--accent:#a855f7">
+      <div class="ct-hdr"><div class="ct-ico">⚡</div><div><div class="ct-ttl">Arch tervezése</div><div class="ct-sub">2 fázis · 4 erő</div></div></div>
+      <div class="ct-key"><b>2 fázis:</b> Problématér (értsd meg) → Megoldástér (kivitelezd)</div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>4 erő:</strong></div>
+        <div class="ct-item">1. Funkcionális (FR)</div>
+        <div class="ct-item">2. Minőségi (NFR)</div>
+        <div class="ct-item">3. Nem-technikai (jogi, üzleti)</div>
+        <div class="ct-item">4. Szabadság korlátja (csapat, idő)</div>
+      </div>
+      <div class="ct-tags">
+        <div class="ct-tag">ADR</div>
+        <div class="ct-tag">Min 3 alternatíva</div>
+      </div>
+    </div>
+
+    <div class="cheat" style="--accent:#3b82f6">
+      <div class="ct-hdr"><div class="ct-ico">📋</div><div><div class="ct-ttl">Jó követelmény</div><div class="ct-sub">6 jellemző</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>1.</strong> Szükséges</div>
+        <div class="ct-item"><strong>2.</strong> Érthető</div>
+        <div class="ct-item"><strong>3.</strong> Ellenőrizhető (mérhető!)</div>
+        <div class="ct-item"><strong>4.</strong> Követhető</div>
+        <div class="ct-item"><strong>5.</strong> Konzisztens</div>
+        <div class="ct-item"><strong>6.</strong> Teljes</div>
+      </div>
+      <div class="ct-key"><b>Tiltott szavak:</b> "felhasználóbarát", "gyors", "intuitív" → mindig pontosítsd számszerűen!</div>
+    </div>
+
+    <div class="cheat" style="--accent:#f59e0b">
+      <div class="ct-hdr"><div class="ct-ico">⚖️</div><div><div class="ct-ttl">Olcsó-Jó-Gyors</div><div class="ct-sub">Projekt háromszög</div></div></div>
+      <div class="ct-key"><b>3-ból max. 2-t választhatsz!</b></div>
+      <div class="ct-list">
+        <div class="ct-item">💰⭐ Olcsó + Jó = <b>LASSÚ</b></div>
+        <div class="ct-item">⭐⚡ Jó + Gyors = <b>DRÁGA</b></div>
+        <div class="ct-item">💰⚡ Olcsó + Gyors = <b>ROSSZ</b></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DOMAIN MODELL & DDD -->
+  <div class="section" style="--accent:#10b981">🐘 Domain Modell &amp; DDD</div>
+  <div class="grid">
+
+    <div class="cheat" style="--accent:#10b981">
+      <div class="ct-hdr"><div class="ct-ico">🐘</div><div><div class="ct-ttl">Domain modell</div><div class="ct-sub">6 vak ember</div></div></div>
+      <div class="ct-key"><b>Modell 3 tulajdonsága:</b> 1) Egyszerűsít · 2) Célhoz kötött · 3) Válaszokat ad</div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>Túltervezés:</strong> analízis paralízis (Las Vegas hotel)</div>
+        <div class="ct-item"><strong>Tervmentes:</strong> kaotikus (Flappy Bird)</div>
+        <div class="ct-item"><strong>Arany középút:</strong> annyi tervet, amennyi kell</div>
+      </div>
+      <div class="ct-tags">
+        <div class="ct-tag">Königsbergi hidak (Euler)</div>
+        <div class="ct-tag">Monopoly</div>
+      </div>
+    </div>
+
+    <div class="cheat" style="--accent:#22d3ee">
+      <div class="ct-hdr"><div class="ct-ico">💬</div><div><div class="ct-ttl">Közös nyelv</div><div class="ct-sub">Ubiquitous Language</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">Szakterületi szóhasználat = kódban is</div>
+        <div class="ct-item">Mindenhol AZONOS: doku, modell, kód</div>
+        <div class="ct-item">Kerüli a fordítást szakember↔fejlesztő közt</div>
+      </div>
+      <div class="ct-key">Pl. "kontingens" (banki) → Quota osztály, exceeded() metódus a kódban.</div>
+    </div>
+
+    <div class="cheat" style="--accent:#f97316">
+      <div class="ct-hdr"><div class="ct-ico">🧅</div><div><div class="ct-ttl">Onion architektúra</div><div class="ct-sub">Jeffrey Palermo, 2008</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>Központ:</strong> Domain Model</div>
+        <div class="ct-item">→ Domain Services</div>
+        <div class="ct-item">→ App Services</div>
+        <div class="ct-item">→ UI / Infrastructure</div>
+        <div class="ct-item">→ Tests (külső gyűrű)</div>
+      </div>
+      <div class="ct-key"><b>Belső réteg NEM hivatkozhat a külsőre!</b> Bárhol cserélhető a külső anélkül, hogy a belső változna.</div>
+    </div>
+
+    <div class="cheat" style="--accent:#a855f7">
+      <div class="ct-hdr"><div class="ct-ico">📐</div><div><div class="ct-ttl">DDD</div><div class="ct-sub">Eric Evans, 2003</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">Ubiquitous Language</div>
+        <div class="ct-item">Bounded Context</div>
+        <div class="ct-item">Building Blocks: Entity, VO, Aggregate, Repository</div>
+        <div class="ct-item">Domain szakértőkkel együtt</div>
+      </div>
+      <div class="ct-key"><b>Entity:</b> ID-val (Customer). <b>Value Object:</b> immutable (Money, Address).</div>
+    </div>
+
+    <div class="cheat" style="--accent:#10b981">
+      <div class="ct-hdr"><div class="ct-ico">⚡</div><div><div class="ct-ttl">CRUD vs CQRS</div><div class="ct-sub">Martin Fowler</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>CRUD:</strong> egy modell olvasásra és írásra</div>
+        <div class="ct-item"><strong>CQRS:</strong> Command (írás) + Query (olvasás) szétválasztva</div>
+      </div>
+      <div class="ct-key">CQRS akkor jó ha: komplex domain, sok olvasás kevés írás. Plusz komplexitás — ha kétséges, NE használd.</div>
+    </div>
+
+  </div>
+
+  <!-- PROJEKT ÁTADÁS & SAFE -->
+  <div class="section" style="--accent:#6366f1">🚂 Projekt átadás &amp; SAFe</div>
+  <div class="grid">
+
+    <div class="cheat" style="--accent:#6366f1">
+      <div class="ct-hdr"><div class="ct-ico">🌍</div><div><div class="ct-ttl">Shore típusok</div><div class="ct-sub">Munkavégzés helye</div></div></div>
+      <div class="ct-numbers">
+        <div class="ct-num"><div class="ct-num-val">🏠</div><div class="ct-num-lbl">On-shore<br>drága, könnyű</div></div>
+        <div class="ct-num"><div class="ct-num-val">🌍</div><div class="ct-num-lbl">Near-shore<br>EU szint</div></div>
+      </div>
+      <div class="ct-numbers">
+        <div class="ct-num"><div class="ct-num-val">🌏</div><div class="ct-num-lbl">Off-shore<br>olcsó, nehéz</div></div>
+        <div class="ct-num"><div class="ct-num-val">±5-12h</div><div class="ct-num-lbl">időzóna<br>(off-shore)</div></div>
+      </div>
+    </div>
+
+    <div class="cheat" style="--accent:#3b82f6">
+      <div class="ct-hdr"><div class="ct-ico">🏢</div><div><div class="ct-ttl">Leányvállalat vs Kiszervezés</div><div class="ct-sub">2 modell</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>Leányvállalat:</strong> saját részleg, anyacég felel, nagy kockázat, erős integráció</div>
+        <div class="ct-item"><strong>Kiszervezés:</strong> polgári jogi szerz., alacsonyabb kockázat, kevesebb irányítás</div>
+      </div>
+      <div class="ct-key">Leányvállalat dolgozói az anyacéggel állnak munkaviszonyban. Kiszervezésnél: saját céggel.</div>
+    </div>
+
+    <div class="cheat" style="--accent:#3b82f6">
+      <div class="ct-hdr"><div class="ct-ico">🚂</div><div><div class="ct-ttl">SAFe</div><div class="ct-sub">Scaled Agile Framework</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>Portfolió:</strong> EPIC, stratégia, LPM</div>
+        <div class="ct-item"><strong>Essential:</strong> Feature, Release Train, RTE, Product Mgmt</div>
+        <div class="ct-item"><strong>Team:</strong> User Story, Scrum, PO/SM</div>
+      </div>
+      <div class="ct-key"><b>PI Planning:</b> 2 napos. Függőségek azonosítása. 4-5 sprint szinkronizálva.</div>
+    </div>
+
+    <div class="cheat" style="--accent:#22d3ee">
+      <div class="ct-hdr"><div class="ct-ico">🔄</div><div><div class="ct-ttl">CE / CI / CD</div><div class="ct-sub">SAFe szállítás</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>CE:</strong> Continuous Exploration → MIT</div>
+        <div class="ct-item"><strong>CI:</strong> Continuous Integration → HOGYAN</div>
+        <div class="ct-item"><strong>CD:</strong> Continuous Delivery → MIKOR</div>
+      </div>
+      <div class="ct-key">CD visszacsatol CE-be. SAFe ≠ LeSS (Large-Scale Scrum, egyszerűsített).</div>
+    </div>
+
+  </div>
+
+  <!-- TESZTELÉS -->
+  <div class="section" style="--accent:#a855f7">🎯 Tesztelés</div>
+  <div class="grid">
+
+    <div class="cheat" style="--accent:#a855f7">
+      <div class="ct-hdr"><div class="ct-ico">🎯</div><div><div class="ct-ttl">RBT</div><div class="ct-sub">Rizikó Alapú Tesztelés</div></div></div>
+      <div class="ct-formula">P = V × K × T</div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>V:</strong> Valószínűség (1-5)</div>
+        <div class="ct-item"><strong>K:</strong> Kár (1-5)</div>
+        <div class="ct-item"><strong>V×K:</strong> Kihatás</div>
+        <div class="ct-item"><strong>T:</strong> Teszt hatékonyság (1-5)</div>
+        <div class="ct-item"><strong>P:</strong> Prioritás (Kihatás×T)</div>
+      </div>
+      <div class="ct-key"><b>5 lépés:</b> 1) Azonosítás 2) Analízis 3) Reagálás 4) Döntés 5) Tervezés</div>
+    </div>
+
+    <div class="cheat" style="--accent:#3b82f6">
+      <div class="ct-hdr"><div class="ct-ico">📋</div><div><div class="ct-ttl">Teszt folyamat</div><div class="ct-sub">3 fázis</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>1.</strong> Tervezés (mit, hogyan, mikor)</div>
+        <div class="ct-item"><strong>2.</strong> Végrehajtás (futtatás)</div>
+        <div class="ct-item"><strong>3.</strong> Zárás (tapasztalatok, doku)</div>
+      </div>
+      <div class="ct-key">V-modell: minden fejlesztési fázishoz tartozik egy teszt szint. Scrumban: folyamatos.</div>
+    </div>
+
+  </div>
+
+  <!-- KONFIGURÁCIÓKEZELÉS -->
+  <div class="section" style="--accent:#6366f1">🌿 Konfigurációkezelés &amp; Git</div>
+  <div class="grid">
+
+    <div class="cheat" style="--accent:#6366f1">
+      <div class="ct-hdr"><div class="ct-ico">📐</div><div><div class="ct-ttl">CM 5 terület</div><div class="ct-sub">Configuration Mgmt</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">🌿 <strong>Verziókövetés</strong> (Ki? Mit? Mikor?)</div>
+        <div class="ct-item">🔄 <strong>Változáskövetés</strong> (Work items)</div>
+        <div class="ct-item">🔨 <strong>Generálás</strong> (Build)</div>
+        <div class="ct-item">📦 <strong>Kiadáskezelés</strong> (Release)</div>
+        <div class="ct-item">🔌 <strong>Integráció</strong> (CI)</div>
+      </div>
+      <div class="ct-key"><b>ABC veszélyek:</b> Attitude · Behavior · Culture (a technika nem elég).</div>
+    </div>
+
+    <div class="cheat" style="--accent:#f97316">
+      <div class="ct-hdr"><div class="ct-ico">🌿</div><div><div class="ct-ttl">Git parancsok</div><div class="ct-sub">Daily workflow</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><code style="font-family:Inconsolata,monospace">git clone</code> letölt</div>
+        <div class="ct-item"><code style="font-family:Inconsolata,monospace">git status</code> állapot</div>
+        <div class="ct-item"><code style="font-family:Inconsolata,monospace">git add</code> staging</div>
+        <div class="ct-item"><code style="font-family:Inconsolata,monospace">git commit -m</code> ment</div>
+        <div class="ct-item"><code style="font-family:Inconsolata,monospace">git push/pull</code> szinkron</div>
+        <div class="ct-item"><code style="font-family:Inconsolata,monospace">git checkout -b</code> branch</div>
+        <div class="ct-item"><code style="font-family:Inconsolata,monospace">git merge</code> összefésül</div>
+        <div class="ct-item"><code style="font-family:Inconsolata,monospace">git tag -a v1.0</code> baseline</div>
+      </div>
+    </div>
+
+    <div class="cheat" style="--accent:#a855f7">
+      <div class="ct-hdr"><div class="ct-ico">⚖️</div><div><div class="ct-ttl">Git vs SVN vs CC</div><div class="ct-sub">VCS típusok</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>Git:</strong> elosztott, gyors, ipar standard</div>
+        <div class="ct-item"><strong>SVN:</strong> centralizált, lock-tal</div>
+        <div class="ct-item"><strong>ClearCase:</strong> vállalati, repülő/orvosi</div>
+      </div>
+      <div class="ct-key">Git branch könnyű, SVN merge nehézkes. CC checkout = ZÁROLÁS (más nem szerkesztheti).</div>
+    </div>
+
+  </div>
+
+  <!-- BIZTONSÁG -->
+  <div class="section" style="--accent:#ef4444">🔒 Szoftverbiztonság</div>
+  <div class="grid">
+
+    <div class="cheat" style="--accent:#ef4444">
+      <div class="ct-hdr"><div class="ct-ico">⚠️</div><div><div class="ct-ttl">Hibák 5 szintje</div><div class="ct-sub">Biztonsági hatás</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">1️⃣ <strong>Nincs hatás</strong> — funkcionális</div>
+        <div class="ct-item">2️⃣ <strong>Alacsony</strong> — info szivárgás</div>
+        <div class="ct-item">3️⃣ <strong>Közepes</strong> — XSS</div>
+        <div class="ct-item">4️⃣ <strong>Magas</strong> — SQL inj.</div>
+        <div class="ct-item">5️⃣ <strong>Kritikus</strong> — Buffer overflow OS-ben</div>
+      </div>
+      <div class="ct-key"><b>CERT</b> 1988 · <b>CVE</b> (CVE-2021-44228 = Log4Shell) · <b>CWE</b> (kategóriák)</div>
+    </div>
+
+    <div class="cheat" style="--accent:#ef4444">
+      <div class="ct-hdr"><div class="ct-ico">💉</div><div><div class="ct-ttl">Top sérülékenységek</div><div class="ct-sub">+megoldás</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">💉 <strong>XSS</strong> → htmlspecialchars, CSP</div>
+        <div class="ct-item">🗄️ <strong>SQL inj.</strong> → Prepared Statements</div>
+        <div class="ct-item">🔄 <strong>CSRF</strong> → CSRF token, SameSite</div>
+        <div class="ct-item">💥 <strong>Buffer overflow</strong> → strncpy, ASLR, /GS</div>
+        <div class="ct-item">📁 <strong>Path traversal</strong> → whitelist</div>
+      </div>
+      <div class="ct-key"><b>80% baj:</b> hiányzó INPUT VALIDÁCIÓ. <b>Stuxnet</b> (2010) = első kiberfegyver.</div>
+    </div>
+
+    <div class="cheat" style="--accent:#3b82f6">
+      <div class="ct-hdr"><div class="ct-ico">🛡️</div><div><div class="ct-ttl">Microsoft SDL</div><div class="ct-sub">7 szakasz · 2004</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">0. Oktatás (mindenki)</div>
+        <div class="ct-item">1. Követelmény (bug bar, Threat Mod.)</div>
+        <div class="ct-item">2. Tervezés (támadási felület ↓)</div>
+        <div class="ct-item">3. Impl (SAST, ASLR, /GS)</div>
+        <div class="ct-item">4. Verifikáció (fuzzing, pentest)</div>
+        <div class="ct-item">5. Kiadás (debug le, IR plan)</div>
+        <div class="ct-item">6. Utóélet (CVE monitoring)</div>
+      </div>
+    </div>
+
+    <div class="cheat" style="--accent:#a855f7">
+      <div class="ct-hdr"><div class="ct-ico">🎯</div><div><div class="ct-ttl">STRIDE</div><div class="ct-sub">Threat Model</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>S</strong>poofing → Auth (MFA)</div>
+        <div class="ct-item"><strong>T</strong>ampering → Integrity (HTTPS)</div>
+        <div class="ct-item"><strong>R</strong>epudiation → Non-rep (audit log)</div>
+        <div class="ct-item"><strong>I</strong>nfo Disclosure → Confidentiality</div>
+        <div class="ct-item"><strong>D</strong>oS → Availability (rate limit)</div>
+        <div class="ct-item"><strong>E</strong>lev. of Priv. → Authorization (RBAC)</div>
+      </div>
+    </div>
+
+    <div class="cheat" style="--accent:#ef4444">
+      <div class="ct-hdr"><div class="ct-ico">🧰</div><div><div class="ct-ttl">DevSecOps stack</div><div class="ct-sub">Security tools</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>SAST</strong> — statikus (kód) — SonarQube</div>
+        <div class="ct-item"><strong>DAST</strong> — dinamikus (futó) — OWASP ZAP</div>
+        <div class="ct-item"><strong>IAST</strong> — kombinált (agent)</div>
+        <div class="ct-item"><strong>SCA</strong> — dependency — Snyk</div>
+        <div class="ct-item"><strong>SIEM</strong> — monitoring — Splunk</div>
+      </div>
+      <div class="ct-key"><b>Shift Left:</b> security az ELEJÉRE tolva. Korai felismerés 100× olcsóbb!</div>
+    </div>
+
+  </div>
+
+  <!-- MINŐSÉG -->
+  <div class="section" style="--accent:#f59e0b">⭐ Szoftverminőség</div>
+  <div class="grid">
+
+    <div class="cheat" style="--accent:#f59e0b">
+      <div class="ct-hdr"><div class="ct-ico">📚</div><div><div class="ct-ttl">Garvin 5 def</div><div class="ct-sub">Minőség megközelítések</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>1.</strong> Felhasználói (alkalmasság)</div>
+        <div class="ct-item"><strong>2.</strong> Termék (mérhető)</div>
+        <div class="ct-item"><strong>3.</strong> Folyamat (spec-nek megfelel)</div>
+        <div class="ct-item"><strong>4.</strong> Érték (ár/teljesítmény)</div>
+        <div class="ct-item"><strong>5.</strong> Transzcendens (veleszületett)</div>
+      </div>
+      <div class="ct-key"><b>ISO:</b> "azt nyújtja a vevőnek amit akar, amikor akarja, megfelelő árért."</div>
+    </div>
+
+    <div class="cheat" style="--accent:#10b981">
+      <div class="ct-hdr"><div class="ct-ico">🎯</div><div><div class="ct-ttl">Garvin 8 dimenzió</div><div class="ct-sub">Min. szempontok</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">1. Teljesítmény</div>
+        <div class="ct-item">2. Sajátosságok</div>
+        <div class="ct-item">3. Megbízhatóság</div>
+        <div class="ct-item">4. Megfelelés</div>
+        <div class="ct-item">5. Tartósság</div>
+        <div class="ct-item">6. Használhatóság</div>
+        <div class="ct-item">7. Esztétika</div>
+        <div class="ct-item">8. Felismert minőség (márka)</div>
+      </div>
+    </div>
+
+    <div class="cheat" style="--accent:#a855f7">
+      <div class="ct-hdr"><div class="ct-ico">📈</div><div><div class="ct-ttl">Minőség 4 fokozata</div><div class="ct-sub">Cég érettség</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">1️⃣ <strong>Ártatlanság:</strong> profit > minőség</div>
+        <div class="ct-item">2️⃣ <strong>Eszmélés:</strong> első QA</div>
+        <div class="ct-item">3️⃣ <strong>Elkötelezettség:</strong> ISO, 50% cost ↓</div>
+        <div class="ct-item">4️⃣ <strong>Világszínvonal:</strong> mindenki felelős</div>
+      </div>
+      <div class="ct-key"><b>Bugjavítás költség:</b> Tervezés 1× · Kódolás 10× · Tesztelés 50× · Production 100-1000×</div>
+    </div>
+
+    <div class="cheat" style="--accent:#f59e0b">
+      <div class="ct-hdr"><div class="ct-ico">△</div><div><div class="ct-ttl">McCall háromszög</div><div class="ct-sub">1977</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>Operation</strong> (működés): Korrektség, Megbízhatóság, Hatékonyság, Biztonság, Használhatóság</div>
+        <div class="ct-item"><strong>Revision</strong> (módosítás): Karbantarthatóság, Rugalmasság, Tesztelhetőség</div>
+        <div class="ct-item"><strong>Transition</strong> (átvitel): Hordozhatóság, Újrafelhasználhatóság, Együttműkőd-képesség</div>
+      </div>
+    </div>
+
+    <div class="cheat" style="--accent:#3b82f6">
+      <div class="ct-hdr"><div class="ct-ico">6️⃣</div><div><div class="ct-ttl">ISO 9126</div><div class="ct-sub">2001 · 6 jellemző</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">🔧 Funkcionalitás</div>
+        <div class="ct-item">🔄 Megbízhatóság</div>
+        <div class="ct-item">👆 Használhatóság</div>
+        <div class="ct-item">⚡ Hatékonyság</div>
+        <div class="ct-item">🔨 Karbantarthatóság</div>
+        <div class="ct-item">🖥️ Hordozhatóság</div>
+      </div>
+      <div class="ct-key"><b>ISO 25010 (2011)</b> = 9126 + 🔒 Security + 🔌 Compatibility (8 jellemző)</div>
+    </div>
+
+    <div class="cheat" style="--accent:#a855f7">
+      <div class="ct-hdr"><div class="ct-ico">9️⃣</div><div><div class="ct-ttl">ISO 9000</div><div class="ct-sub">8 alapelv</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">1. Vevőközpontúság</div>
+        <div class="ct-item">2. Támogató vezetés</div>
+        <div class="ct-item">3. Munkatársak bevonása</div>
+        <div class="ct-item">4. Folyamatszemlélet</div>
+        <div class="ct-item">5. Rendszerszemlélet</div>
+        <div class="ct-item">6. Folyamatos fejlesztés</div>
+        <div class="ct-item">7. Tényeken alapuló döntés</div>
+        <div class="ct-item">8. Kölcsönös kapcsolatok beszállítóval</div>
+      </div>
+      <div class="ct-key"><b>NEM termék minőség!</b> Folyamat minőséget tanúsít (McDonald's analógia).</div>
+    </div>
+
+  </div>
+
+  <!-- DEVOPS -->
+  <div class="section" style="--accent:#f97316">🔄 DevOps &amp; DevSecOps</div>
+  <div class="grid">
+
+    <div class="cheat" style="--accent:#f97316">
+      <div class="ct-hdr"><div class="ct-ico">🔄</div><div><div class="ct-ttl">DevOps</div><div class="ct-sub">2009</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>3 elv:</strong></div>
+        <div class="ct-item">1. Automatizálás</div>
+        <div class="ct-item">2. Folyamatos kommunikáció</div>
+        <div class="ct-item">3. Szoros együttműködés</div>
+      </div>
+      <div class="ct-key"><b>4 gyakorlat:</b> CI · CD · IaC · Automatizálás</div>
+    </div>
+
+    <div class="cheat" style="--accent:#10b981">
+      <div class="ct-hdr"><div class="ct-ico">♾️</div><div><div class="ct-ttl">8 fázis</div><div class="ct-sub">DevOps életciklus</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">📋 <strong>Plan</strong> (Jira)</div>
+        <div class="ct-item">💻 <strong>Code</strong> (Git)</div>
+        <div class="ct-item">🔨 <strong>Build</strong> (Maven)</div>
+        <div class="ct-item">🧪 <strong>Test</strong> (Selenium)</div>
+        <div class="ct-item">📦 <strong>Release</strong> (Jenkins)</div>
+        <div class="ct-item">🚀 <strong>Deploy</strong> (Docker/K8s)</div>
+        <div class="ct-item">⚙️ <strong>Operate</strong> (Ansible)</div>
+        <div class="ct-item">📊 <strong>Monitor</strong> (ELK, Splunk)</div>
+      </div>
+      <div class="ct-key">Dev oldal: Plan→Test · Ops oldal: Release→Monitor. Monitor → Plan visszacsatol.</div>
+    </div>
+
+    <div class="cheat" style="--accent:#ef4444">
+      <div class="ct-hdr"><div class="ct-ico">🔒</div><div><div class="ct-ttl">DevSecOps</div><div class="ct-sub">Shift Left</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">Security MINDEN fázisban</div>
+        <div class="ct-item">Threat Modelling (Plan)</div>
+        <div class="ct-item">SAST (Code), SCA (Build)</div>
+        <div class="ct-item">DAST + Etikus hacking (Test)</div>
+        <div class="ct-item">Container scan (Deploy)</div>
+        <div class="ct-item">SIEM + IDS (Monitor)</div>
+      </div>
+      <div class="ct-key"><b>Mantra:</b> "tolja a biztonságot balra" — a folyamat elejére.</div>
+    </div>
+
+  </div>
+
+  <!-- ÁLTALÁNOS TIPPEK -->
+  <div class="section" style="--accent:#ec4899">⚡ Általános tippek</div>
+  <div class="grid">
+
+    <div class="cheat" style="--accent:#ec4899">
+      <div class="ct-hdr"><div class="ct-ico">💡</div><div><div class="ct-ttl">Gyakori kérdések</div><div class="ct-sub">Vizsga típusú</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>Scrum 5 lépés?</strong> Planning, Sprint, Daily, Review, Retro</div>
+        <div class="ct-item"><strong>Sprint max?</strong> 1-4 hét</div>
+        <div class="ct-item"><strong>Team méret?</strong> 5-9 fő</div>
+        <div class="ct-item"><strong>Daily max?</strong> 15 perc</div>
+        <div class="ct-item"><strong>STRIDE betűi?</strong> S-T-R-I-D-E</div>
+      </div>
+    </div>
+
+    <div class="cheat" style="--accent:#3b82f6">
+      <div class="ct-hdr"><div class="ct-ico">📅</div><div><div class="ct-ttl">Évszámok</div><div class="ct-sub">Történelem</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>1977:</strong> McCall modell</div>
+        <div class="ct-item"><strong>1986:</strong> Scrum (Takeuchi&Nonaka), Spirál (Boehm)</div>
+        <div class="ct-item"><strong>1988:</strong> CERT (DARPA)</div>
+        <div class="ct-item"><strong>2001:</strong> Agile Manifesto, ISO 9126</div>
+        <div class="ct-item"><strong>2003:</strong> DDD (Eric Evans)</div>
+        <div class="ct-item"><strong>2004:</strong> Microsoft SDL</div>
+        <div class="ct-item"><strong>2009:</strong> DevOps (első DevOpsDay)</div>
+        <div class="ct-item"><strong>2010:</strong> Stuxnet</div>
+        <div class="ct-item"><strong>2011:</strong> ISO 25010</div>
+      </div>
+    </div>
+
+    <div class="cheat" style="--accent:#10b981">
+      <div class="ct-hdr"><div class="ct-ico">🎯</div><div><div class="ct-ttl">Számok memorizálása</div><div class="ct-sub">Hasznos</div></div></div>
+      <div class="ct-numbers">
+        <div class="ct-num"><div class="ct-num-val">99.9%</div><div class="ct-num-lbl">uptime = 8h45m/év</div></div>
+        <div class="ct-num"><div class="ct-num-val">3-9</div><div class="ct-num-lbl">Scrum csapat</div></div>
+        <div class="ct-num"><div class="ct-num-val">15p</div><div class="ct-num-lbl">Daily max</div></div>
+        <div class="ct-num"><div class="ct-num-val">15-50</div><div class="ct-num-lbl">hiba/1000 sor (ipar)</div></div>
+        <div class="ct-num"><div class="ct-num-val">0.5</div><div class="ct-num-lbl">hiba/KLOC (MS)</div></div>
+        <div class="ct-num"><div class="ct-num-val">0.1</div><div class="ct-num-lbl">hiba/KLOC (cleanroom)</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer style="margin-top:40px;text-align:center;font-size:12px;color:var(--muted);padding-top:24px;border-top:1px solid var(--brd);">
+    Nyomtatáshoz: Ctrl/Cmd + P
+  </footer>
+
+</div>
+</body>
+</html>
