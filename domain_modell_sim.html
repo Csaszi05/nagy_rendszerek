@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Domain Modell és Modellezés</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+:root {
+  --bg:#0a0f1e; --surf:#0f1628; --card:#141d35; --brd:#1e2d50; --brd2:#263a68;
+  --text:#d8e4ff; --muted:#4a5f8a;
+  --domain:#10b981; --plan:#3b82f6; --noplan:#ef4444; --golden:#f59e0b;
+  --model:#a855f7; --lang:#22d3ee; --acc:#10b981;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(16,185,129,.06) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(168,85,247,.04) 0%,transparent 50%);pointer-events:none;z-index:0;}
+header{position:relative;z-index:1;padding:1.2rem 1.3rem .85rem;border-bottom:1px solid var(--brd2);background:linear-gradient(180deg,rgba(16,185,129,.06) 0%,transparent 100%);}
+.hdr-row{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;}
+h1{font-size:1.4rem;font-weight:800;line-height:1.07;letter-spacing:-.02em;}
+h1 span{color:var(--domain);}h1 em{font-style:normal;color:var(--lang);}
+.tag{font-family:'Inconsolata',monospace;font-size:.56rem;padding:.25rem .55rem;border-radius:4px;background:rgba(16,185,129,.12);color:var(--domain);border:1px solid rgba(16,185,129,.28);white-space:nowrap;margin-top:.2rem;}
+header p{font-size:.7rem;color:var(--muted);margin-top:.25rem;font-family:'Inconsolata',monospace;}
+.topbar{position:relative;z-index:1;background:var(--surf);border-bottom:1px solid var(--brd2);padding:.75rem 1.3rem .65rem;}
+.tb-t{font-family:'Inconsolata',monospace;font-size:.54rem;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin-bottom:.5rem;}
+.steps{display:flex;align-items:center;gap:0;margin-bottom:.45rem;}
+.st{flex:1;display:flex;flex-direction:column;align-items:center;gap:.18rem;position:relative;}
+.st:not(:last-child)::after{content:'';position:absolute;right:0;top:12px;width:50%;height:2px;background:var(--brd);z-index:0;}
+.st:not(:first-child)::before{content:'';position:absolute;left:0;top:12px;width:50%;height:2px;background:var(--brd);z-index:0;}
+.sd{width:24px;height:24px;border-radius:50%;border:2px solid var(--brd2);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:.6rem;z-index:1;transition:all .35s;position:relative;}
+.sl{font-family:'Inconsolata',monospace;font-size:.44rem;color:var(--muted);text-align:center;line-height:1.2;}
+.st.active .sd{transform:scale(1.25);box-shadow:0 0 10px currentColor;}
+.st.done .sd{opacity:.55;}
+.st.active .sl{font-weight:700;}
+.tag-row{display:flex;gap:4px;flex-wrap:wrap;}
+.tg{font-family:'Inconsolata',monospace;font-size:.53rem;font-weight:600;padding:.14rem .4rem;border-radius:3px;border:1px solid;opacity:.25;transition:opacity .3s;}
+.tg.on{opacity:1;}
+.content{position:relative;z-index:1;padding:.9rem 1.3rem;min-height:275px;}
+.shdr{display:flex;align-items:center;gap:.6rem;margin-bottom:.85rem;}
+.sico{width:36px;height:36px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;border:1.5px solid var(--brd2);background:var(--card);}
+.stitle{font-size:.95rem;font-weight:800;letter-spacing:-.02em;}
+.ssub{font-family:'Inconsolata',monospace;font-size:.56rem;color:var(--muted);margin-top:.03rem;}
+.chat{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.7rem;}
+.msg{display:flex;gap:.4rem;align-items:flex-start;opacity:0;transform:translateY(6px);transition:opacity .3s,transform .3s;}
+.msg.show{opacity:1;transform:translateY(0);}
+.msg.r{flex-direction:row-reverse;}
+.av{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;border:1px solid var(--brd2);background:var(--card);}
+.bub{max-width:82%;padding:.48rem .68rem;border-radius:9px;font-size:.77rem;line-height:1.55;border:1px solid var(--brd2);background:var(--card);}
+.bub.l{border-bottom-left-radius:2px;}.bub.r2{border-bottom-right-radius:2px;text-align:right;}
+.who{font-family:'Inconsolata',monospace;font-size:.55rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.1rem;}
+.ibox{border-radius:8px;padding:.55rem .75rem;font-size:.74rem;line-height:1.55;margin:.45rem 0;border:1px solid var(--brd2);background:var(--card);border-left:3px solid var(--domain);}
+.ibox strong{font-weight:700;}
+.ibox.warn{border-left-color:var(--noplan);}
+.ibox.warn strong{color:var(--noplan);}
+.ibox.lang{border-left-color:var(--lang);}
+.ibox.lang strong{color:var(--lang);}
+.cklist{display:flex;flex-direction:column;gap:.35rem;margin:.45rem 0;}
+.cli{display:flex;align-items:flex-start;gap:.5rem;padding:.42rem .65rem;background:var(--card);border:1px solid var(--brd2);border-radius:8px;font-size:.75rem;line-height:1.45;}
+.cli-i{flex-shrink:0;font-size:.88rem;}
+.cli strong{display:block;font-weight:700;font-size:.76rem;margin-bottom:.03rem;}
+.cli span{color:var(--muted);font-size:.68rem;font-family:'Inconsolata',monospace;}
+
+/* 6 VAK EMBER VIEW */
+.elephant-view{background:var(--card);border:1.5px solid var(--brd2);border-radius:9px;padding:.65rem .75rem;margin:.45rem 0;}
+.ev-title{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;text-align:center;}
+.ev-elephant{font-size:2rem;text-align:center;margin:.3rem 0;}
+.ev-grid{display:grid;grid-template-columns:1fr 1fr;gap:.3rem;}
+.ev-item{padding:.35rem .5rem;border-radius:6px;background:var(--surf);border-left:2px solid;font-size:.66rem;line-height:1.4;}
+
+/* COMPARE 3-WAY */
+.comp3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.35rem;margin:.45rem 0;}
+.comp3-card{padding:.6rem .65rem;border-radius:9px;border:1.5px solid;text-align:center;}
+.c3-icon{font-size:1.4rem;margin-bottom:.2rem;}
+.c3-name{font-size:.78rem;font-weight:800;margin-bottom:.15rem;}
+.c3-desc{font-size:.62rem;line-height:1.5;color:rgba(216,228,255,.8);text-align:left;}
+
+/* QUOTE */
+.quote{border-radius:11px;padding:.9rem 1rem;margin:.45rem 0;border:2px solid;position:relative;}
+.q-mark{font-size:3rem;line-height:.8;opacity:.2;font-family:Georgia,serif;position:absolute;top:.4rem;left:.6rem;}
+.q-text{font-size:.82rem;line-height:1.6;font-style:italic;padding-left:1.2rem;color:rgba(216,228,255,.9);}
+.q-author{font-family:'Inconsolata',monospace;font-size:.58rem;font-weight:700;margin-top:.4rem;padding-left:1.2rem;}
+
+/* MAP COMPARE */
+.map-cmp{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+.map-card{padding:.65rem .75rem;border-radius:9px;border:1.5px solid;}
+.map-title{font-family:'Inconsolata',monospace;font-size:.6rem;font-weight:700;margin-bottom:.25rem;}
+.map-vis{background:var(--surf);border-radius:6px;padding:.5rem;text-align:center;font-family:'Inconsolata',monospace;font-size:.62rem;margin:.3rem 0;color:var(--muted);}
+
+/* KÖNIGSBERG */
+.bridge-vis{background:var(--card);border:1.5px solid var(--brd2);border-radius:9px;padding:.7rem;margin:.45rem 0;}
+.bv-title{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;text-align:center;}
+.bv-content{font-family:'Inconsolata',monospace;font-size:.78rem;line-height:2;text-align:center;}
+
+/* MODEL FEATURES */
+.feat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.35rem;margin:.45rem 0;}
+.feat-card{background:var(--card);border:1px solid var(--brd2);border-radius:8px;padding:.55rem .55rem;text-align:center;border-top:3px solid;}
+.feat-icon{font-size:1.3rem;margin-bottom:.15rem;}
+.feat-name{font-size:.72rem;font-weight:800;margin-bottom:.1rem;}
+.feat-desc{font-size:.6rem;color:var(--muted);line-height:1.4;font-family:'Inconsolata',monospace;}
+
+/* MONOPOLY */
+.mono-grid{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin:.45rem 0;}
+.mono-card{padding:.5rem .6rem;border-radius:7px;border:1.5px solid;background:var(--card);}
+.mono-name{font-size:.7rem;font-weight:800;margin-bottom:.08rem;}
+.mono-attrs{font-family:'Inconsolata',monospace;font-size:.58rem;color:var(--muted);line-height:1.45;}
+
+/* SUMGRID */
+.sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+.sbox{background:var(--card);border:1px solid var(--brd2);border-radius:8px;padding:.6rem;text-align:center;}
+.sbox .ico{font-size:1.2rem;display:block;margin-bottom:.15rem;}
+.sbox .val{font-size:.88rem;font-weight:800;}
+.sbox .lbl{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);margin-top:.04rem;}
+
+.nav{position:sticky;bottom:0;z-index:10;background:var(--bg);border-top:1px solid var(--brd2);padding:.7rem 1.3rem;display:flex;align-items:center;gap:.5rem;}
+.btn{font-family:'Inconsolata',monospace;font-size:.63rem;font-weight:600;padding:.52rem 1rem;border-radius:7px;cursor:pointer;transition:all .18s;text-transform:uppercase;letter-spacing:.04em;}
+.btnp{background:transparent;color:var(--muted);border:1px solid var(--brd2);}
+.btnp:hover{color:var(--text);}
+.btnp:disabled{opacity:.2;cursor:not-allowed;}
+.btnn{flex:1;background:rgba(16,185,129,.12);color:var(--domain);border:1px solid rgba(16,185,129,.3);}
+.btnn:hover{background:rgba(16,185,129,.22);}
+.ctr{font-family:'Inconsolata',monospace;font-size:.57rem;color:var(--muted);white-space:nowrap;}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-row">
+    <h1><span>Domain</span><br>Modell &amp;<br><em>Modellezés</em></h1>
+    <div class="tag">DDD alapok</div>
+  </div>
+  <p>// 6 vak ember · Modellek · Közös nyelv · Monopoly</p>
+</header>
+<div class="topbar">
+  <div class="tb-t">// témakörök</div>
+  <div class="steps" id="steps"></div>
+  <div class="tag-row" id="tagRow"></div>
+</div>
+<div class="content" id="content"></div>
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 14</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+<script>
+const TOPICS=[
+  {label:'6 vak\nember',color:'var(--noplan)',icon:'🐘'},
+  {label:'2 véglet\nproblémái',color:'var(--plan)',icon:'⚖️'},
+  {label:'Arany\nközépút',color:'var(--golden)',icon:'⚖️'},
+  {label:'Modell\nfogalma',color:'var(--model)',icon:'🗺️'},
+  {label:'Domain\nModell',color:'var(--domain)',icon:'🌐'},
+  {label:'Közös\nnyelv',color:'var(--lang)',icon:'💬'},
+  {label:'Összefog.',color:'var(--domain)',icon:'∑'},
+];
+const TAGS=[
+  {label:'Túltervezés',color:'var(--plan)'},
+  {label:'Tervmentes',color:'var(--noplan)'},
+  {label:'Agile',color:'var(--golden)'},
+  {label:'Domain',color:'var(--domain)'},
+  {label:'Ubiquitous Lang.',color:'var(--lang)'},
+];
+
+const STEPS=[
+  // 0. BEVEZETŐ — 6 VAK EMBER
+  {t:0,tags:[],render:()=>`
+    <div class="shdr"><div class="sico">🐘</div>
+      <div><div class="stitle">A 6 vak ember és az elefánt</div>
+      <div class="ssub">// indiai történet — miért kell egységes nézőpont?</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--noplan)">Oktató</div>
+        Élt egyszer 6 vak ember egy faluban. Egy elefántot hoztak eléjük — megkérdezték milyen lehet. Mind megtapogatták.
+      </div></div>
+    </div>
+    <div class="elephant-view">
+      <div class="ev-title">// 6 különböző nézőpont — ugyanaz az elefánt</div>
+      <div class="ev-elephant">🐘</div>
+      <div class="ev-grid">
+        <div class="ev-item" style="border-color:#3b82f6">🦷 <strong>Vak 1 — agyar:</strong> "Vastag faág."</div>
+        <div class="ev-item" style="border-color:#10b981">🫧 <strong>Vak 2 — ormány:</strong> "Egy cső."</div>
+        <div class="ev-item" style="border-color:#f59e0b">📐 <strong>Vak 3 — fül:</strong> "Hatalmas legyező."</div>
+        <div class="ev-item" style="border-color:#a855f7">🧱 <strong>Vak 4 — oldal:</strong> "Nagy fal."</div>
+        <div class="ev-item" style="border-color:#ef4444">🏛️ <strong>Vak 5 — láb:</strong> "Egy oszlop."</div>
+        <div class="ev-item" style="border-color:#22d3ee">🪢 <strong>Vak 6 — farok:</strong> "Egy kötél."</div>
+      </div>
+    </div>
+    <div class="ibox"><strong>A tanulság szoftverfejlesztésre:</strong> Nagy szoftverrendszerek fejlesztésében sokan vesznek részt — fejlesztők, üzleti szakértők, tesztelők, dizájnerek, üzemeltetők. Mind másfajta nézőponttal, képességekkel rendelkeznek. <strong>Ezeket EGYSÉGES EGÉSSZÉ kell alakítani.</strong> Ez a domain modell célja.</div>
+  `},
+
+  // 1. KLASSZIKUS FEJLESZTÉS PROBLÉMÁI
+  {t:1,tags:[0],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,.5)">📐</div>
+      <div><div class="stitle">A klasszikus, túltervezett megközelítés</div>
+      <div class="ssub">// minden részletet előre megtervezünk — és mi a baj vele?</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">📋</div><div class="bub l"><div class="who" style="color:var(--plan)">Senior architect (2005)</div>
+        Megkaptam a teljes követelménylistát. 6 hónapig dolgozom a részletes designon, aztán a fejlesztők megvalósítják.
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">😰</div><div class="bub r2"><div class="who" style="color:var(--noplan);text-align:right">1 év múlva</div>
+        A terv kész — de közben a piac megváltozott, az ügyfél is megváltoztatta az igényeit. És a terv olyan merev, hogy bármi változás → minden borul.
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--plan)">
+        <div class="cli-i">🧠</div>
+        <div><strong>Analízis paralízis</strong>
+        <span>A tervezők nem tudnak továbblépni, mert a modell "nem elég jó". Hónapok telnek el — közben veszteség, piacvesztés, az igények változnak. Mire kész, már nem aktuális.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--plan)">
+        <div class="cli-i">🏗️</div>
+        <div><strong>Rugalmatlan, merev rendszer</strong>
+        <span>A részletes terv miatt minden szorosan összekapcsolódik. Egy változtatás → minden megdől. Az elkerülhetetlen változások katasztrófát okoznak.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--plan)">
+        <div class="cli-i">🌀</div>
+        <div><strong>Komplex, átláthatatlan szoftver</strong>
+        <span>A sok terv miatt a végeredmény túl bonyolult. Nehéz átlátni, nehéz bővíteni, nehéz módosítani, nehéz karbantartani.</span></div>
+      </div>
+    </div>
+    <div class="ibox warn"><strong>Valós példa — Las Vegas hotel:</strong> A parabolikus üveg architektúra tervezésekor NEM gondoltak arra, hogy az ablakok a szomszéd hotel medencéjére fókuszálnak a napfényt. A vendégek megégtek! A megoldás — nem tükröződő fólia minden ablakra — nagyon költséges volt. Még a legrészletesebb terv sem fed le mindent.</div>
+  `},
+
+  // 2. TERVMENTES FEJLESZTÉS PROBLÉMÁI
+  {t:1,tags:[1],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,.5)">🚀</div>
+      <div><div class="stitle">A "tervmentes" megközelítés</div>
+      <div class="ssub">// startup módra — ugorjunk neki, majd kitaláljuk</div></div>
+    </div>
+    <div class="quote" style="background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.3)">
+      <div class="q-mark" style="color:rgba(239,68,68,.3)">"</div>
+      <div class="q-text">Flappy Bird — semmilyen design, megvalósíthatósági tanulmány, architektúra spec, dinamikus modell. A fejlesztő pár nap alatt készítette el — mégis óriási sikere lett. De ilyen siker több millióból egyszer fordul elő.</div>
+      <div class="q-author" style="color:var(--noplan)">— Esettanulmány</div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">⚡</div><div class="bub l"><div class="who" style="color:var(--noplan)">Startup CTO</div>
+        Csapjunk bele! Pár hét alatt MVP-t adunk az ügyfélnek, aztán átalakítjuk ha kell. Refaktorálni majd később lehet.
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">😩</div><div class="bub r2"><div class="who" style="color:var(--plan);text-align:right">6 hónap múlva</div>
+        A kód kaotikus. Minden új feature 2 másik dolgot tör el. Refaktorálni egyre nehezebb. Vagy újraírjuk az egészet, vagy belehalunk.
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--noplan)">
+        <div class="cli-i">😨</div>
+        <div><strong>Félelem a tervezéstől</strong>
+        <span>Sokszor éppen a nagy rendszerek túltervezésének traumájából ered — "csak ne legyen olyan, mint a régi cégemnél!" → ellentétes véglet, ami szintén nem működik.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--noplan)">
+        <div class="cli-i">🧱</div>
+        <div><strong>Gyors fal — bővíthetetlenség</strong>
+        <span>Az "összedobott" rendszer hamar eljut abba a fázisba, amikor már nagyon nehezen, vagy egyáltalán nem bővíthető.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--noplan)">
+        <div class="cli-i">💥</div>
+        <div><strong>Váratlan problémák halmozódnak</strong>
+        <span>Mivel nem készülünk előre, sokszor bukkannak elő váratlan problémák — amelyekre egyre nehezebb reagálni a kódbázis növekedésével.</span></div>
+      </div>
+    </div>
+    <div class="ibox warn"><strong>Flappy Bird vége:</strong> Néhány hét alatt a játék addiktív, idegesítő jellege felháborodásba csapott át — a fejlesztő törölte a piacterekről. A gyors siker = gyors bukás. Tervezetlen rendszer = tervezetlen jövő.</div>
+  `},
+
+  // 3. AZ ARANY KÖZÉPÚT
+  {t:2,tags:[2],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,.5)">⚖️</div>
+      <div><div class="stitle">Az arany középút — agilis tervezés</div>
+      <div class="ssub">// annyi tervezést végzünk, amennyi épp szükséges</div></div>
+    </div>
+    <div class="comp3">
+      <div class="comp3-card" style="background:rgba(59,130,246,.06);border-color:rgba(59,130,246,.35)">
+        <div class="c3-icon">📐</div>
+        <div class="c3-name" style="color:var(--plan)">Túltervezés</div>
+        <div class="c3-desc">Minden részlet előre — analízis paralízis, rugalmatlan, drága. Mire kész, már elavult.</div>
+      </div>
+      <div class="comp3-card" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.5)">
+        <div class="c3-icon">⚖️</div>
+        <div class="c3-name" style="color:var(--golden)">Arany középút ✅</div>
+        <div class="c3-desc">Tervezünk, de csak amennyi épp szükséges. Agilis — működőképes érték minden iterációban.</div>
+      </div>
+      <div class="comp3-card" style="background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.35)">
+        <div class="c3-icon">🚀</div>
+        <div class="c3-name" style="color:var(--noplan)">Tervmentes</div>
+        <div class="c3-desc">Csak hadd menjen — gyors start, gyors kaosz, hosszú szenvedés. Csak véletlen siker.</div>
+      </div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--golden)">
+        <div class="cli-i">🔄</div>
+        <div><strong>Folyamatosan működőképes</strong>
+        <span>Sosem áll meg a fejlesztés egy hosszú tervezési fázis miatt. Mindig van valami működő, amit be lehet mutatni az ügyfélnek.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--golden)">
+        <div class="cli-i">💎</div>
+        <div><strong>Folyamatosan legyen benne érték</strong>
+        <span>Nem csak "menjen" — mindig nyújtson valami értéket az ügyfélnek. Minden iteráció során nő a termék hasznossága.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--golden)">
+        <div class="cli-i">🪶</div>
+        <div><strong>Ne legyen túl bonyolult</strong>
+        <span>Lehessen könnyen változtatni, módosítani. Az egyszerűség a karbantarthatóság alapja.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--golden)">
+        <div class="cli-i">🔮</div>
+        <div><strong>Ne készüljünk a jövőre túl előre</strong>
+        <span>"Te úgyse tudod mi lesz 2 év múlva — úgyis változni fog." YAGNI (You Aren't Gonna Need It) elv.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 4. MI A MODELL?
+  {t:3,tags:[3],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,.5)">🗺️</div>
+      <div><div class="stitle">Mi az a modell?</div>
+      <div class="ssub">// "Minden modell rossz, de néhány hasznos." — George Box</div></div>
+    </div>
+    <div class="quote" style="background:rgba(168,85,247,.05);border-color:rgba(168,85,247,.3)">
+      <div class="q-mark" style="color:rgba(168,85,247,.3)">"</div>
+      <div class="q-text">Minden modellre igaz, hogy valójában rossz, nem fedi le a valóságot. Viszont ha jól csináljuk, akkor hasznos lesz.</div>
+      <div class="q-author" style="color:var(--model)">— A modellezés alaptétele</div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--model)">Oktató</div>
+        Ezért NEM arra kell fókuszálni, hogy a modell tökéletes legyen — hanem arra, hogy HASZNÁLNI tudjuk. A modell egy eszköz, nem cél.
+      </div></div>
+    </div>
+    <div class="map-cmp">
+      <div class="map-card" style="background:rgba(59,130,246,.06);border-color:rgba(59,130,246,.3)">
+        <div class="map-title" style="color:var(--plan)">🗺️ Mercator vetítés</div>
+        <div class="map-vis">⬛⬛⬛<br>⬛⬛⬛<br>⬛⬛⬛</div>
+        <div style="font-size:.65rem;line-height:1.45;color:var(--muted);font-family:'Inconsolata',monospace">Iránytartó (navigáció jó), de a sarkok felé EGYRE TORZÍTJA a területeket. Grönland ugyanakkora, mint Afrika!</div>
+      </div>
+      <div class="map-card" style="background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.3)">
+        <div class="map-title" style="color:var(--domain)">🌍 Hobo-Dyer vetítés</div>
+        <div class="map-vis">▭▭▭<br>▭▭▭<br>▭▭▭</div>
+        <div style="font-size:.65rem;line-height:1.45;color:var(--muted);font-family:'Inconsolata',monospace">Valós területet mutat (Afrika valójában 14× nagyobb mint Grönland!) — de az alakja torz.</div>
+      </div>
+    </div>
+    <div class="ibox"><strong>A lényeg:</strong> Mindkét térkép "rossz" — egyik se a valóság. De mindkettő HASZNOS — különböző célokra. A hajós kapitánynak a Mercator jó (iránytartó), egy területelemzésre a Hobo-Dyer (valós méret). A modell célja dönti el, melyik a jó!</div>
+  `},
+
+  // 5. KÖNIGSBERG HIDAK
+  {t:3,tags:[3],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,.5)">🌉</div>
+      <div><div class="stitle">A königsbergi hidak — modellezés erejének példája</div>
+      <div class="ssub">// Euler 1736, a gráfelmélet születése</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--model)">Oktató</div>
+        Königsberg (mai Kalinyingrád) városában 7 híd volt. A polgárok azt gyanították: nem lehet úgy végigsétálni, hogy mind a 7 hídra pontosan egyszer lépjünk rá. De hogy bizonyítsuk?
+      </div></div>
+    </div>
+    <div class="bridge-vis">
+      <div class="bv-title">// A valódi probléma → egyszerűsített modell</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;align-items:center">
+        <div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.58rem;color:var(--muted);margin-bottom:.2rem">VALÓSÁG (bonyolult):</div>
+          <div style="font-size:.85rem;text-align:center;line-height:1.5">🏘️🌉🏞️<br>🌉&nbsp;&nbsp;🌉<br>🏘️🌉🏞️🌉🏘️</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.58rem;color:var(--muted);margin-top:.3rem;text-align:center">7 híd, 4 sziget/part — fizikai próbák</div>
+        </div>
+        <div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.58rem;color:var(--muted);margin-bottom:.2rem">MODELL (egyszerű):</div>
+          <div style="font-size:.85rem;text-align:center;line-height:1.5;color:var(--model)">●─●<br>│╳│<br>●─●</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.58rem;color:var(--muted);margin-top:.3rem;text-align:center">Csomópontok + élek = gráf</div>
+        </div>
+      </div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">📐</div><div class="bub l"><div class="who" style="color:var(--model)">Euler</div>
+        Egy gráfon csak akkor lehet minden élen pontosan egyszer végigmenni, ha a csomópontok közül LEGFELJEBB 2-nek páratlan a fokszáma. Königsbergben mind a 4-nek páratlan → LEHETETLEN. Bizonyítva!
+      </div></div>
+    </div>
+    <div class="ibox"><strong>A modell ereje:</strong> A valóságot egyszerűsítve, a fölösleges részleteket elhagyva sokkal könnyebb gondolkodni. Euler nem hidakkal, hanem absztrakt gráfokkal foglalkozott — és így megalkotta a gráfelméletet, ami ma is alapja a modern hálózati problémáknak.</div>
+  `},
+
+  // 6. MODELL 3 TULAJDONSÁGA
+  {t:3,tags:[3],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,.5)">✨</div>
+      <div><div class="stitle">A jó modell 3 tulajdonsága</div>
+      <div class="ssub">// mindegyik teljesüljön — különben nem hasznos</div></div>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card" style="border-top-color:var(--plan)">
+        <div class="feat-icon">✂️</div>
+        <div class="feat-name" style="color:var(--plan)">Egyszerűsít</div>
+        <div class="feat-desc">Az eredeti problémát érhetőbb formában mutatja meg — elhagyva a fölösleges részleteket.</div>
+      </div>
+      <div class="feat-card" style="border-top-color:var(--golden)">
+        <div class="feat-icon">🎯</div>
+        <div class="feat-name" style="color:var(--golden)">Célhoz kötött</div>
+        <div class="feat-desc">Tudjuk MIÉRT készül a modell — mit akarunk vele elérni. Segít megérteni a problémát.</div>
+      </div>
+      <div class="feat-card" style="border-top-color:var(--domain)">
+        <div class="feat-icon">💡</div>
+        <div class="feat-name" style="color:var(--domain)">Válaszokat ad</div>
+        <div class="feat-desc">Segít megtalálni a megoldást — átlátjuk a problémakört, a modell csökkenti a bonyolultságot.</div>
+      </div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">🙋</div><div class="bub l"><div class="who" style="color:var(--plan)">Tanuló</div>
+        Az Eiffel torony tervrajzai meglepő hasonlóságot mutatnak a szoftveres tervrajzokkal — de csak a kis részletekből nehéz meglátni a nagy egészet. Hogyan tudunk modellezni egy teljes rendszert?
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">👨‍🏫</div><div class="bub r2"><div class="who" style="color:var(--model);text-align:right">Oktató</div>
+        Több szintű modellekkel — kis részletek + dinamikus nézetek (pl. hogyan viselkedik az Eiffel torony erős szélben). A SZOFTVERBEN ezt nevezzük "domain modellnek".
+      </div></div>
+    </div>
+  `},
+
+  // 7. DOMAIN MODELL FOGALMA
+  {t:4,tags:[3],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,.5)">🌐</div>
+      <div><div class="stitle">Mi az a Domain Modell?</div>
+      <div class="ssub">// szakterületi modell — közös megértés alapja</div></div>
+    </div>
+    <div style="background:rgba(16,185,129,.06);border:2px solid rgba(16,185,129,.3);border-radius:11px;padding:.85rem 1rem;margin:.45rem 0">
+      <div style="font-family:'Inconsolata',monospace;font-size:.58rem;color:var(--domain);font-weight:700;margin-bottom:.25rem">DEFINÍCIÓ</div>
+      <div style="font-size:.82rem;line-height:1.6">A <strong>domain modell (szakterületi modell)</strong> egy konkrét problémakört ír le, és tesz érhetőbbé azok számára is, akik <strong>nem szakértők</strong> az adott területen.</div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">🌍</div><div class="bub l"><div class="who" style="color:var(--domain)">Példa</div>
+        Egy iskolában a tanár megmutatja a Naprendszer modelljét. ☀️🌍🪐 Nem repüljük be a Naprendszert hogy megértsük — egy modellel rögtön látjuk: bolygók sorrendje, méretarány, viszony a Naphoz.
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">💡</div><div class="bub r2"><div class="who" style="color:var(--lang);text-align:right">Tanuló</div>
+        Tehát a domain modell a szoftverben is ugyanezt csinálja?
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--domain)">Oktató</div>
+        Pontosan! Leegyszerűsíti a problémát, így a MEGOLDÁSRA lehet koncentrálni. Egy bankkártyás fizetési rendszer domain modellje: Customer, Account, Transaction, PaymentMethod — minden résztvevő egyetért, hogy ez mit jelent.
+      </div></div>
+    </div>
+    <div class="ibox"><strong>Naprendszer analógia:</strong> A Naprendszer modellje (bolygók pályája, méretarány) ugyanúgy csinálja, mint a szoftverben a domain modell — nem fed le mindent (pl. nem mutatja az aszteroidaövet), de a CÉLJÁNAK megfelel. A szoftver domain modellje is hasonló: a probléma lényegét emeli ki.</div>
+  `},
+
+  // 8. KÖZÖS NYELV — UBIQUITOUS LANGUAGE
+  {t:5,tags:[4],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(34,211,238,.5)">💬</div>
+      <div><div class="stitle">Közös nyelv — Ubiquitous Language</div>
+      <div class="ssub">// üzleti szakértő és programozó ugyanazt értse</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">🏦</div><div class="bub l"><div class="who" style="color:var(--noplan)">Banki szakértő</div>
+        Ha egy ügyfél túllépi a kontingenst...
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">💻</div><div class="bub r2"><div class="who" style="color:var(--plan);text-align:right">Programozó</div>
+        Várj — mi az a "kontingens"? És "túllépés"? Pontosan mit kell csinálnia a kódnak?
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">😤</div><div class="bub l"><div class="who" style="color:var(--noplan)">Banki szakértő</div>
+        ...és tudja mit, az API kell egy "tranzakciós határérték validátorba" amit "rate limit"-tel kell konfigurálni...
+      </div></div>
+    </div>
+    <div class="ibox warn"><strong>Ez a klasszikus probléma:</strong> A szakterületi szakértő és a programozó MÁS NYELVET BESZÉL. Banki szakember "kontingens"-t mond, programozó "rate limit"-et. Az "ugyanaz" — de senki nem értik egymást. Ez félreértéshez, hibás kódhoz vezet.</div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--lang)">
+        <div class="cli-i">🤝</div>
+        <div><strong>Egységes terminológia</strong>
+        <span>A domain modell létrehozása során a szakterületi nyelvet ÁTVESSZÜK a kódba is. "Kontingens" marad "Kontingens" a kódban is — Quota osztály, exceedsQuota() metódus. Ha a szakember mondja: "túllépte a kontingenst" — pont ez fut le.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--lang)">
+        <div class="cli-i">📚</div>
+        <div><strong>Mindenhol UGYANAZ a nyelv</strong>
+        <span>Dokumentációban, modellben, kódban, megbeszélésen — MINDENHOL ugyanazt a szóhasználatot. Ha a kódban "rate_limit" szerepel, de a meeting-en "kontingens" — ez probléma.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--lang)">
+        <div class="cli-i">🔄</div>
+        <div><strong>Kétirányú frissítés</strong>
+        <span>Ha változik a kód nyelvezete, a domain modellt is aktualizálni kell. Ha változik a szakterületi szóhasználat, a kódot is. NEM lehet eltérés.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 9. KÖZÖS NYELV ELŐNYEI
+  {t:5,tags:[4],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(34,211,238,.5)">🎯</div>
+      <div><div class="stitle">Mit nyerünk a közös nyelvvel?</div>
+      <div class="ssub">// nem csak félreértések elkerülése</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--lang)">
+        <div class="cli-i">📋</div>
+        <div><strong>Rövid, egyértelmű követelmények</strong>
+        <span>"Ha az ügyfél túllépi a havi kontingenst, küldjünk értesítést." → A kódban ott van a Quota.exceeded() metódus. Senki nem fordít — minden közvetlen.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--lang)">
+        <div class="cli-i">💬</div>
+        <div><strong>Visszajelzés az ügyféltől</strong>
+        <span>Az ügyfél a saját nyelvén látja a rendszert (a UI-ban is, a hibaüzenetekben is). Könnyebben tud visszajelzést adni: "Ez nem az amit akartam — nálunk ezt 'túllépésnek' hívják, nem 'limit elérésnek'."</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--lang)">
+        <div class="cli-i">🔍</div>
+        <div><strong>Domain felfedezés</strong>
+        <span>A domain modell kialakítása során megismerjük a szakterület nyelvezetét, zsargonját, fontos elemeit, viselkedéseit, kapcsolatait. Ez ÉRTÉK — a fejlesztők is "domain szakértőkké" válnak részben.</span></div>
+      </div>
+    </div>
+    <div class="ibox lang"><strong>Ha érzed, hogy körülményesen tudsz beszélni a rendszerről:</strong> Nézd meg, hogyan írják le ugyanezt a problémát a domain szakértői. Ha lehet, ÉPÍTSD BE a domain modellbe az általuk használt elemeket. A te megfogalmazásod hibás lehet — a szakterületi inkább.</div>
+  `},
+
+  // 10. MONOPOLY PÉLDA
+  {t:5,tags:[3,4],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(34,211,238,.5)">🎲</div>
+      <div><div class="stitle">Monopoly — egy domain modell példa</div>
+      <div class="ssub">// nem írja le a szabályokat — a domain ELEMEIT írja le</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--lang)">Oktató</div>
+        A Monopoly egy klasszikus példa egyszerű domain modellre. A modellben NEM írjuk le, MIT csinál egy játékos minden körben — hanem MIBŐL áll a játék?
+      </div></div>
+    </div>
+    <div class="mono-grid">
+      <div class="mono-card" style="border-color:rgba(16,185,129,.35)">
+        <div class="mono-name" style="color:var(--domain)">👤 Player (Játékos)</div>
+        <div class="mono-attrs">name, money, position, properties[]</div>
+      </div>
+      <div class="mono-card" style="border-color:rgba(168,85,247,.35)">
+        <div class="mono-name" style="color:var(--model)">🏠 Property (Telek)</div>
+        <div class="mono-attrs">name, price, rent, owner, houses</div>
+      </div>
+      <div class="mono-card" style="border-color:rgba(245,158,11,.35)">
+        <div class="mono-name" style="color:var(--golden)">🎲 Dice (Kocka)</div>
+        <div class="mono-attrs">value1, value2 (1-6)</div>
+      </div>
+      <div class="mono-card" style="border-color:rgba(59,130,246,.35)">
+        <div class="mono-name" style="color:var(--plan)">📋 Board (Tábla)</div>
+        <div class="mono-attrs">squares[], goSquare, jail</div>
+      </div>
+      <div class="mono-card" style="border-color:rgba(34,211,238,.35)">
+        <div class="mono-name" style="color:var(--lang)">🃏 Card (Kártya)</div>
+        <div class="mono-attrs">type (chance/community), action</div>
+      </div>
+      <div class="mono-card" style="border-color:rgba(239,68,68,.35)">
+        <div class="mono-name" style="color:var(--noplan)">💰 Transaction</div>
+        <div class="mono-attrs">from, to, amount, reason</div>
+      </div>
+    </div>
+    <div class="ibox lang"><strong>Mit látunk?</strong> A követelményeket EZEKKEL az elemekkel írjuk le: "Ha a Player a Boardon a GoSquare-re lép, kap 200$-t Transaction formájában." Ha bárki ezt olvassa, érti — mert ismeri a Monopoly nyelvet. A "GoSquare", "Player", "Transaction" mind a SZAKTERÜLETI nyelvből származik.</div>
+  `},
+
+  // 11. ÉS MI NEM A DOMAIN MODELL?
+  {t:5,tags:[3,4],render:()=>`
+    <div class="shdr"><div class="sico">⚠️</div>
+      <div><div class="stitle">Mi NEM a domain modell?</div>
+      <div class="ssub">// gyakori félreértések tisztázása</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--noplan)">
+        <div class="cli-i">❌</div>
+        <div><strong>NEM az adatbázis séma</strong>
+        <span>Az adatbázis séma az ADATTÁROLÁS szerkezete (táblák, oszlopok). A domain modell a SZAKTERÜLET fogalmait írja le. Néha hasonlóak — de NEM azonosak. A user nevét tartalmazhatja a séma, a domain modell egy "User" entitást ír le, viselkedéssel.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--noplan)">
+        <div class="cli-i">❌</div>
+        <div><strong>NEM a felhasználói felület</strong>
+        <span>Az UI a felhasználói interakció felülete. A domain modell ettől teljesen független — a banki tranzakció ugyanaz akár webről, akár mobilról, akár API-n keresztül indítják.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--noplan)">
+        <div class="cli-i">❌</div>
+        <div><strong>NEM osztálydiagram</strong>
+        <span>Az osztálydiagram a kód SZERKEZETÉT írja le (öröklődés, asszociáció). A domain modell a FOGALMAKAT és viselkedéseket. A domain modellt MEGVALÓSÍTHATJUK osztályokkal — de nem azonosak.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--domain)">
+        <div class="cli-i">✅</div>
+        <div><strong>A domain modell EGY GONDOLATI MODELL</strong>
+        <span>A szakterület FOGALMAI, ezek VISELKEDÉSE, és KAPCSOLATAI. Lehet papíron, whiteboard-on, UML-ben, vagy a kódban — a forma másodlagos. A LÉNYEG a megértés és a közös nyelv.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 12. AGILE ÉS A DOMAIN MODELL
+  {t:5,tags:[2,3,4],render:()=>`
+    <div class="shdr"><div class="sico">🔄</div>
+      <div><div class="stitle">Domain modell az agilis fejlesztésben</div>
+      <div class="ssub">// élő dokumentum, ami a kóddal együtt fejlődik</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--golden)">Oktató</div>
+        Az agilis fejlesztés azt jelenti, hogy folyamatosan változunk. A domain modell sem statikus — együtt fejlődik a rendszerrel.
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">🙋</div><div class="bub r2"><div class="who" style="color:var(--lang);text-align:right">Tanuló</div>
+        Hogyan tartjuk szinkronban a modellt és a kódot ha mindkettő változik?
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--golden)">Oktató</div>
+        Ez a kihívás kulcsa! A jó domain modell ELÉG KICSI ahhoz, hogy könnyen frissíthető legyen. A kód MAGA a domain modell egy implementációja — ha jól strukturált, akkor a kód olvasva is látod a modellt.
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--golden)">
+        <div class="cli-i">📐</div>
+        <div><strong>Annyi modellezést, amennyit kell</strong>
+        <span>Ne tervezz hónapokig — kezd el implementálni a domain modellt minimal viable módon. Ahogy haladsz, a modell finomodik. Ez agilis.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--domain)">
+        <div class="cli-i">🔄</div>
+        <div><strong>Refaktoráld a modellt is, ne csak a kódot</strong>
+        <span>Ha az új feature nehéz beilleszteni, az gyakran NEM a kód hibája — hanem a domain modell nem fedi le jól a problémát. A modell refaktorálása sokszor megoldja.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--lang)">
+        <div class="cli-i">📚</div>
+        <div><strong>Domain dokumentáció = csapatmunka</strong>
+        <span>A domain modellt nem egy "architekt" hozza létre egyedül a csapat számára. Az egész csapat — fejlesztők, üzleti szakértők, PO — együtt alakítja ki és tartja karban.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 13. ÖSSZEFOGLALÁS
+  {t:6,tags:[0,1,2,3,4],render:()=>`
+    <div class="shdr"><div class="sico">∑</div>
+      <div><div class="stitle">Összefoglalás — Domain modell</div>
+      <div class="ssub">// a legfontosabb fogalmak</div></div>
+    </div>
+    <div class="sumgrid">
+      <div class="sbox" style="border-top:2px solid var(--noplan)"><span class="ico">🐘</span><div class="val">6 vak ember</div><div class="lbl">egységes nézet kell</div></div>
+      <div class="sbox" style="border-top:2px solid var(--golden)"><span class="ico">⚖️</span><div class="val">Arany középút</div><div class="lbl">annyi tervet, amennyi kell</div></div>
+      <div class="sbox" style="border-top:2px solid var(--domain)"><span class="ico">🌐</span><div class="val">Domain Modell</div><div class="lbl">szakterületi térkép</div></div>
+      <div class="sbox" style="border-top:2px solid var(--lang)"><span class="ico">💬</span><div class="val">Közös nyelv</div><div class="lbl">mindenki ugyanazt érti</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--plan)">
+        <div class="cli-i">📐</div>
+        <div><strong>Túltervezés problémája</strong>
+        <span>Analízis paralízis, merev rendszer, komplex eredmény. Las Vegas hotel: a "tökéletes terv" sem fed le mindent.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--noplan)">
+        <div class="cli-i">🚀</div>
+        <div><strong>Tervmentes fejlesztés problémája</strong>
+        <span>Flappy Bird-szerű véletlen sikerek mögött ezer bukás. Hamar bővíthetetlen, kaotikus rendszer.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--model)">
+        <div class="cli-i">✨</div>
+        <div><strong>A jó modell 3 tulajdonsága</strong>
+        <span>Egyszerűsít · Célhoz kötött · Válaszokat ad. Königsbergi hidak — Euler egyszerűsítéssel született a gráfelmélet.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--lang)">
+        <div class="cli-i">💬</div>
+        <div><strong>Közös nyelv (Ubiquitous Language)</strong>
+        <span>A szakterületi nyelvet BEÉPÍTJÜK a kódba is. Mindenhol ugyanaz a terminológia: dokumentáció, modell, kód, megbeszélés. A "kontingens" mindenhol "Kontingens".</span></div>
+      </div>
+    </div>
+  `},
+];
+
+function renderBoard(tIdx,tagIdxs){
+  document.getElementById('steps').innerHTML=TOPICS.map((t,i)=>{
+    const on=i===tIdx,done=i<tIdx;
+    const c=on?t.color:done?t.color:'var(--muted)';
+    return `<div class="st ${on?'active':done?'done':''}">
+      <div class="sd" style="border-color:${c};color:${c}">${t.icon}</div>
+      <div class="sl" style="color:${on?t.color:'var(--muted)'}">${t.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('tagRow').innerHTML=TAGS.map((tg,i)=>{
+    const on=tagIdxs.includes(i);
+    return `<div class="tg ${on?'on':''}" style="border-color:${tg.color};color:${tg.color}">${tg.label}</div>`;
+  }).join('');
+}
+
+let cur=0;
+function render(){
+  const s=STEPS[cur];
+  renderBoard(s.t,s.tags);
+  const el=document.getElementById('content');
+  el.innerHTML=s.render();
+  setTimeout(()=>{el.querySelectorAll('.msg:not(.show)').forEach((m,i)=>setTimeout(()=>m.classList.add('show'),i*160));},60);
+  document.getElementById('bprev').disabled=cur===0;
+  document.getElementById('bnext').textContent=cur===STEPS.length-1?'↺ Újra':'Következő →';
+  document.getElementById('ctr').textContent=`${cur+1} / ${STEPS.length}`;
+}
+function next(){cur=cur===STEPS.length-1?0:cur+1;render();}
+function prev(){if(cur>0){cur--;render();}}
+render();
+</script>
+</body>
+</html>

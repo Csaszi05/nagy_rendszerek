@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Szoftverarchitektúra Alapok</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+:root {
+  --bg:#0a0f1e; --surf:#0f1628; --card:#141d35; --brd:#1e2d50; --brd2:#263a68;
+  --text:#d8e4ff; --muted:#4a5f8a;
+  --arch:#3b82f6; --probl:#f59e0b; --solut:#10b981;
+  --func:#a855f7; --nfr:#22d3ee;
+  --good:#10b981; --bad:#ef4444; --warn:#f97316;
+  --acc:#3b82f6;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(59,130,246,.06) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(245,158,11,.04) 0%,transparent 50%);pointer-events:none;z-index:0;}
+header{position:relative;z-index:1;padding:1.2rem 1.3rem .85rem;border-bottom:1px solid var(--brd2);background:linear-gradient(180deg,rgba(59,130,246,.06) 0%,transparent 100%);}
+.hdr-row{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;}
+h1{font-size:1.4rem;font-weight:800;line-height:1.07;letter-spacing:-.02em;}
+h1 span{color:var(--arch);}h1 em{font-style:normal;color:var(--probl);}
+.tag{font-family:'Inconsolata',monospace;font-size:.56rem;padding:.25rem .55rem;border-radius:4px;background:rgba(59,130,246,.12);color:var(--arch);border:1px solid rgba(59,130,246,.28);white-space:nowrap;margin-top:.2rem;}
+header p{font-size:.7rem;color:var(--muted);margin-top:.25rem;font-family:'Inconsolata',monospace;}
+.topbar{position:relative;z-index:1;background:var(--surf);border-bottom:1px solid var(--brd2);padding:.75rem 1.3rem .65rem;}
+.tb-t{font-family:'Inconsolata',monospace;font-size:.54rem;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin-bottom:.5rem;}
+.steps{display:flex;align-items:center;gap:0;margin-bottom:.45rem;}
+.st{flex:1;display:flex;flex-direction:column;align-items:center;gap:.18rem;position:relative;}
+.st:not(:last-child)::after{content:'';position:absolute;right:0;top:12px;width:50%;height:2px;background:var(--brd);z-index:0;}
+.st:not(:first-child)::before{content:'';position:absolute;left:0;top:12px;width:50%;height:2px;background:var(--brd);z-index:0;}
+.sd{width:24px;height:24px;border-radius:50%;border:2px solid var(--brd2);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:.6rem;z-index:1;transition:all .35s;position:relative;}
+.sl{font-family:'Inconsolata',monospace;font-size:.44rem;color:var(--muted);text-align:center;line-height:1.2;}
+.st.active .sd{transform:scale(1.25);box-shadow:0 0 10px currentColor;}
+.st.done .sd{opacity:.55;}
+.st.active .sl{font-weight:700;}
+.tag-row{display:flex;gap:4px;flex-wrap:wrap;}
+.tg{font-family:'Inconsolata',monospace;font-size:.53rem;font-weight:600;padding:.14rem .4rem;border-radius:3px;border:1px solid;opacity:.25;transition:opacity .3s;}
+.tg.on{opacity:1;}
+.content{position:relative;z-index:1;padding:.9rem 1.3rem;min-height:275px;}
+.shdr{display:flex;align-items:center;gap:.6rem;margin-bottom:.85rem;}
+.sico{width:36px;height:36px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;border:1.5px solid var(--brd2);background:var(--card);}
+.stitle{font-size:.95rem;font-weight:800;letter-spacing:-.02em;}
+.ssub{font-family:'Inconsolata',monospace;font-size:.56rem;color:var(--muted);margin-top:.03rem;}
+.chat{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.7rem;}
+.msg{display:flex;gap:.4rem;align-items:flex-start;opacity:0;transform:translateY(6px);transition:opacity .3s,transform .3s;}
+.msg.show{opacity:1;transform:translateY(0);}
+.msg.r{flex-direction:row-reverse;}
+.av{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;border:1px solid var(--brd2);background:var(--card);}
+.bub{max-width:82%;padding:.48rem .68rem;border-radius:9px;font-size:.77rem;line-height:1.55;border:1px solid var(--brd2);background:var(--card);}
+.bub.l{border-bottom-left-radius:2px;}.bub.r2{border-bottom-right-radius:2px;text-align:right;}
+.who{font-family:'Inconsolata',monospace;font-size:.55rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.1rem;}
+.ibox{border-radius:8px;padding:.55rem .75rem;font-size:.74rem;line-height:1.55;margin:.45rem 0;border:1px solid var(--brd2);background:var(--card);border-left:3px solid var(--arch);}
+.ibox strong{font-weight:700;}
+.ibox.warn{border-left-color:var(--bad);}.ibox.warn strong{color:var(--bad);}
+.ibox.ok{border-left-color:var(--good);}.ibox.ok strong{color:var(--good);}
+.cklist{display:flex;flex-direction:column;gap:.35rem;margin:.45rem 0;}
+.cli{display:flex;align-items:flex-start;gap:.5rem;padding:.42rem .65rem;background:var(--card);border:1px solid var(--brd2);border-radius:8px;font-size:.75rem;line-height:1.45;}
+.cli-i{flex-shrink:0;font-size:.88rem;}
+.cli strong{display:block;font-weight:700;font-size:.76rem;margin-bottom:.03rem;}
+.cli span{color:var(--muted);font-size:.68rem;font-family:'Inconsolata',monospace;}
+
+/* 10K LÁBÁS VIEW */
+.view-vis{background:var(--card);border:1.5px solid var(--brd2);border-radius:11px;padding:.7rem;margin:.45rem 0;}
+.vv-title{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;text-align:center;}
+.vv-row{display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;margin:.2rem 0;border-radius:6px;}
+.vv-h{font-family:'Inconsolata',monospace;font-size:.6rem;font-weight:700;width:60px;flex-shrink:0;text-align:right;}
+.vv-emoji{font-size:1rem;}
+.vv-desc{font-size:.68rem;color:var(--muted);font-family:'Inconsolata',monospace;flex:1;}
+
+/* COMPARE */
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+.cmp-card{padding:.7rem .75rem;border-radius:10px;border:1.5px solid;}
+
+/* PROBLEM/SOLUTION */
+.ps-flow{display:flex;align-items:center;gap:.5rem;margin:.45rem 0;font-size:.8rem;justify-content:center;flex-wrap:wrap;}
+.ps-box{padding:.5rem .75rem;border-radius:10px;border:2px solid;text-align:center;flex:1;min-width:120px;}
+.ps-icon{font-size:1.3rem;margin-bottom:.15rem;}
+.ps-name{font-size:.78rem;font-weight:800;}
+.ps-arr{font-size:1.4rem;color:var(--muted);}
+
+/* DECISION TREE */
+.decision-tree{background:var(--card);border:1.5px solid var(--brd2);border-radius:10px;padding:.7rem;margin:.45rem 0;}
+.dt-q{font-size:.78rem;font-weight:700;text-align:center;padding:.4rem;background:var(--surf);border-radius:7px;margin-bottom:.4rem;}
+.dt-branches{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;}
+.dt-branch{padding:.5rem .65rem;border-radius:8px;border:1.5px solid;}
+.dt-label{font-family:'Inconsolata',monospace;font-size:.58rem;font-weight:700;margin-bottom:.1rem;}
+.dt-result{font-size:.7rem;line-height:1.45;}
+
+/* EXAMPLE LIST */
+.ex-list{display:flex;flex-direction:column;gap:.35rem;margin:.45rem 0;}
+.ex-row{display:flex;align-items:center;gap:.5rem;padding:.42rem .65rem;background:var(--card);border:1px solid var(--brd2);border-radius:8px;font-size:.71rem;line-height:1.4;}
+.ex-quote{flex:1;font-style:italic;color:rgba(216,228,255,.85);}
+.ex-label{font-family:'Inconsolata',monospace;font-size:.58rem;font-weight:700;padding:.18rem .45rem;border-radius:4px;border:1px solid;flex-shrink:0;}
+
+/* REQ JELLEMZŐK */
+.req-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.3rem;margin:.45rem 0;}
+.req-card{background:var(--card);border:1px solid var(--brd2);border-radius:8px;padding:.5rem .55rem;text-align:center;border-top:3px solid;}
+.req-icon{font-size:1.2rem;margin-bottom:.1rem;}
+.req-name{font-size:.7rem;font-weight:800;margin-bottom:.06rem;}
+.req-desc{font-size:.58rem;color:var(--muted);line-height:1.35;font-family:'Inconsolata',monospace;}
+
+/* BAD REQ EXAMPLE */
+.bad-req{background:rgba(239,68,68,.06);border:1.5px solid rgba(239,68,68,.3);border-radius:9px;padding:.55rem .7rem;margin:.3rem 0;}
+.br-bad{font-style:italic;font-size:.74rem;color:rgba(216,228,255,.9);margin-bottom:.25rem;}
+.br-q{font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--bad);margin-bottom:.15rem;}
+.br-good{font-size:.72rem;line-height:1.45;color:var(--good);padding-left:.5rem;border-left:2px solid var(--good);}
+
+/* SUMGRID */
+.sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+.sbox{background:var(--card);border:1px solid var(--brd2);border-radius:8px;padding:.6rem;text-align:center;}
+.sbox .ico{font-size:1.2rem;display:block;margin-bottom:.15rem;}
+.sbox .val{font-size:.88rem;font-weight:800;}
+.sbox .lbl{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);margin-top:.04rem;}
+
+.nav{position:sticky;bottom:0;z-index:10;background:var(--bg);border-top:1px solid var(--brd2);padding:.7rem 1.3rem;display:flex;align-items:center;gap:.5rem;}
+.btn{font-family:'Inconsolata',monospace;font-size:.63rem;font-weight:600;padding:.52rem 1rem;border-radius:7px;cursor:pointer;transition:all .18s;text-transform:uppercase;letter-spacing:.04em;}
+.btnp{background:transparent;color:var(--muted);border:1px solid var(--brd2);}
+.btnp:hover{color:var(--text);}
+.btnp:disabled{opacity:.2;cursor:not-allowed;}
+.btnn{flex:1;background:rgba(59,130,246,.12);color:var(--arch);border:1px solid rgba(59,130,246,.3);}
+.btnn:hover{background:rgba(59,130,246,.22);}
+.ctr{font-family:'Inconsolata',monospace;font-size:.57rem;color:var(--muted);white-space:nowrap;}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-row">
+    <h1><span>Szoftver</span><br>architektúra<br><em>Alapok</em></h1>
+    <div class="tag">NRF04 // OE-NIK</div>
+  </div>
+  <p>// 10.000 láb · F-16 · Probléma → Megoldás · Követelmények</p>
+</header>
+<div class="topbar">
+  <div class="tb-t">// témakörök</div>
+  <div class="steps" id="steps"></div>
+  <div class="tag-row" id="tagRow"></div>
+</div>
+<div class="content" id="content"></div>
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 15</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+<script>
+const TOPICS=[
+  {label:'10K láb\nperspektíva',color:'var(--arch)',icon:'✈️'},
+  {label:'Mi nélkül\nnem megy?',color:'var(--bad)',icon:'⚠️'},
+  {label:'F-16\npélda',color:'var(--probl)',icon:'🎯'},
+  {label:'Mi az\narch?',color:'var(--solut)',icon:'🏛️'},
+  {label:'Arch vs\nTerv',color:'var(--func)',icon:'⚖️'},
+  {label:'Köve-\ntelmény',color:'var(--nfr)',icon:'📋'},
+  {label:'Össze.',color:'var(--arch)',icon:'∑'},
+];
+const TAGS=[
+  {label:'Funkcionális',color:'var(--func)'},
+  {label:'Non-Functional',color:'var(--nfr)'},
+  {label:'Probléma',color:'var(--probl)'},
+  {label:'Megoldás',color:'var(--solut)'},
+  {label:'Architektúra',color:'var(--arch)'},
+];
+
+const STEPS=[
+  // 0. 10.000 LÁB PERSPEKTÍVA
+  {t:0,tags:[],render:()=>`
+    <div class="shdr"><div class="sico">✈️</div>
+      <div><div class="stitle">10.000 láb perspektíva</div>
+      <div class="ssub">// vizsgáljuk meg a dolgokat elegendően TÁVOLRÓL</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--arch)">Oktató</div>
+        3.048 méter = 10.000 láb. Ha 3 km magasról nézed Budapestet, már nem látsz részleteket — de látod az ÖSSZEFÜGGÉSEKET. Hogy hol van Buda és Pest, hol vannak a hidak.
+      </div></div>
+    </div>
+    <div class="view-vis">
+      <div class="vv-title">// Különböző magasságok különböző információt adnak</div>
+      <div class="vv-row" style="background:rgba(168,85,247,.08)">
+        <div class="vv-h" style="color:var(--func)">100 m</div>
+        <div class="vv-emoji">🏠</div>
+        <div class="vv-desc">Egy ház, részletes, minden tégla látszik — DE: nem látom hol vagyok</div>
+      </div>
+      <div class="vv-row" style="background:rgba(34,211,238,.08)">
+        <div class="vv-h" style="color:var(--nfr)">1.000 m</div>
+        <div class="vv-emoji">🏘️</div>
+        <div class="vv-desc">Lakónegyed — utcák, közterek látszanak</div>
+      </div>
+      <div class="vv-row" style="background:rgba(59,130,246,.1)">
+        <div class="vv-h" style="color:var(--arch)">10.000 láb</div>
+        <div class="vv-emoji">🌆</div>
+        <div class="vv-desc">Teljes város — főutak, kerületek, Duna — az EGÉSZET látom</div>
+      </div>
+      <div class="vv-row" style="background:rgba(245,158,11,.08)">
+        <div class="vv-h" style="color:var(--probl)">100 km</div>
+        <div class="vv-emoji">🌍</div>
+        <div class="vv-desc">Túl távoli — csak felhők, semmi konkrét</div>
+      </div>
+    </div>
+    <div class="ibox"><strong>A szoftverben is ugyanez:</strong> Ha túl mélyen vagy (kódsorok), nem látod a struktúrát. Ha túl távol (csak megérzés), nem látod a fontos részleteket. Az architektúra a "10.000 láb perspektíva" — épp annyi részlet, hogy lásd hogyan illeszkednek össze a komponensek.</div>
+  `},
+
+  // 1. KÖVETELMÉNYEK ALAPOK
+  {t:0,tags:[0,1],render:()=>`
+    <div class="shdr"><div class="sico">📋</div>
+      <div><div class="stitle">Funkcionális vs Nem-funkcionális követelmények</div>
+      <div class="ssub">// MIT csinál a rendszer vs HOGYAN csinálja</div></div>
+    </div>
+    <div class="cmp">
+      <div class="cmp-card" style="background:rgba(168,85,247,.06);border-color:rgba(168,85,247,.35)">
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--func);font-weight:700;margin-bottom:.3rem">⚙️ FUNKCIONÁLIS (FR)</div>
+        <div style="font-size:.7rem;line-height:1.55;margin-bottom:.3rem">A kifejezett felhasználói igények egyes funkciók megvalósítására. MIT csinál a rendszer.</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--muted);line-height:1.65">
+          ▸ "A felhasználó tudjon bejelentkezni"<br>
+          ▸ "Kosárba lehessen termékeket tenni"<br>
+          ▸ "Visa kártyával lehessen fizetni"<br>
+          ▸ "PDF export lehetőség"
+        </div>
+      </div>
+      <div class="cmp-card" style="background:rgba(34,211,238,.06);border-color:rgba(34,211,238,.35)">
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--nfr);font-weight:700;margin-bottom:.3rem">⚡ NEM-FUNKCIONÁLIS (NFR)</div>
+        <div style="font-size:.7rem;line-height:1.55;margin-bottom:.3rem">NEM szükségszerűen rögzítettek írásban. HOGYAN csinálja.</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--muted);line-height:1.65">
+          ▸ "Gyorsan töltsön be" (Performance)<br>
+          ▸ "Bizonságos legyen" (Security)<br>
+          ▸ "99.9% uptime" (Reliability)<br>
+          ▸ "Mobilon is használható" (Usability)
+        </div>
+      </div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--nfr)">
+        <div class="cli-i">👨‍💻</div>
+        <div><strong>Fejlesztői NFR-ek</strong>
+        <span>Pl. legyen kódgenerátor, ha sok ismétlődő rész van. Nem az ügyfél kéri — a fejlesztők igénylik, hogy hatékonyabbak legyenek.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--nfr)">
+        <div class="cli-i">⚙️</div>
+        <div><strong>Üzemeltetői NFR-ek</strong>
+        <span>Pl. egyszerű migrációs eszközök, upgrade folyamat, adminisztrátori felület. Az ops csapat enélkül nem tud dolgozni.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">⚖️</div>
+        <div><strong>Nem-technikai kényszerek</strong>
+        <span>Jogi aspektusok (GDPR!), szerzői jogi kérdések. Új technológia hatása. Csapat korábbi tapasztalatai. Ezek mind korlátozzák a választási szabadságot.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 2. MI TÖRTÉNIK, HA NINCS ARCHITEKTÚRA?
+  {t:1,tags:[],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,.5)">⚠️</div>
+      <div><div class="stitle">Mi történik, ha nincs architektúra?</div>
+      <div class="ssub">// 6 valós forgatókönyv — mind katasztrófa</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">🚀</div>
+        <div><strong>Ha NINCS architektúra</strong>
+        <span>Az első funkciókat gyorsan szállítjuk — de a továbbiakat EGYRE NEHEZEBB beépíteni. Hamarosan a fejlesztés szinte megáll.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">🤷</div>
+        <div><strong>Ha NINCS BETARTVA az architektúra</strong>
+        <span>Új projekttagok összezavarodnak, mindenki megy a saját feje után. A kódbázis egyre zavarosabb lesz — kaosz.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">❓</div>
+        <div><strong>Ha NEM tudjuk, mik a valódi követelmények</strong>
+        <span>Felesleges dolgokat fejlesztünk — idő- és energiapazarlás. Nem a megrendelő igényeire fókuszálunk.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">📚</div>
+        <div><strong>Ha NINCS DOKUMENTÁLVA</strong>
+        <span>Nem minden olvasható ki a kódból. Évek múlva UGYANAZOKAT a hibákat újra el lehet követni.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">🎨</div>
+        <div><strong>Ha mindenki SAJÁT STÍLUSban fejleszt</strong>
+        <span>Nehéz lesz értelmezni a kódot, és szinte LEHETETLEN összeintegrálni a különböző részeket.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">🏚️</div>
+        <div><strong>Ha NINCS KARBANTARTVA</strong>
+        <span>Az egész rendszer elöregszik. A technikai adósság halmozódik, a refaktorálás egyre nehezebb.</span></div>
+      </div>
+    </div>
+    <div class="ibox warn"><strong>A repülő építőire kapcsolódás:</strong> Egy csapat repülőszerelő mesélte: "Az Ön üzletét építjük folyamatos üzletmenet mellett is." Pont ezt csináljuk a szoftverben — építünk, miközben megy. Architektúra NÉLKÜL ez katasztrófa.</div>
+  `},
+
+  // 3. F-16 PÉLDA
+  {t:2,tags:[2,3],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,.5)">🎯</div>
+      <div><div class="stitle">F-16 — a valódi probléma megértése</div>
+      <div class="ssub">// Harry Hillaker, 1970-es évek — egy klasszikus tanulság</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">🪖</div><div class="bub l"><div class="who" style="color:var(--bad)">Megrendelő (US Air Force, 1970)</div>
+        Kérünk egy harci repülőt — OLCSÓ, GYORS, és 2-2.5 Mach sebességgel tudjon repülni.
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">📐</div><div class="bub r2"><div class="who" style="color:var(--probl);text-align:right">Harry Hillaker (vezető tervező)</div>
+        Ez technikailag extrém — DE: miért pont 2-2.5 Mach? Mire kell ez a sebesség?
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">🪖</div><div class="bub l"><div class="who" style="color:var(--bad)">Megrendelő</div>
+        Hogy a pilóta el tudjon menekülni a harcból!
+      </div></div>
+      <div class="msg show r" style="transition-delay:.45s"><div class="av">💡</div><div class="bub r2"><div class="who" style="color:var(--solut);text-align:right">Hillaker</div>
+        Aha! Akkor a VALÓDI igény: gyors menekülés a harcból. Ez NEM ugyanaz, mint a maximális sebesség...
+      </div></div>
+    </div>
+    <div class="cmp">
+      <div class="cmp-card" style="background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.35)">
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--bad);font-weight:700;margin-bottom:.25rem">❌ Felszínes megoldás</div>
+        <div style="font-size:.72rem;line-height:1.5">2.5 Mach sebességű repülő — extrém drága, súlyos, körülményesen manőverezhető. Megfelel a "specifikációnak" — de NEM oldja meg a valódi problémát jól.</div>
+      </div>
+      <div class="cmp-card" style="background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.35)">
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--good);font-weight:700;margin-bottom:.25rem">✅ Valódi megoldás</div>
+        <div style="font-size:.72rem;line-height:1.5">Mozgékony repülő nagy teljesítmény/súly aránnyal. Gyors gyorsulás + jó manőverezhetőség. Az igazi cél — kiszállás a harcból — teljesül.</div>
+      </div>
+    </div>
+    <div class="ibox ok"><strong>Az F-16 lett az eredmény:</strong> Az egyik legsikeresebb harci repülő a történelemben. NEM a leggyorsabb — de a leghatékonyabb a valódi feladatra. Mindezt azért, mert a tervezőcsapat MEGÉRTETTE a probléma lényegét, nem csak a felszíni kérést.</div>
+  `},
+
+  // 4. PROBLÉMA MEGÉRTÉSE
+  {t:2,tags:[2],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,.5)">🔍</div>
+      <div><div class="stitle">A probléma megértése</div>
+      <div class="ssub">// először a problémára, NEM a megoldásra fókuszálj</div></div>
+    </div>
+    <div class="ps-flow">
+      <div class="ps-box" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.5)">
+        <div class="ps-icon">🎯</div>
+        <div class="ps-name" style="color:var(--probl)">PROBLÉMATÉR</div>
+        <div style="font-size:.62rem;color:var(--muted);font-family:'Inconsolata',monospace;margin-top:.2rem">"Mi a feladat?"</div>
+      </div>
+      <div class="ps-arr">→</div>
+      <div class="ps-box" style="background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.5)">
+        <div class="ps-icon">💡</div>
+        <div class="ps-name" style="color:var(--solut)">MEGOLDÁSTÉR</div>
+        <div style="font-size:.62rem;color:var(--muted);font-family:'Inconsolata',monospace;margin-top:.2rem">"Hogyan oldjuk meg?"</div>
+      </div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--probl)">
+        <div class="cli-i">🤔</div>
+        <div><strong>A folyamat legelején: probléma megértés</strong>
+        <span>NE ugorj rögtön a megoldásra! Először értsd meg a feladatot. Azonosíts: alapvető követelmények, megkötések, rizikók.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--probl)">
+        <div class="cli-i">📝</div>
+        <div><strong>Információ begyűjtése és dokumentálása</strong>
+        <span>Különösen a FELTÉTELEZÉSEKET írd le. Sokszor azt hisszük "magától értetődik" — de később kiderül, hogy a megrendelő mást gondolt.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--probl)">
+        <div class="cli-i">🌐</div>
+        <div><strong>Értsd meg a KÖRNYEZETET is</strong>
+        <span>Nem csak a problémát — a kontextust, amiben létezik. Az érintett emberek, rendszerek, jogi környezet, üzleti célok.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--probl)">
+        <div class="cli-i">🔄</div>
+        <div><strong>Több alternatíva keresése</strong>
+        <span>Ha CSAK EGY megoldás látszik, nincs játéktér — nincs választás. Ha automatikusan tudod a választ: ÁLLJ MEG, lépj hátra, keress más alternatívákat is.</span></div>
+      </div>
+    </div>
+    <div class="ibox"><strong>A domain fogalma:</strong> A domain egy működési vagy gondolkodási terület. Minden érintett problémáit figyelembe kell venni — nem csak a megrendelőét. A mérnök problémái nem feltétlenül egyeznek a megrendelőjével.</div>
+  `},
+
+  // 5. LEONARDO HELIKOPTER
+  {t:3,tags:[3],render:()=>`
+    <div class="shdr"><div class="sico">🚁</div>
+      <div><div class="stitle">Leonardo helikoptere — a vízió ereje</div>
+      <div class="ssub">// 1480 → 1907 — 400 év, ugyanaz a vízió</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">🎨</div><div class="bub l"><div class="who" style="color:var(--probl)">Leonardo da Vinci (1480)</div>
+        Egy szerkezet, ami forgó szárny segítségével függőlegesen mozogni tud. (Megrajzolja az első helikopter ötletét.)
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">🇫🇷</div><div class="bub r2"><div class="who" style="color:var(--solut);text-align:right">Paul Cornu (1907)</div>
+        Megépítettem az első emberes helikoptert! A vízió Leonardo-é, de a megvalósítás 400 évig tartott...
+      </div></div>
+    </div>
+    <div class="ibox"><strong>A tanulság az architektúráról:</strong> Egy mai helikopternek RENGETEG funkciója van — több ezer követelmény, motor, navigáció, kommunikáció, biztonsági rendszerek. De a VÍZIÓ AZONOS: forgó szárny + függőleges mozgás. Ez a stabil rész — minden más változhat.</div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--arch)">
+        <div class="cli-i">🎯</div>
+        <div><strong>A vízió az architektúra magja</strong>
+        <span>A LEGFONTOSABB, leginkább változatlan rész. Funkciók jöhetnek-mehetnek — de az alap vízió marad. Tisztázni kell az elején!</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--arch)">
+        <div class="cli-i">⏰</div>
+        <div><strong>Megvalósítás időt vehet</strong>
+        <span>A jó vízió nem azonnal megvalósítható — de iránymutatást ad. Leonardo helikoptere 400 évig nem volt megépíthető, de minden későbbi mérnök ezt a koncepciót használta.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 6. MI AZ ARCHITEKTÚRA?
+  {t:3,tags:[4],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,.5)">🏛️</div>
+      <div><div class="stitle">Mi az a szoftverarchitektúra?</div>
+      <div class="ssub">// definíciók</div></div>
+    </div>
+    <div style="background:rgba(59,130,246,.06);border:2px solid rgba(59,130,246,.35);border-radius:11px;padding:.85rem 1rem;margin:.45rem 0">
+      <div style="font-family:'Inconsolata',monospace;font-size:.58rem;color:var(--arch);font-weight:700;margin-bottom:.2rem">🏛️ ARCHITEKTÚRA DEFINÍCIÓ</div>
+      <div style="font-size:.78rem;line-height:1.6">A szoftver <strong>magas szintű struktúrája</strong> — a komponensek, ezek <strong>kapcsolatai</strong>, és a <strong>fontos elveik</strong>, amelyek az egész rendszert vezérlik.</div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--arch)">
+        <div class="cli-i">🧱</div>
+        <div><strong>Komponensek</strong>
+        <span>A nagy építőkövek — modulok, szolgáltatások, rétegek. Pl. UI réteg, üzleti logika, adatbázis hozzáférés.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--arch)">
+        <div class="cli-i">🔗</div>
+        <div><strong>Kapcsolatok</strong>
+        <span>Hogyan kommunikálnak a komponensek? REST API? Üzenetküldés? Adatbázis? Direkt függvényhívás? A kapcsolat-típusok meghatározzák a rendszer rugalmasságát.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--arch)">
+        <div class="cli-i">📐</div>
+        <div><strong>Vezérlő elvek</strong>
+        <span>A "kódolási szabályok" magas szinten. Pl. "minden API endpoint authentikációt igényel", "az UI nem hívhatja közvetlenül az adatbázist".</span></div>
+      </div>
+    </div>
+    <div class="ibox warn"><strong>A legfontosabb intelem:</strong> Ne ragadj le egy rossz architektúránál — az MINDIG többe kerül, mint váltani egy másikra. Ha látod hogy nem jó, vállald a változtatást. Várj még 6 hónapot? Az 2× drágább változtatás.</div>
+  `},
+
+  // 7. AGILIS ARCHITEKTÚRA
+  {t:3,tags:[4],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,.5)">🔄</div>
+      <div><div class="stitle">Agilis architektúra</div>
+      <div class="ssub">// hogyan támogassa az architektúra az agilitást?</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--arch)">Oktató</div>
+        Manapság szinte mindenki agilis környezetben dolgozik. Az architektúrának is támogatnia kell ezt — nem szabad merevvé tennie a rendszert.
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">👀</div>
+        <div><strong>Mindenki számára LÁTHATÓNAK kell lennie</strong>
+        <span>Az architektúra nem egy "titkos doksi" a senior csapatnak. Az egész projektben mindenki számára elérhető és érthető legyen — ezért a Wiki/Confluence/README a fő hely.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">🪶</div>
+        <div><strong>Csak annyi tervet, amennyi épp kell</strong>
+        <span>Ne tervezz fel mindent előre. A "Just in Time" tervezés — épp annyi architektúrai döntés, amennyi a következő iterációhoz szükséges.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">🔄</div>
+        <div><strong>Folyamatosan változhat</strong>
+        <span>Az agilis architektúra élő dolog. Új követelmények jönnek? A felfedezések alapján igazítjuk. Nem szent szöveg.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">💪</div>
+        <div><strong>Támogassa a változást, ne akadályozza</strong>
+        <span>Loose coupling, modularitás, well-defined interfaces — ezek mind az agilis architektúra eszközei. Új feature ne kelljen az egész rendszert átírni.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 8. ARCHITEKTÚRA VS TERV
+  {t:4,tags:[4],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,.5)">⚖️</div>
+      <div><div class="stitle">Architektúra vs Terv (Design)</div>
+      <div class="ssub">// hogyan döntjük el — egyszerű módszer</div></div>
+    </div>
+    <div class="decision-tree">
+      <div class="dt-q">🤔 Egy döntés ARCHITEKTÚRÁLIS vagy TERVI?</div>
+      <div class="dt-branches">
+        <div class="dt-branch" style="background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.4)">
+          <div class="dt-label" style="color:var(--arch)">🏛️ ARCHITEKTÚRA</div>
+          <div class="dt-result">"Költséges megváltoztatni?" → IGEN. Nehéz, sok komponensre hatással van.</div>
+        </div>
+        <div class="dt-branch" style="background:rgba(168,85,247,.08);border-color:rgba(168,85,247,.4)">
+          <div class="dt-label" style="color:var(--func)">📐 TERV (Design)</div>
+          <div class="dt-result">"Még ma refaktorálható?" → IGEN. Egy fájlon belül, lokálisan változtatható.</div>
+        </div>
+      </div>
+    </div>
+    <div class="ex-list">
+      <div class="ex-row">
+        <div class="ex-label" style="background:rgba(59,130,246,.15);color:var(--arch);border-color:rgba(59,130,246,.4)">ARCH</div>
+        <div class="ex-quote">"Az MVC mintát kell használni."</div>
+      </div>
+      <div class="ex-row">
+        <div class="ex-label" style="background:rgba(245,158,11,.15);color:var(--probl);border-color:rgba(245,158,11,.4)">FÜGG</div>
+        <div class="ex-quote">"MySQL itt nem használható." — lehet architektúrális (nehéz változtatni), lehet tervi.</div>
+      </div>
+      <div class="ex-row">
+        <div class="ex-label" style="background:rgba(168,85,247,.15);color:var(--func);border-color:rgba(168,85,247,.4)">TERV</div>
+        <div class="ex-quote">"Használd a Singleton mintát."</div>
+      </div>
+      <div class="ex-row">
+        <div class="ex-label" style="background:rgba(245,158,11,.15);color:var(--probl);border-color:rgba(245,158,11,.4)">FÜGG</div>
+        <div class="ex-quote">"Minden beállítást tartalmazó fájlt titkosítani kell."</div>
+      </div>
+      <div class="ex-row">
+        <div class="ex-label" style="background:rgba(168,85,247,.15);color:var(--func);border-color:rgba(168,85,247,.4)">TERV</div>
+        <div class="ex-quote">"Ezt a logikát át kell helyezni egy másik osztályba."</div>
+      </div>
+      <div class="ex-row">
+        <div class="ex-label" style="background:rgba(168,85,247,.15);color:var(--func);border-color:rgba(168,85,247,.4)">TERV</div>
+        <div class="ex-quote">"Meg kell változtatni az XML sémát." — többnyire tervi.</div>
+      </div>
+    </div>
+    <div class="ibox"><strong>Miért fontos a különbségtétel?</strong> Mert eldől, KIé a felelősség. Architektúrális döntés = architect / team közös döntése. Tervi döntés = egyéni fejlesztő dönthet (és felelős érte). Ha minden döntésnél meeting van — a fejlesztés lefagy.</div>
+  `},
+
+  // 9. JÓ KÖVETELMÉNY 6 JELLEMZŐ
+  {t:5,tags:[0,1],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(34,211,238,.5)">✨</div>
+      <div><div class="stitle">A jó követelmény 6 jellemzője</div>
+      <div class="ssub">// szükséges, érthető, ellenőrizhető, követhető, konzisztens, teljes</div></div>
+    </div>
+    <div class="req-grid">
+      <div class="req-card" style="border-top-color:#10b981">
+        <div class="req-icon">💎</div>
+        <div class="req-name" style="color:#10b981">Szükséges</div>
+        <div class="req-desc">Fontosnak kell lennie. Értéket képviseljen a felhasználó számára.</div>
+      </div>
+      <div class="req-card" style="border-top-color:#3b82f6">
+        <div class="req-icon">🎯</div>
+        <div class="req-name" style="color:#3b82f6">Érthető</div>
+        <div class="req-desc">Pontosnak kell lennie — nem lehet benne félreérthető megfogalmazás.</div>
+      </div>
+      <div class="req-card" style="border-top-color:#a855f7">
+        <div class="req-icon">📏</div>
+        <div class="req-name" style="color:#a855f7">Ellenőrizhető</div>
+        <div class="req-desc">Mérhetőnek kell lennie. A fejlesztés végén el kell tudni dönteni: sikerült-e?</div>
+      </div>
+      <div class="req-card" style="border-top-color:#f59e0b">
+        <div class="req-icon">🔗</div>
+        <div class="req-name" style="color:#f59e0b">Követhető</div>
+        <div class="req-desc">Vissza kell tudni vezetni: melyik magasabb szintű üzleti igényt elégíti ki?</div>
+      </div>
+      <div class="req-card" style="border-top-color:#22d3ee">
+        <div class="req-icon">⚖️</div>
+        <div class="req-name" style="color:#22d3ee">Konzisztens</div>
+        <div class="req-desc">Ellentmondásmentesnek kell lennie a többi követelménnyel.</div>
+      </div>
+      <div class="req-card" style="border-top-color:#ec4899">
+        <div class="req-icon">✅</div>
+        <div class="req-name" style="color:#ec4899">Teljes</div>
+        <div class="req-desc">Minden lehetséges esetet le kell fednie — nincs lyuk a logikában.</div>
+      </div>
+    </div>
+    <div class="ibox ok"><strong>Praktikus tipp:</strong> Ha egy követelményt nem lehet TESZTELNI, akkor nem teljesíti az "Ellenőrizhető" kritériumot. Ha nem lehet visszavezetni egy üzleti célra → nem "Követhető". Ezek mind PROBLÉMÁS követelmények — átírni vagy elhagyni!</div>
+  `},
+
+  // 10. ROSSZ KÖVETELMÉNY PÉLDÁK
+  {t:5,tags:[0,1],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,.5)">❌</div>
+      <div><div class="stitle">Rossz követelmény példák</div>
+      <div class="ssub">// nézzük meg mi a baj és hogyan javítsuk</div></div>
+    </div>
+    <div class="bad-req">
+      <div class="br-bad">"A rendszernek felhasználóbarátnak kell lennie."</div>
+      <div class="br-q">❌ Mit jelent a "felhasználóbarát"?</div>
+      <div class="br-good">✅ "Minden, a monitoron megjelenő szöveg méretének módosíthatónak kell lennie, hogy idősek által is olvasható legyen."</div>
+    </div>
+    <div class="bad-req">
+      <div class="br-bad">"Minden dialógusablaknak gyorsan meg kell jelennie."</div>
+      <div class="br-q">❌ Mi a "gyors"? 1 másodperc? 5 perc?</div>
+      <div class="br-good">✅ "A dialógusablakoknak legfeljebb 2 másodperc alatt meg kell nyílniuk és fel kell töltődniük adatokkal."</div>
+    </div>
+    <div class="bad-req">
+      <div class="br-bad">"A tápellátás megszűnésekor a tartalék akkumulátornak biztosítania kell a normál működést."</div>
+      <div class="br-q">❌ Mennyi ideig? Mi a "normál működés"?</div>
+      <div class="br-good">✅ "Áramszünet esetén az akkumulátor min. 30 percig biztosítson teljes funkcionalitást, majd 2 órányi degradált működést, csak az alapfunkciókkal."</div>
+    </div>
+    <div class="bad-req">
+      <div class="br-bad">"3 sikertelen bejelentkezés után egy JavaScript rutinnak ki kell zárnia a felhasználót."</div>
+      <div class="br-q">❌ Miért pont JavaScript? Mi van ha jobb megoldás van?</div>
+      <div class="br-good">✅ "3 sikertelen bejelentkezési kísérlet után a felhasználói fiókot 15 percre zárolni kell." (a TECHNOLÓGIA megválasztása a fejlesztőé!)</div>
+    </div>
+    <div class="ibox warn"><strong>"Tiltott" szavak:</strong> "felhasználóbarát", "gyors", "intuitív", "robusztus", "skálázható". Mindegyik szubjektív, nem mérhető. MINDIG pontosítani kell — számszerű cél, konkrét feltétel, mérhető viselkedés.</div>
+  `},
+
+  // 11. NE SZABJUK MEG A TECHNOLÓGIÁT
+  {t:5,tags:[0,1],render:()=>`
+    <div class="shdr"><div class="sico">🛠️</div>
+      <div><div class="stitle">Ne szabd meg előre a technológiát!</div>
+      <div class="ssub">// a követelmény = MIT, a technológia = HOGYAN</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">💼</div><div class="bub l"><div class="who" style="color:var(--bad)">Üzleti szakértő</div>
+        "Használjunk MongoDB-t és Reactot — ezek modern technológiák."
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">📐</div><div class="bub r2"><div class="who" style="color:var(--arch);text-align:right">Architect</div>
+        Várj — előbb értsük meg az IGÉNYT. Milyen adatokat tárolunk? Hány felhasználó? Mit kell tudnia a felületnek? Aztán dől el, mi a JÓ technológia.
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">🎯</div>
+        <div><strong>Követelmény: MIT akarsz elérni</strong>
+        <span>"A felhasználó tudjon offline is dolgozni, és szinkronizálódjon ha online lesz." — Ez a követelmény.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--func)">
+        <div class="cli-i">🔧</div>
+        <div><strong>Technológia: HOGYAN éred el</strong>
+        <span>PWA + IndexedDB + Service Worker? Native app SQLite-tal? Electron app? A fejlesztők döntik el — több alternatívát mérlegelve.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">⚠️</div>
+        <div><strong>A megrendelő MIT, a mérnök HOGYAN</strong>
+        <span>Ha a megrendelő technológiát ír elő, kérdezz vissza: "MIÉRT pont ez?" Valószínűleg egy mélyebb igényt rejt el — és lehet, hogy más technológia jobb erre.</span></div>
+      </div>
+    </div>
+    <div class="ibox"><strong>Kivételek:</strong> Vannak helyzetek, amikor a technológia mégis követelmény része. Pl. "az új rendszernek integrálódnia kell a meglévő SAP-ba" → SAP API kötelező. Vagy: "a kórház csak Java-alapú megoldást fogadhat el a biztonsági auditálás miatt". Ezek LEGITIM technológiai megkötések.</div>
+  `},
+
+  // 12. OLCSÓ, JÓ, GYORS
+  {t:5,tags:[],render:()=>`
+    <div class="shdr"><div class="sico">⚖️</div>
+      <div><div class="stitle">"Olcsó, jó, gyors — válassz kettőt!"</div>
+      <div class="ssub">// a klasszikus projekt-háromszög</div></div>
+    </div>
+    <div style="background:var(--card);border:1.5px solid var(--brd2);border-radius:11px;padding:.8rem;margin:.45rem 0">
+      <div style="font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem;text-align:center">// Projekt háromszög — 3-ból maximum 2</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem">
+        <div style="padding:.5rem;background:rgba(16,185,129,.1);border:1.5px solid rgba(16,185,129,.4);border-radius:8px;text-align:center">
+          <div style="font-size:1.4rem">💰</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.65rem;color:var(--good);font-weight:700;margin-top:.15rem">OLCSÓ</div>
+        </div>
+        <div style="padding:.5rem;background:rgba(59,130,246,.1);border:1.5px solid rgba(59,130,246,.4);border-radius:8px;text-align:center">
+          <div style="font-size:1.4rem">⭐</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.65rem;color:var(--arch);font-weight:700;margin-top:.15rem">JÓ</div>
+        </div>
+        <div style="padding:.5rem;background:rgba(245,158,11,.1);border:1.5px solid rgba(245,158,11,.4);border-radius:8px;text-align:center">
+          <div style="font-size:1.4rem">⚡</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.65rem;color:var(--probl);font-weight:700;margin-top:.15rem">GYORS</div>
+        </div>
+      </div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">💰⭐</div>
+        <div><strong>Olcsó + Jó = LASSÚ</strong>
+        <span>Kevés erőforrásból, jó minőségben — időbe kerül. Nem siethetsz. Pl. nyílt forráskódú projekt önkéntesekkel.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--arch)">
+        <div class="cli-i">⭐⚡</div>
+        <div><strong>Jó + Gyors = DRÁGA</strong>
+        <span>Sok pénzzel és sürgősen — magas minőség. Top senior csapat, párhuzamos munka. Pl. NASA Apollo program.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--probl)">
+        <div class="cli-i">💰⚡</div>
+        <div><strong>Olcsó + Gyors = ROSSZ</strong>
+        <span>Sietve és spórolósan — a minőség szenved. Sok bug, tech adósság. Pl. egy "gyorsan dobjuk ki" MVP.</span></div>
+      </div>
+    </div>
+    <div class="ibox"><strong>Architektúra a minőségért:</strong> A jó architektúra IDŐT igényel. Ha az ügyfél "olcsón és gyorsan" akarja → a minőség (és gyakran az architektúra) sérülni fog. Az architect feladata: világosan kommunikálni ezt a trade-off-ot.</div>
+  `},
+
+  // 13. NE FEDEZZÜK FEL ÚJRA A KEREKET
+  {t:5,tags:[],render:()=>`
+    <div class="shdr"><div class="sico">🛞</div>
+      <div><div class="stitle">Ne találjuk fel újra a kereket</div>
+      <div class="ssub">// Rubik kocka példa — több megoldás létezik</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">🧩</div><div class="bub l"><div class="who" style="color:var(--probl)">Feladat</div>
+        Hogyan rakjuk ki a Rubik kockát?
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">🙋</div><div class="bub r2"><div class="who" style="color:var(--solut);text-align:right">Tanuló</div>
+        Tekergessük addig, amíg ki nem jön!
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--arch)">Oktató</div>
+        Az csak EGY megoldás. Gondolkodjunk el — mi a VALÓDI feladat? "Az egyes oldalakon AZONOS SZÍNŰ mezők legyenek." Hány megoldás van ehhez?
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">🎯</div>
+        <div><strong>1. Szabályos tekergetés</strong>
+        <span>A világversenyeken is elfogadott módja — tekergetjük míg ki nem jön. Lassú, de "tisztességes".</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--arch)">
+        <div class="cli-i">🔧</div>
+        <div><strong>2. Szétszereljük → összerakjuk</strong>
+        <span>Mint a gyárban, az alkotrészeket színek szerint rendezzük. Gyors megoldás — de nem hagyományos.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">🎨</div>
+        <div><strong>3. Átfestjük</strong>
+        <span>Csak EGYSZER lehet bevetni — a festés maradandó. De technikailag megoldja a problémát.</span></div>
+      </div>
+    </div>
+    <div class="ibox ok"><strong>Az innováció művészete:</strong> Ne találjuk fel újra a kereket — használjuk amit már van. De NÉZD MEG, milyen apróbb változtatással szabhatod a saját feladatodra. EZ IS innováció — sokszor jobb, mint az "új kerék" feltalálása. Bevált módszerek alkalmazása = csökkentett kockázat.</div>
+  `},
+
+  // 14. ÖSSZEFOGLALÁS
+  {t:6,tags:[0,1,2,3,4],render:()=>`
+    <div class="shdr"><div class="sico">∑</div>
+      <div><div class="stitle">Összefoglalás — Architektúra alapok</div>
+      <div class="ssub">// minden amit tudnod kell</div></div>
+    </div>
+    <div class="sumgrid">
+      <div class="sbox" style="border-top:2px solid var(--arch)"><span class="ico">✈️</span><div class="val">10K láb</div><div class="lbl">távolság = összefüggés</div></div>
+      <div class="sbox" style="border-top:2px solid var(--probl)"><span class="ico">🎯</span><div class="val">F-16</div><div class="lbl">valódi probléma fontos</div></div>
+      <div class="sbox" style="border-top:2px solid var(--func)"><span class="ico">⚖️</span><div class="val">Arch vs Terv</div><div class="lbl">költséges vs refaktorálható</div></div>
+      <div class="sbox" style="border-top:2px solid var(--nfr)"><span class="ico">📋</span><div class="val">6 jellemző</div><div class="lbl">jó követelménynek</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">⚠️</div>
+        <div><strong>Mi NÉLKÜL nem megy?</strong>
+        <span>Architektúra nélkül → gyorsan bővíthetetlen. Dokumentáció nélkül → hibák ismétlődnek. Egységes stílus nélkül → integrációs pokol.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--probl)">
+        <div class="cli-i">🤔</div>
+        <div><strong>Probléma megértése</strong>
+        <span>NE ugorj a megoldásra. F-16: a 2.5 Mach kérés mögött a "menekülés a harcból" valódi igény. Mindig kérdezd: MIÉRT?</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--arch)">
+        <div class="cli-i">🏛️</div>
+        <div><strong>Architektúra = komponensek + kapcsolatok + elvek</strong>
+        <span>A magas szintű struktúra. Helikopter vízió: 1480 (Leonardo) → 1907 (Cornu) — 400 év, ugyanaz a koncepció.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--func)">
+        <div class="cli-i">⚖️</div>
+        <div><strong>Arch vs Terv döntés</strong>
+        <span>Költséges megváltoztatni → ARCH. Még ma refaktorálható → TERV. MVC = arch, Singleton = terv.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--nfr)">
+        <div class="cli-i">📋</div>
+        <div><strong>Jó követelmény 6 jellemzője</strong>
+        <span>Szükséges · Érthető · Ellenőrizhető · Követhető · Konzisztens · Teljes. Tiltott szavak: "felhasználóbarát", "gyors", "intuitív" — mind pontosítani!</span></div>
+      </div>
+    </div>
+  `},
+];
+
+function renderBoard(tIdx,tagIdxs){
+  document.getElementById('steps').innerHTML=TOPICS.map((t,i)=>{
+    const on=i===tIdx,done=i<tIdx;
+    const c=on?t.color:done?t.color:'var(--muted)';
+    return `<div class="st ${on?'active':done?'done':''}">
+      <div class="sd" style="border-color:${c};color:${c}">${t.icon}</div>
+      <div class="sl" style="color:${on?t.color:'var(--muted)'}">${t.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('tagRow').innerHTML=TAGS.map((tg,i)=>{
+    const on=tagIdxs.includes(i);
+    return `<div class="tg ${on?'on':''}" style="border-color:${tg.color};color:${tg.color}">${tg.label}</div>`;
+  }).join('');
+}
+
+let cur=0;
+function render(){
+  const s=STEPS[cur];
+  renderBoard(s.t,s.tags);
+  const el=document.getElementById('content');
+  el.innerHTML=s.render();
+  setTimeout(()=>{el.querySelectorAll('.msg:not(.show)').forEach((m,i)=>setTimeout(()=>m.classList.add('show'),i*160));},60);
+  document.getElementById('bprev').disabled=cur===0;
+  document.getElementById('bnext').textContent=cur===STEPS.length-1?'↺ Újra':'Következő →';
+  document.getElementById('ctr').textContent=`${cur+1} / ${STEPS.length}`;
+}
+function next(){cur=cur===STEPS.length-1?0:cur+1;render();}
+function prev(){if(cur>0){cur--;render();}}
+render();
+</script>
+</body>
+</html>

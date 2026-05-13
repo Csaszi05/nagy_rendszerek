@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DDD, Onion Architektúra és CQRS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+:root {
+  --bg:#0a0f1e; --surf:#0f1628; --card:#141d35; --brd:#1e2d50; --brd2:#263a68;
+  --text:#d8e4ff; --muted:#4a5f8a;
+  --onion:#f97316; --layered:#ef4444;
+  --domain:#10b981; --dservice:#f59e0b; --aservice:#a855f7; --ui:#3b82f6; --infra:#6b7280; --test:#22d3ee;
+  --crud:#ef4444; --cqrs:#10b981; --cmd:#f59e0b; --query:#3b82f6;
+  --acc:#f97316;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(249,115,22,.06) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(16,185,129,.04) 0%,transparent 50%);pointer-events:none;z-index:0;}
+header{position:relative;z-index:1;padding:1.2rem 1.3rem .85rem;border-bottom:1px solid var(--brd2);background:linear-gradient(180deg,rgba(249,115,22,.06) 0%,transparent 100%);}
+.hdr-row{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;}
+h1{font-size:1.4rem;font-weight:800;line-height:1.07;letter-spacing:-.02em;}
+h1 span{color:var(--onion);}h1 em{font-style:normal;color:var(--cqrs);}
+.tag{font-family:'Inconsolata',monospace;font-size:.56rem;padding:.25rem .55rem;border-radius:4px;background:rgba(249,115,22,.12);color:var(--onion);border:1px solid rgba(249,115,22,.28);white-space:nowrap;margin-top:.2rem;}
+header p{font-size:.7rem;color:var(--muted);margin-top:.25rem;font-family:'Inconsolata',monospace;}
+.topbar{position:relative;z-index:1;background:var(--surf);border-bottom:1px solid var(--brd2);padding:.75rem 1.3rem .65rem;}
+.tb-t{font-family:'Inconsolata',monospace;font-size:.54rem;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin-bottom:.5rem;}
+.steps{display:flex;align-items:center;gap:0;margin-bottom:.45rem;}
+.st{flex:1;display:flex;flex-direction:column;align-items:center;gap:.18rem;position:relative;}
+.st:not(:last-child)::after{content:'';position:absolute;right:0;top:12px;width:50%;height:2px;background:var(--brd);z-index:0;}
+.st:not(:first-child)::before{content:'';position:absolute;left:0;top:12px;width:50%;height:2px;background:var(--brd);z-index:0;}
+.sd{width:24px;height:24px;border-radius:50%;border:2px solid var(--brd2);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:.6rem;z-index:1;transition:all .35s;position:relative;}
+.sl{font-family:'Inconsolata',monospace;font-size:.44rem;color:var(--muted);text-align:center;line-height:1.2;}
+.st.active .sd{transform:scale(1.25);box-shadow:0 0 10px currentColor;}
+.st.done .sd{opacity:.55;}
+.st.active .sl{font-weight:700;}
+.layer-chips{display:flex;gap:4px;flex-wrap:wrap;}
+.lc{font-family:'Inconsolata',monospace;font-size:.52rem;font-weight:700;padding:.14rem .4rem;border-radius:3px;border:1px solid;opacity:.25;transition:opacity .3s;}
+.lc.on{opacity:1;}
+.content{position:relative;z-index:1;padding:.9rem 1.3rem;min-height:275px;}
+.shdr{display:flex;align-items:center;gap:.6rem;margin-bottom:.85rem;}
+.sico{width:36px;height:36px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;border:1.5px solid var(--brd2);background:var(--card);}
+.stitle{font-size:.95rem;font-weight:800;letter-spacing:-.02em;}
+.ssub{font-family:'Inconsolata',monospace;font-size:.56rem;color:var(--muted);margin-top:.03rem;}
+.chat{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.7rem;}
+.msg{display:flex;gap:.4rem;align-items:flex-start;opacity:0;transform:translateY(6px);transition:opacity .3s,transform .3s;}
+.msg.show{opacity:1;transform:translateY(0);}
+.msg.r{flex-direction:row-reverse;}
+.av{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;border:1px solid var(--brd2);background:var(--card);}
+.bub{max-width:82%;padding:.48rem .68rem;border-radius:9px;font-size:.77rem;line-height:1.55;border:1px solid var(--brd2);background:var(--card);}
+.bub.l{border-bottom-left-radius:2px;}.bub.r2{border-bottom-right-radius:2px;text-align:right;}
+.who{font-family:'Inconsolata',monospace;font-size:.55rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.1rem;}
+.ibox{border-radius:8px;padding:.55rem .75rem;font-size:.74rem;line-height:1.55;margin:.45rem 0;border:1px solid var(--brd2);background:var(--card);border-left:3px solid var(--onion);}
+.ibox strong{font-weight:700;}
+.ibox.dom{border-left-color:var(--domain);}.ibox.dom strong{color:var(--domain);}
+.ibox.warn{border-left-color:var(--crud);}.ibox.warn strong{color:var(--crud);}
+
+.cklist{display:flex;flex-direction:column;gap:.35rem;margin:.45rem 0;}
+.cli{display:flex;align-items:flex-start;gap:.5rem;padding:.42rem .65rem;background:var(--card);border:1px solid var(--brd2);border-radius:8px;font-size:.75rem;line-height:1.45;}
+.cli-i{flex-shrink:0;font-size:.88rem;}
+.cli strong{display:block;font-weight:700;font-size:.76rem;margin-bottom:.03rem;}
+.cli span{color:var(--muted);font-size:.68rem;font-family:'Inconsolata',monospace;}
+
+/* ONION VISUAL */
+.onion-vis{background:var(--card);border:1.5px solid var(--brd2);border-radius:11px;padding:1.2rem .7rem;margin:.45rem 0;display:flex;align-items:center;justify-content:center;flex-direction:column;}
+.onion-layer{border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Inconsolata',monospace;font-weight:700;text-align:center;}
+.ol-test{width:230px;height:230px;border:2px solid var(--test);background:rgba(34,211,238,.04);position:relative;}
+.ol-ui{width:200px;height:200px;border:2px solid var(--ui);background:rgba(59,130,246,.06);position:absolute;top:15px;left:15px;}
+.ol-infra{width:200px;height:200px;border:2px solid var(--infra);background:rgba(107,114,128,.06);position:absolute;top:15px;right:15px;}
+.ol-aservice{width:170px;height:170px;border:2px solid var(--aservice);background:rgba(168,85,247,.06);position:absolute;top:30px;left:30px;}
+.ol-dservice{width:130px;height:130px;border:2px solid var(--dservice);background:rgba(245,158,11,.06);position:absolute;top:50px;left:50px;}
+.ol-domain{width:80px;height:80px;border:2px solid var(--domain);background:rgba(16,185,129,.1);position:absolute;top:75px;left:75px;font-size:.65rem;color:var(--domain);}
+
+/* SIMPLE ONION */
+.onion-simple{display:flex;flex-direction:column;align-items:center;gap:.3rem;margin:.45rem 0;padding:.5rem;background:var(--card);border:1.5px solid var(--brd2);border-radius:10px;}
+.os-layer{padding:.4rem 1rem;border-radius:25px;border:1.5px solid;text-align:center;font-family:'Inconsolata',monospace;font-weight:700;width:100%;max-width:340px;display:flex;align-items:center;justify-content:center;gap:.4rem;}
+.os-label{font-size:.6rem;}
+.os-desc{font-size:.55rem;color:var(--muted);font-weight:400;}
+
+/* LAYERED PROBLEM */
+.layered-vis{display:flex;flex-direction:column;gap:0;margin:.45rem 0;border:1.5px solid rgba(239,68,68,.3);border-radius:10px;overflow:hidden;}
+.lv-row{padding:.5rem .65rem;border-bottom:1px solid var(--brd);font-family:'Inconsolata',monospace;font-size:.65rem;font-weight:700;display:flex;align-items:center;gap:.5rem;}
+.lv-row:last-child{border-bottom:none;}
+
+/* CODE BLOCK */
+.code{background:#0d1117;border:1px solid var(--brd2);border-radius:8px;padding:.6rem .75rem;margin:.35rem 0;font-family:'Inconsolata',monospace;font-size:.66rem;line-height:1.7;overflow-x:auto;}
+.cb-label{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem;}
+.c-kw{color:#ff7b72;}.c-fn{color:#d2a8ff;}.c-str{color:#a5d6ff;}.c-var{color:#ffa657;}.c-cmt{color:#8b949e;font-style:italic;}.c-good{background:rgba(16,185,129,.15);border-radius:3px;padding:0 2px;}.c-bad{background:rgba(239,68,68,.15);border-radius:3px;padding:0 2px;}
+
+/* COMPARE */
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+
+/* CQRS FLOW */
+.cqrs-flow{background:var(--card);border:1.5px solid var(--brd2);border-radius:10px;padding:.7rem;margin:.45rem 0;}
+.cq-title{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem;text-align:center;}
+.cq-row{display:flex;align-items:center;gap:.35rem;margin:.3rem 0;font-size:.66rem;flex-wrap:wrap;}
+.cq-box{padding:.3rem .5rem;border-radius:6px;border:1.5px solid;font-family:'Inconsolata',monospace;font-size:.6rem;font-weight:700;}
+.cq-arr{color:var(--muted);font-size:.7rem;}
+
+/* SUMGRID */
+.sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+.sbox{background:var(--card);border:1px solid var(--brd2);border-radius:8px;padding:.6rem;text-align:center;}
+.sbox .ico{font-size:1.2rem;display:block;margin-bottom:.15rem;}
+.sbox .val{font-size:.88rem;font-weight:800;}
+.sbox .lbl{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);margin-top:.04rem;}
+
+/* VO/ENTITY */
+.entity-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+.entity-card{padding:.65rem .75rem;border-radius:9px;border:1.5px solid;}
+.ec-name{font-family:'Inconsolata',monospace;font-size:.62rem;font-weight:700;margin-bottom:.2rem;}
+.ec-desc{font-size:.68rem;line-height:1.5;color:rgba(216,228,255,.82);margin-bottom:.35rem;}
+
+.nav{position:sticky;bottom:0;z-index:10;background:var(--bg);border-top:1px solid var(--brd2);padding:.7rem 1.3rem;display:flex;align-items:center;gap:.5rem;}
+.btn{font-family:'Inconsolata',monospace;font-size:.63rem;font-weight:600;padding:.52rem 1rem;border-radius:7px;cursor:pointer;transition:all .18s;text-transform:uppercase;letter-spacing:.04em;}
+.btnp{background:transparent;color:var(--muted);border:1px solid var(--brd2);}
+.btnp:hover{color:var(--text);}
+.btnp:disabled{opacity:.2;cursor:not-allowed;}
+.btnn{flex:1;background:rgba(249,115,22,.12);color:var(--onion);border:1px solid rgba(249,115,22,.3);}
+.btnn:hover{background:rgba(249,115,22,.22);}
+.ctr{font-family:'Inconsolata',monospace;font-size:.57rem;color:var(--muted);white-space:nowrap;}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-row">
+    <h1><span>DDD</span> &amp;<br>Onion arch.<br>&amp; <em>CQRS</em></h1>
+    <div class="tag">Eric Evans · Martin Fowler</div>
+  </div>
+  <p>// Domain-Driven Design · Hagyma architektúra · CRUD vs CQRS</p>
+</header>
+<div class="topbar">
+  <div class="tb-t">// témakörök</div>
+  <div class="steps" id="steps"></div>
+  <div class="layer-chips" id="layerChips"></div>
+</div>
+<div class="content" id="content"></div>
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 14</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+<script>
+const TOPICS=[
+  {label:'Rétegelt\nproblémái',color:'var(--layered)',icon:'🥞'},
+  {label:'Onion\narch.',color:'var(--onion)',icon:'🧅'},
+  {label:'Rétegek\nrészletei',color:'var(--domain)',icon:'🎯'},
+  {label:'DDD\nEric Evans',color:'var(--aservice)',icon:'📐'},
+  {label:'CRUD\nproblémái',color:'var(--crud)',icon:'❌'},
+  {label:'CQRS\nmegoldás',color:'var(--cqrs)',icon:'✅'},
+  {label:'Össze.',color:'var(--onion)',icon:'∑'},
+];
+const LAYERS=[
+  {label:'Domain',color:'var(--domain)'},
+  {label:'Domain Service',color:'var(--dservice)'},
+  {label:'App Service',color:'var(--aservice)'},
+  {label:'UI',color:'var(--ui)'},
+  {label:'Infrastructure',color:'var(--infra)'},
+  {label:'Tests',color:'var(--test)'},
+];
+
+const STEPS=[
+  // 0. RÉTEGELT ARCHITEKTÚRA PROBLÉMÁI
+  {t:0,layers:[],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,.5)">🥞</div>
+      <div><div class="stitle">Klasszikus rétegelt architektúra problémái</div>
+      <div class="ssub">// minden réteg függ az alatta lévőtől → ki kell rugalmasan</div></div>
+    </div>
+    <div class="layered-vis">
+      <div class="lv-row" style="background:rgba(59,130,246,.08);color:var(--ui)">📱 Presentation Layer (UI)</div>
+      <div class="lv-row" style="background:rgba(168,85,247,.08);color:var(--aservice)">⚙️ Business Logic Layer</div>
+      <div class="lv-row" style="background:rgba(245,158,11,.08);color:var(--dservice)">💾 Data Access Layer</div>
+      <div class="lv-row" style="background:rgba(107,114,128,.1);color:var(--infra)">🗄️ Database / Infrastructure</div>
+    </div>
+    <div style="text-align:center;font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--layered);margin:.4rem 0">↓ ↓ ↓ minden réteg az alatta lévőtől függ ↓ ↓ ↓</div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--layered)">
+        <div class="cli-i">🔗</div>
+        <div><strong>Erős függőség lefelé</strong>
+        <span>A Business Logic közvetlenül használja a Data Access-t, ami közvetlenül használja az adatbázist. Ha bármi változik lent → minden megdől felette.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--layered)">
+        <div class="cli-i">🧪</div>
+        <div><strong>Nehéz tesztelhetőség</strong>
+        <span>Hogyan teszteled a Business Logic-ot adatbázis nélkül? Nehezen — minden a teljes stack-re épül.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--layered)">
+        <div class="cli-i">🔄</div>
+        <div><strong>Infrastruktúra-csere katasztrófa</strong>
+        <span>Cserélnéd a MySQL-t PostgreSQL-re? Minden Data Access kód módosul → minden Business Logic módosul → minden UI módosul. Több hónap munka.</span></div>
+      </div>
+    </div>
+    <div class="ibox warn"><strong>A fő probléma:</strong> A klasszikus rétegelt architektúra a Database-t és infrastruktúrát teszi a "központba". Minden réteg függ az infrastruktúrától — ha ott valami változik, az az egész alkalmazásra jelentős kihatással jár.</div>
+  `},
+
+  // 1. ONION ARCHITEKTÚRA BEVEZETŐ
+  {t:1,layers:[0,1,2,3,4,5],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(249,115,22,.5)">🧅</div>
+      <div><div class="stitle">Onion (hagyma) architektúra — megfordított függőség</div>
+      <div class="ssub">// Jeffrey Palermo, 2008 — a domain modell a központban</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--onion)">Oktató</div>
+        Az Onion architektúra MEGFORDÍTJA a függőségeket. A DOMAIN modell a központban — minden más KÖRÜLÖTTE veszi körbe, mint a hagyma rétegei. A belső réteg NEM TUDHAT a külsőkről.
+      </div></div>
+    </div>
+    <div class="onion-simple">
+      <div class="os-layer" style="background:rgba(34,211,238,.06);color:var(--test);border-color:rgba(34,211,238,.4);max-width:100%">
+        <span class="os-label">🧪 Tests</span><span class="os-desc">— minden réteget tesztel</span>
+      </div>
+      <div class="os-layer" style="background:rgba(59,130,246,.06);color:var(--ui);border-color:rgba(59,130,246,.4);max-width:90%">
+        <span class="os-label">📱 UI</span><span class="os-desc">— Web, Mobile, Desktop</span>
+      </div>
+      <div class="os-layer" style="background:rgba(107,114,128,.08);color:var(--infra);border-color:rgba(107,114,128,.4);max-width:80%">
+        <span class="os-label">🗄️ Infrastructure</span><span class="os-desc">— DB, Email, External</span>
+      </div>
+      <div class="os-layer" style="background:rgba(168,85,247,.07);color:var(--aservice);border-color:rgba(168,85,247,.4);max-width:70%">
+        <span class="os-label">⚙️ App Services</span><span class="os-desc">— use case-ek</span>
+      </div>
+      <div class="os-layer" style="background:rgba(245,158,11,.07);color:var(--dservice);border-color:rgba(245,158,11,.4);max-width:60%">
+        <span class="os-label">💼 Domain Services</span><span class="os-desc">— folyamatok</span>
+      </div>
+      <div class="os-layer" style="background:rgba(16,185,129,.12);color:var(--domain);border-color:rgba(16,185,129,.5);max-width:50%">
+        <span class="os-label">🎯 DOMAIN MODEL</span><span class="os-desc">— a mag</span>
+      </div>
+    </div>
+    <div class="ibox dom"><strong>Az aranyszabály:</strong> A belső réteg NEM HIVATKOZHAT a kívül levőkre — azokról semmit nem tudhat. Így bármely külső réteg megváltoztatható, lecserélhető anélkül, hogy a belső rétegeket módosítani kellene.</div>
+  `},
+
+  // 2. DOMAIN MODEL — A KÖZPONT
+  {t:2,layers:[0],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,.5)">🎯</div>
+      <div><div class="stitle">A Domain Model — a rendszer magja</div>
+      <div class="ssub">// szakterületi alapfogalmak — entitások</div></div>
+    </div>
+    <div style="background:rgba(16,185,129,.06);border:2px solid rgba(16,185,129,.35);border-radius:11px;padding:.85rem 1rem;margin:.45rem 0">
+      <div style="font-family:'Inconsolata',monospace;font-size:.58rem;color:var(--domain);font-weight:700;margin-bottom:.2rem">🎯 DOMAIN MODEL — Belső réteg</div>
+      <div style="font-size:.78rem;line-height:1.6">A rendszer MAGJA. Itt találhatók a szakterület alapvető koncepcióit, fogalmait leíró <strong>entitások</strong>. Nem tud semmit az infrastruktúráról, UI-ról, alkalmazás-folyamatokról.</div>
+    </div>
+    <div class="code">
+      <div class="cb-label">// Példa Domain Entity — bankrendszer</div>
+      <span class="c-kw">class</span> <span class="c-fn">Account</span> {<br>
+      &nbsp;&nbsp;<span class="c-kw">private</span> Money <span class="c-var">balance</span>;<br>
+      &nbsp;&nbsp;<span class="c-kw">private</span> AccountId <span class="c-var">id</span>;<br>
+      <br>
+      &nbsp;&nbsp;<span class="c-cmt">// Üzleti szabály — tisztán a domainben</span><br>
+      &nbsp;&nbsp;<span class="c-kw">public void</span> <span class="c-fn">withdraw</span>(Money amount) {<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="c-kw">if</span> (balance.<span class="c-fn">isLessThan</span>(amount))<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-kw">throw new</span> InsufficientFundsException();<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;balance = balance.<span class="c-fn">subtract</span>(amount);<br>
+      &nbsp;&nbsp;}<br>
+      }
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--domain)">
+        <div class="cli-i">📦</div>
+        <div><strong>Tiszta üzleti logika</strong>
+        <span>NINCS itt SQL, HTTP, JSON, fájlrendszer. Csak az üzleti szabályok. Az Account.withdraw() metódus ugyanaz lenne, ha kézzel papírral számolnánk.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--domain)">
+        <div class="cli-i">🚫</div>
+        <div><strong>Semmilyen külső függőség</strong>
+        <span>Nincs import az adatbázisból, frameworkokból. A domain réteg "tiszta" — bárhol futtatható, bármikor tesztelhető.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 3. VALUE OBJECT VS ENTITY
+  {t:2,layers:[0],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,.5)">🧩</div>
+      <div><div class="stitle">Value Object vs Entity</div>
+      <div class="ssub">// a Domain Model két alapvető építőeleme</div></div>
+    </div>
+    <div class="entity-grid">
+      <div class="entity-card" style="background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.35)">
+        <div class="ec-name" style="color:var(--domain)">🆔 Entity</div>
+        <div class="ec-desc">Egyedi azonosítóval rendelkezik. Az állapota változhat, de az azonossága megmarad.</div>
+        <div class="code" style="margin:.2rem 0">
+          <span class="c-kw">class</span> <span class="c-fn">Customer</span> {<br>
+          &nbsp;&nbsp;CustomerId <span class="c-var">id</span>; <span class="c-cmt">// EGYEDI</span><br>
+          &nbsp;&nbsp;String <span class="c-var">name</span>;<br>
+          }
+        </div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--muted);line-height:1.5">Két Customer akkor egyenlő, ha az ID-juk megegyezik — akkor is, ha a nevük más.</div>
+      </div>
+      <div class="entity-card" style="background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.35)">
+        <div class="ec-name" style="color:var(--dservice)">💎 Value Object</div>
+        <div class="ec-desc">NINCS egyedi azonosítója. Az értéke az "identitása". Megváltoztathatatlan (immutable).</div>
+        <div class="code" style="margin:.2rem 0">
+          <span class="c-kw">class</span> <span class="c-fn">Money</span> {<br>
+          &nbsp;&nbsp;BigDecimal <span class="c-var">amount</span>;<br>
+          &nbsp;&nbsp;String <span class="c-var">currency</span>;<br>
+          }
+        </div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--muted);line-height:1.5">Két 100 EUR teljesen egyenlő — nincs különbség közöttük.</div>
+      </div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">🙋</div><div class="bub l"><div class="who" style="color:var(--aservice)">Tanuló</div>
+        Mi a helyzet a Név mezővel? Az milyen?
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">👨‍🏫</div><div class="bub r2"><div class="who" style="color:var(--domain);text-align:right">Oktató</div>
+        Az is Value Object lehet! Pl. a Name osztály egy összetett value object: vezetéknév + keresztnév + middle name. Két "Kovács István" név teljesen egyenlő. NINCS ID-jük.
+      </div></div>
+    </div>
+    <div class="ibox dom"><strong>Egyszerű szabály:</strong> Ha kérdezed "ugyanaz?" → ha az IDENTITÁS számít (pl. Customer azonosító) → Entity. Ha az ÉRTÉK számít (pl. Money, Address, Name) → Value Object. Az életciklusukban is más: Entity változik (state mutation), Value Object cserélhető (new instance).</div>
+  `},
+
+  // 4. DOMAIN SERVICES
+  {t:2,layers:[1],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,.5)">⚙️</div>
+      <div><div class="stitle">Domain Services — szakterületi folyamatok</div>
+      <div class="ssub">// olyan logika, ami nem fér bele egy entityba</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">🙋</div><div class="bub l"><div class="who" style="color:var(--dservice)">Tanuló</div>
+        Mi van akkor, ha egy üzleti folyamat TÖBB entity-t érint? Pl. egy átutalás — két Account között történik.
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">👨‍🏫</div><div class="bub r2"><div class="who" style="color:var(--dservice);text-align:right">Oktató</div>
+        Ez egy Domain Service feladata! Olyan logika, ami logikailag a Domain-be tartozik, de NEM az egyik entityra jellemző specifikusan.
+      </div></div>
+    </div>
+    <div class="code">
+      <div class="cb-label">// Domain Service példa</div>
+      <span class="c-kw">class</span> <span class="c-fn">TransferService</span> {<br>
+      &nbsp;&nbsp;<span class="c-kw">public void</span> <span class="c-fn">transfer</span>(<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;Account from, Account to, Money amount<br>
+      &nbsp;&nbsp;) {<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;from.<span class="c-fn">withdraw</span>(amount);<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;to.<span class="c-fn">deposit</span>(amount);<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="c-cmt">// Üzleti szabály: mindkét account legyen aktív</span><br>
+      &nbsp;&nbsp;}<br>
+      }
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--dservice)">
+        <div class="cli-i">🎯</div>
+        <div><strong>Tisztán domain logika</strong>
+        <span>Itt is csak az üzleti folyamat. Nincs adatbázis, e-mail küldés, log. Csak az átutalás logikája — mit jelent átutalni két számla között?</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--dservice)">
+        <div class="cli-i">🔄</div>
+        <div><strong>Több entity közötti művelet</strong>
+        <span>A TransferService.transfer() két Account-tal dolgozik. Sehol másutt nem tudnánk ezt jól elhelyezni — nem az egyik Account felelőssége a másikkal való interakció.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 5. APPLICATION SERVICES
+  {t:2,layers:[2],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,.5)">📋</div>
+      <div><div class="stitle">Application Services — use case-ek</div>
+      <div class="ssub">// a domain és a külvilág közötti köztes réteg</div></div>
+    </div>
+    <div style="background:rgba(168,85,247,.06);border:2px solid rgba(168,85,247,.35);border-radius:11px;padding:.85rem 1rem;margin:.45rem 0">
+      <div style="font-family:'Inconsolata',monospace;font-size:.58rem;color:var(--aservice);font-weight:700;margin-bottom:.2rem">⚙️ APPLICATION SERVICES</div>
+      <div style="font-size:.78rem;line-height:1.6">Itt valósulnak meg az <strong>alkalmazással</strong> kapcsolatos folyamatok — a használati esetek (use case-ek). Kapcsolatot teremtenek a domain és az infrastruktúra között.</div>
+    </div>
+    <div class="code">
+      <div class="cb-label">// Application Service példa</div>
+      <span class="c-kw">class</span> <span class="c-fn">TransferAppService</span> {<br>
+      &nbsp;&nbsp;<span class="c-kw">public void</span> <span class="c-fn">transferMoney</span>(TransferRequest request) {<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="c-cmt">// 1. Load entities from repository (infra)</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;Account from = accountRepo.<span class="c-fn">find</span>(request.fromId);<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;Account to = accountRepo.<span class="c-fn">find</span>(request.toId);<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="c-cmt">// 2. Run domain logic</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;transferService.<span class="c-fn">transfer</span>(from, to, request.amount);<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="c-cmt">// 3. Save changes + send email (infra)</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;accountRepo.<span class="c-fn">save</span>(from); accountRepo.<span class="c-fn">save</span>(to);<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;emailService.<span class="c-fn">sendNotification</span>(request);<br>
+      &nbsp;&nbsp;}<br>
+      }
+    </div>
+    <div class="ibox"><strong>Mi a különbség Domain Service és Application Service között?</strong> A Domain Service tiszta üzleti folyamatot ír le (transfer logika). Az App Service ORCHESTRÁLJA: betölti az entitásokat, futtatja a domain logikát, menti az eredményt, értesít. Az App Service "ragasztó".</div>
+  `},
+
+  // 6. UI ÉS INFRASTRUCTURE
+  {t:2,layers:[3,4],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,.5)">🌐</div>
+      <div><div class="stitle">UI és Infrastructure — a külső héj</div>
+      <div class="ssub">// cserélhető, lecserélhető</div></div>
+    </div>
+    <div class="cmp">
+      <div style="background:rgba(59,130,246,.06);border:1.5px solid rgba(59,130,246,.35);border-radius:10px;padding:.7rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--ui);font-weight:700;margin-bottom:.3rem">📱 USER INTERFACE</div>
+        <div style="font-size:.7rem;line-height:1.55;color:rgba(216,228,255,.85);margin-bottom:.35rem">A felhasználói felület — bármilyen technológia lehet.</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--muted);line-height:1.7">
+          ▸ WinForms (asztali Windows)<br>
+          ▸ WPF (modern Windows)<br>
+          ▸ Web — React, Vue, Angular<br>
+          ▸ Mobile — iOS, Android<br>
+          ▸ REST API endpoint<br>
+          ▸ Console / CLI
+        </div>
+      </div>
+      <div style="background:rgba(107,114,128,.08);border:1.5px solid rgba(107,114,128,.35);border-radius:10px;padding:.7rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--infra);font-weight:700;margin-bottom:.3rem">🗄️ INFRASTRUCTURE</div>
+        <div style="font-size:.7rem;line-height:1.55;color:rgba(216,228,255,.85);margin-bottom:.35rem">Minden külső szolgáltatás technikai megvalósítása.</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--muted);line-height:1.7">
+          ▸ Adatbázis (PostgreSQL, MongoDB)<br>
+          ▸ E-mail küldés (SendGrid, SMTP)<br>
+          ▸ Fájltárolás (S3, Azure Blob)<br>
+          ▸ Külső API hívások (Stripe, PayPal)<br>
+          ▸ Logging (ELK, CloudWatch)<br>
+          ▸ Cache (Redis, Memcached)
+        </div>
+      </div>
+    </div>
+    <div class="ibox"><strong>A varázslat:</strong> Mindkét réteg LECSERÉLHETŐ a belső rétegek érintése nélkül. PostgreSQL-ről MongoDB-re váltasz? Csak az Infrastructure réteget változtatod. WinForms-ról WPF-re vagy webre? Csak a UI változik. A domain logika érintetlen marad — ez az Onion ereje.</div>
+  `},
+
+  // 7. ONION ELŐNYÖK
+  {t:1,layers:[],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(249,115,22,.5)">⭐</div>
+      <div><div class="stitle">Miért éri meg az Onion architektúrát?</div>
+      <div class="ssub">// 4 nagy előny</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--cqrs)">
+        <div class="cli-i">🧪</div>
+        <div><strong>Tesztelhetőség</strong>
+        <span>A Domain réteget teljesen izoláltan teszteled — nem kell adatbázis, nem kell hálózat, nem kell mock-ok. Másodpercek alatt fut le pár ezer unit teszt.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--cqrs)">
+        <div class="cli-i">🔄</div>
+        <div><strong>Karbantarthatóság</strong>
+        <span>Üzleti változás? Csak a domain rétegben. UI változás? Csak a UI-ban. Adatbázis migrációs változás? Csak az Infrastructure-ben. Egymástól független rétegek.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--cqrs)">
+        <div class="cli-i">🔌</div>
+        <div><strong>Cserélhetőség (Dependency Inversion)</strong>
+        <span>A domain interface-ket definiál (pl. AccountRepository). Az Infrastructure réteg IMPLEMENTÁLJA. Cserélhető bármikor — a domain nem tudja, milyen DB van mögötte.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--cqrs)">
+        <div class="cli-i">🎯</div>
+        <div><strong>Domain fókusz</strong>
+        <span>A legfontosabb (és legritkábban változó) az üzleti logika — ez a középen, védve a változó külső technológiáktól. Évek múlva is működő üzleti logika.</span></div>
+      </div>
+    </div>
+    <div class="ibox dom"><strong>Hexagonális architektúra:</strong> Az Onion architektúra rokona az ún. "Hexagonal" vagy "Ports and Adapters" architektúra (Alistair Cockburn). Ugyanaz az alapelv: a domain a középen, körülötte adapterek a külvilág felé. A két név gyakran felcserélődik a gyakorlatban.</div>
+  `},
+
+  // 8. DDD — ERIC EVANS
+  {t:3,layers:[],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,.5)">📐</div>
+      <div><div class="stitle">Domain-Driven Design (DDD)</div>
+      <div class="ssub">// Eric Evans, 2003 — a domain-vezérelt tervezés</div></div>
+    </div>
+    <div style="background:rgba(168,85,247,.06);border:2px solid rgba(168,85,247,.35);border-radius:11px;padding:.85rem 1rem;margin:.45rem 0">
+      <div style="font-family:'Inconsolata',monospace;font-size:.58rem;color:var(--aservice);font-weight:700;margin-bottom:.2rem">DDD — Domain-Driven Design</div>
+      <div style="font-size:.78rem;line-height:1.6">Eric Evans módszertana: a szoftvert a SZAKTERÜLET (domain) hajtsa. Nem a technológia, nem az adatbázis séma — hanem az üzleti folyamatok és fogalmak.</div>
+      <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--muted);margin-top:.3rem">📕 Domain-Driven Design: Tackling Complexity in the Heart of Software (2003)</div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--aservice)">
+        <div class="cli-i">💬</div>
+        <div><strong>Ubiquitous Language (Közös nyelv)</strong>
+        <span>A szakterületi nyelvet a kódban is használjuk. "Túllépte a kontingenst" → Quota.exceeded(). Senki nem fordít — a meeting és a kód ugyanazt mondja.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--aservice)">
+        <div class="cli-i">🏛️</div>
+        <div><strong>Bounded Context</strong>
+        <span>Egy nagy rendszerben több domain modell létezik. Pl. "Customer" mást jelent a Sales kontextusban, mint a Support kontextusban. Mindegyiknek külön modellje van — világos határokkal.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--aservice)">
+        <div class="cli-i">🧩</div>
+        <div><strong>Building blocks — Entity, Value Object, Aggregate, Repository</strong>
+        <span>DDD definiált építőelemeket ad: Entity (id-vel), Value Object (immutable), Aggregate (entitások csoportja), Repository (perzisztencia absztrakció), Domain Service, Factory, ...</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--aservice)">
+        <div class="cli-i">🤝</div>
+        <div><strong>Szakértőkkel való szoros együttműködés</strong>
+        <span>A fejlesztők és a domain szakértők EGYÜTT alakítják ki a modellt. Nem "én megírom, te add a követelményeket" — közös fogalmak, közös megértés.</span></div>
+      </div>
+    </div>
+    <div class="ibox"><strong>DDD ≠ Onion:</strong> A DDD egy MÓDSZERTAN — hogyan tervezzünk komplex rendszereket. Az Onion egy ARCHITEKTÚRA MINTA — hogyan strukturáljuk a kódot. Gyakran együtt használják őket, de függetlenül is működnek. A DDD nem kötelezi az Onion-t, és fordítva.</div>
+  `},
+
+  // 9. CRUD — A KLASSZIKUS MEGKÖZELÍTÉS
+  {t:4,layers:[],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,.5)">❌</div>
+      <div><div class="stitle">CRUD — Create, Read, Update, Delete</div>
+      <div class="ssub">// a hagyományos megközelítés — és miért NEM elég</div></div>
+    </div>
+    <div style="background:rgba(239,68,68,.06);border:1.5px solid rgba(239,68,68,.3);border-radius:9px;padding:.65rem .75rem;margin:.45rem 0">
+      <div style="font-family:'Inconsolata',monospace;font-size:.58rem;color:var(--crud);font-weight:700;margin-bottom:.25rem">CRUD MEGKÖZELÍTÉS</div>
+      <div style="font-size:.72rem;line-height:1.55">A CRUD-ban az alkalmazás központi eleme az adatbázis. A UI → service → adatbázis. Az objektumokon a 4 alapművelet: <strong>C</strong>reate, <strong>R</strong>ead, <strong>U</strong>pdate, <strong>D</strong>elete.</div>
+    </div>
+    <div class="cqrs-flow">
+      <div class="cq-title">// CRUD architektúra</div>
+      <div class="cq-row" style="justify-content:center">
+        <div class="cq-box" style="background:rgba(59,130,246,.1);color:var(--ui);border-color:rgba(59,130,246,.35)">📱 UI</div>
+        <div class="cq-arr">↔</div>
+        <div class="cq-box" style="background:rgba(168,85,247,.1);color:var(--aservice);border-color:rgba(168,85,247,.35)">⚙️ Service</div>
+        <div class="cq-arr">↔</div>
+        <div class="cq-box" style="background:rgba(107,114,128,.15);color:var(--infra);border-color:rgba(107,114,128,.35)">🗄️ Database</div>
+      </div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--crud)">Oktató</div>
+        Egy egyszerű app-ra ez tökéletes. De ahogy a modell egyre KOMPLEXEBB, a CRUD egyre több problémát okoz...
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--crud)">
+        <div class="cli-i">📈</div>
+        <div><strong>Exponenciális komplexitás</strong>
+        <span>Egy tárolási műveletnek egyre többször kell EGYSZERRE TÖBB objektumon végeznie változtatást. A logika az adatbázis köré tekeredik — ahol egyszerre kell konzisztenciát is tartani.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--crud)">
+        <div class="cli-i">🗄️</div>
+        <div><strong>Adatbázis-centrikus gondolkodás</strong>
+        <span>A CRUD-ban az adatbázis táblákban gondolkodunk — nem az üzleti folyamatokban. "Hogyan tárolom?" megelőzi a "Mit jelent?" kérdést.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--crud)">
+        <div class="cli-i">⚖️</div>
+        <div><strong>Olvasás és írás keveredik</strong>
+        <span>Ugyanaz a model olvas és ír. De az olvasás teljesen más igényeket támaszt (gyorsaság, nézetek) mint az írás (üzleti szabályok, validáció).</span></div>
+      </div>
+    </div>
+  `},
+
+  // 10. CQRS BEVEZETŐ
+  {t:5,layers:[],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,.5)">✅</div>
+      <div><div class="stitle">CQRS — Command Query Responsibility Segregation</div>
+      <div class="ssub">// különválasztjuk az olvasást és az írást</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--cqrs)">Oktató</div>
+        Az ötlet egyszerű: az adatbázis olvasása nem jár módosítással. Az olvasás (Query) más mint az írás (Command). Akkor MIÉRT használnánk ugyanazt a modellt?
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">🙋</div><div class="bub r2"><div class="who" style="color:var(--aservice);text-align:right">Tanuló</div>
+        Tehát: két különböző domain modell — egyik az írásokra, másik az olvasásokra?
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--cqrs)">Oktató</div>
+        Pontosan! A CQRS szétválasztja a domain modellt két részre: Command modell (módosítás) és Query modell (olvasás).
+      </div></div>
+    </div>
+    <div class="cqrs-flow">
+      <div class="cq-title">// CQRS architektúra — szétválasztott adatutak</div>
+      <div class="cq-row">
+        <div class="cq-box" style="background:rgba(59,130,246,.1);color:var(--ui);border-color:rgba(59,130,246,.35)">📱 UI</div>
+        <div class="cq-arr">→</div>
+        <div class="cq-box" style="background:rgba(245,158,11,.12);color:var(--cmd);border-color:rgba(245,158,11,.4)">⚡ Command</div>
+        <div class="cq-arr">→</div>
+        <div class="cq-box" style="background:rgba(245,158,11,.08);color:var(--cmd);border-color:rgba(245,158,11,.3)">Command DB</div>
+        <div style="font-size:.6rem;color:var(--muted);font-family:'Inconsolata',monospace;margin-left:.5rem">— ÍRÁS</div>
+      </div>
+      <div class="cq-row">
+        <div class="cq-box" style="background:rgba(59,130,246,.1);color:var(--ui);border-color:rgba(59,130,246,.35)">📱 UI</div>
+        <div class="cq-arr">←</div>
+        <div class="cq-box" style="background:rgba(59,130,246,.12);color:var(--query);border-color:rgba(59,130,246,.4)">🔍 Query</div>
+        <div class="cq-arr">←</div>
+        <div class="cq-box" style="background:rgba(59,130,246,.08);color:var(--query);border-color:rgba(59,130,246,.3)">Read DB</div>
+        <div style="font-size:.6rem;color:var(--muted);font-family:'Inconsolata',monospace;margin-left:.5rem">— OLVASÁS</div>
+      </div>
+    </div>
+    <div class="ibox dom"><strong>Martin Fowler szerint:</strong> A CQRS minta a komplex rendszereknél jelentős előnyt ad. Ahol az olvasás és írás aránya nagyon eltérő — pl. egy webshopnál 99% olvasás, 1% módosítás — drámaian gyorsabbá teszi az olvasásokat.</div>
+  `},
+
+  // 11. CQRS RÉSZLETEK
+  {t:5,layers:[],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,.5)">🎯</div>
+      <div><div class="stitle">Command Model vs Query Model</div>
+      <div class="ssub">// két modell, két cél</div></div>
+    </div>
+    <div class="cmp">
+      <div style="background:rgba(245,158,11,.06);border:1.5px solid rgba(245,158,11,.35);border-radius:10px;padding:.7rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--cmd);font-weight:700;margin-bottom:.3rem">⚡ COMMAND MODEL</div>
+        <div style="font-size:.72rem;line-height:1.5;margin-bottom:.3rem">Az adatok MÓDOSÍTÁSÁÉRT felel. Explicit parancsokra megy végbe.</div>
+        <div class="code" style="margin:.2rem 0">
+          <span class="c-kw">class</span> <span class="c-fn">TransferMoneyCommand</span> {<br>
+          &nbsp;&nbsp;UUID <span class="c-var">fromAccount</span>;<br>
+          &nbsp;&nbsp;UUID <span class="c-var">toAccount</span>;<br>
+          &nbsp;&nbsp;Money <span class="c-var">amount</span>;<br>
+          }
+        </div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--muted);line-height:1.5">▸ Teljes üzleti validáció<br>▸ Domain szabályok<br>▸ Konzisztencia biztosítása<br>▸ Eseménykiváltás</div>
+      </div>
+      <div style="background:rgba(59,130,246,.06);border:1.5px solid rgba(59,130,246,.35);border-radius:10px;padding:.7rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--query);font-weight:700;margin-bottom:.3rem">🔍 QUERY MODEL</div>
+        <div style="font-size:.72rem;line-height:1.5;margin-bottom:.3rem">A LEKÉRDEZÉSEK kezelésére. Optimalizált, denormalizált.</div>
+        <div class="code" style="margin:.2rem 0">
+          <span class="c-kw">class</span> <span class="c-fn">AccountListView</span> {<br>
+          &nbsp;&nbsp;UUID <span class="c-var">id</span>;<br>
+          &nbsp;&nbsp;String <span class="c-var">customerName</span>;<br>
+          &nbsp;&nbsp;Money <span class="c-var">balance</span>;<br>
+          &nbsp;&nbsp;<span class="c-cmt">// csak ami a listához kell</span><br>
+          }
+        </div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--muted);line-height:1.5">▸ Adat csak amennyi kell<br>▸ Optimalizált gyors olvasás<br>▸ Lekérdezésre szabva<br>▸ Cache-elhető</div>
+      </div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--cqrs)">
+        <div class="cli-i">⚡</div>
+        <div><strong>Optimalizálható minden út külön</strong>
+        <span>A Query oldal lehet egy szuper gyors NoSQL adatbázis vagy elasticsearch index. A Command oldal lehet egy hagyományos relációs DB konzisztenciagaranciával. Mindenki saját igényei szerint.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--cqrs)">
+        <div class="cli-i">🛡️</div>
+        <div><strong>Rizikócsökkentés</strong>
+        <span>A módosító üzleti logika MEGVÉDVE az olvasási teljesítmény optimalizálástól. Ha gyorsítjuk a lekérdezést, biztos, hogy a módosító logika nem lesz érintett — nincs véletlen hiba.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 12. CQRS VS CRUD VÁLASZTÁS
+  {t:5,layers:[],render:()=>`
+    <div class="shdr"><div class="sico">⚖️</div>
+      <div><div class="stitle">Mikor válasszuk a CQRS-t és mikor a CRUD-ot?</div>
+      <div class="ssub">// nem mindig kell a CQRS!</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">🙋</div><div class="bub l"><div class="who" style="color:var(--cqrs)">Tanuló</div>
+        Akkor a CQRS mindig jobb mint a CRUD?
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">👨‍🏫</div><div class="bub r2"><div class="who" style="color:var(--cmd);text-align:right">Oktató</div>
+        NEM! A CQRS plusz komplexitást ad — két modellt kell karbantartani, szinkronizálni kell őket. Egyszerű appra TÚLZÁS lehet.
+      </div></div>
+    </div>
+    <div class="cmp">
+      <div style="background:rgba(239,68,68,.06);border:1.5px solid rgba(239,68,68,.3);border-radius:10px;padding:.75rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--crud);font-weight:700;margin-bottom:.3rem">✅ CRUD jó választás ha</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.65rem;color:var(--muted);line-height:1.7">
+          ▸ Egyszerű alkalmazás<br>
+          ▸ Kis-közepes adatkomplexitás<br>
+          ▸ Hasonló olvasási/írási arány<br>
+          ▸ Egy fejlesztő csapat<br>
+          ▸ Pl. blog admin felület, kis CRM
+        </div>
+      </div>
+      <div style="background:rgba(16,185,129,.06);border:1.5px solid rgba(16,185,129,.3);border-radius:10px;padding:.75rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--cqrs);font-weight:700;margin-bottom:.3rem">✅ CQRS jó választás ha</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.65rem;color:var(--muted);line-height:1.7">
+          ▸ Komplex domain<br>
+          ▸ Sokkal több olvasás, mint írás<br>
+          ▸ Skálázási igények<br>
+          ▸ Több csapat dolgozik rajta<br>
+          ▸ Pl. e-commerce, banki rendszer
+        </div>
+      </div>
+    </div>
+    <div class="ibox"><strong>Az egyensúly:</strong> Az "Egyszerű is lehet" elv — ne CQRS-ezz egy todo appra. De ha látod, hogy a rendszer komplexitása nő, és az olvasás-írás kiegyensúlyozottsága nagyon eltér, érdemes elgondolkodni rajta. Martin Fowler szerint: ha kétséges, NE használd. Csak ha tudod, MIÉRT kell.</div>
+  `},
+
+  // 13. ÖSSZEFOGLALÁS
+  {t:6,layers:[0,1,2,3,4,5],render:()=>`
+    <div class="shdr"><div class="sico">∑</div>
+      <div><div class="stitle">Összefoglalás — DDD, Onion, CQRS</div>
+      <div class="ssub">// a modern komplex rendszerek tervezésének építőkövei</div></div>
+    </div>
+    <div class="sumgrid">
+      <div class="sbox" style="border-top:2px solid var(--onion)"><span class="ico">🧅</span><div class="val">Onion Arch.</div><div class="lbl">Domain a központban</div></div>
+      <div class="sbox" style="border-top:2px solid var(--aservice)"><span class="ico">📐</span><div class="val">DDD</div><div class="lbl">Eric Evans, 2003</div></div>
+      <div class="sbox" style="border-top:2px solid var(--crud)"><span class="ico">📊</span><div class="val">CRUD</div><div class="lbl">Adatbázis-centrikus</div></div>
+      <div class="sbox" style="border-top:2px solid var(--cqrs)"><span class="ico">⚡</span><div class="val">CQRS</div><div class="lbl">Command + Query külön</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--layered)">
+        <div class="cli-i">🥞</div>
+        <div><strong>Klasszikus rétegelt probléma</strong>
+        <span>Minden felső réteg függ az alsóktól. Cserélni egy alsó réteget = teljes újraírás. Az infrastruktúra a központ, ami rugalmatlanná teszi a rendszert.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--onion)">
+        <div class="cli-i">🧅</div>
+        <div><strong>Onion architektúra — megfordított függőség</strong>
+        <span>Domain Model → Domain Services → App Services → UI / Infrastructure. A belső réteg nem tud a külsőkről. Bármely külső réteg cserélhető a belső érintése nélkül.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--aservice)">
+        <div class="cli-i">📐</div>
+        <div><strong>DDD — Domain-Driven Design</strong>
+        <span>Ubiquitous Language + Bounded Contexts + Building Blocks (Entity, Value Object, Aggregate, Repository). A szakterület hajtja a tervezést, nem a technológia.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--cqrs)">
+        <div class="cli-i">⚡</div>
+        <div><strong>CRUD vs CQRS</strong>
+        <span>CRUD egyszerű app-ra jó. CQRS komplex domain-re — Command (módosítás) és Query (olvasás) szétválasztva. Optimalizálható minden út külön — de plusz komplexitás.</span></div>
+      </div>
+    </div>
+  `},
+];
+
+function renderBoard(tIdx,layerIdxs){
+  document.getElementById('steps').innerHTML=TOPICS.map((t,i)=>{
+    const on=i===tIdx,done=i<tIdx;
+    const c=on?t.color:done?t.color:'var(--muted)';
+    return `<div class="st ${on?'active':done?'done':''}">
+      <div class="sd" style="border-color:${c};color:${c}">${t.icon}</div>
+      <div class="sl" style="color:${on?t.color:'var(--muted)'}">${t.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('layerChips').innerHTML=LAYERS.map((l,i)=>{
+    const on=layerIdxs.includes(i);
+    return `<div class="lc ${on?'on':''}" style="border-color:${l.color};color:${l.color}">${l.label}</div>`;
+  }).join('');
+}
+
+let cur=0;
+function render(){
+  const s=STEPS[cur];
+  renderBoard(s.t,s.layers);
+  const el=document.getElementById('content');
+  el.innerHTML=s.render();
+  setTimeout(()=>{el.querySelectorAll('.msg:not(.show)').forEach((m,i)=>setTimeout(()=>m.classList.add('show'),i*160));},60);
+  document.getElementById('bprev').disabled=cur===0;
+  document.getElementById('bnext').textContent=cur===STEPS.length-1?'↺ Újra':'Következő →';
+  document.getElementById('ctr').textContent=`${cur+1} / ${STEPS.length}`;
+}
+function next(){cur=cur===STEPS.length-1?0:cur+1;render();}
+function prev(){if(cur>0){cur--;render();}}
+render();
+</script>
+</body>
+</html>
