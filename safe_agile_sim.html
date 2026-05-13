@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAFe — Scaled Agile Framework</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+:root {
+  --bg:#0a0f1e; --surf:#0f1628; --card:#141d35; --brd:#1e2d50; --brd2:#263a68;
+  --text:#d8e4ff; --muted:#4a5f8a;
+  --port:#a855f7; --ess:#3b82f6; --team:#10b981;
+  --ce:#f59e0b; --ci:#6366f1; --cd:#22d3ee;
+  --pi:#ef4444; --acc:#3b82f6;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(59,130,246,.06) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(168,85,247,.04) 0%,transparent 50%);pointer-events:none;z-index:0;}
+header{position:relative;z-index:1;padding:1.2rem 1.3rem .85rem;border-bottom:1px solid var(--brd2);background:linear-gradient(180deg,rgba(59,130,246,.06) 0%,transparent 100%);}
+.hdr-row{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;}
+h1{font-size:1.4rem;font-weight:800;line-height:1.07;letter-spacing:-.02em;}
+h1 span{color:var(--acc);}h1 em{font-style:normal;color:var(--port);}
+.tag{font-family:'Inconsolata',monospace;font-size:.56rem;padding:.25rem .55rem;border-radius:4px;background:rgba(59,130,246,.12);color:var(--acc);border:1px solid rgba(59,130,246,.28);white-space:nowrap;margin-top:.2rem;}
+header p{font-size:.7rem;color:var(--muted);margin-top:.25rem;font-family:'Inconsolata',monospace;}
+/* TOPBAR */
+.topbar{position:relative;z-index:1;background:var(--surf);border-bottom:1px solid var(--brd2);padding:.75rem 1.3rem .65rem;}
+.tb-t{font-family:'Inconsolata',monospace;font-size:.54rem;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin-bottom:.5rem;}
+.level-bar{display:flex;gap:.35rem;margin-bottom:.45rem;}
+.lv-btn{flex:1;padding:.35rem .4rem;border-radius:6px;border:1.5px solid;font-family:'Inconsolata',monospace;font-size:.56rem;font-weight:700;text-align:center;opacity:.3;transition:opacity .3s;}
+.lv-btn.on{opacity:1;}
+.role-chips{display:flex;gap:4px;flex-wrap:wrap;}
+.rc{font-family:'Inconsolata',monospace;font-size:.52rem;font-weight:600;padding:.14rem .4rem;border-radius:3px;border:1px solid;opacity:.25;transition:opacity .3s;}
+.rc.on{opacity:1;}
+/* CONTENT */
+.content{position:relative;z-index:1;padding:.9rem 1.3rem;min-height:275px;}
+.shdr{display:flex;align-items:center;gap:.6rem;margin-bottom:.85rem;}
+.sico{width:36px;height:36px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;border:1.5px solid var(--brd2);background:var(--card);}
+.stitle{font-size:.95rem;font-weight:800;letter-spacing:-.02em;}
+.ssub{font-family:'Inconsolata',monospace;font-size:.56rem;color:var(--muted);margin-top:.03rem;}
+/* CHAT */
+.chat{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.7rem;}
+.msg{display:flex;gap:.4rem;align-items:flex-start;opacity:0;transform:translateY(6px);transition:opacity .3s,transform .3s;}
+.msg.show{opacity:1;transform:translateY(0);}
+.msg.r{flex-direction:row-reverse;}
+.av{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;border:1px solid var(--brd2);background:var(--card);}
+.bub{max-width:82%;padding:.48rem .68rem;border-radius:9px;font-size:.77rem;line-height:1.55;border:1px solid var(--brd2);background:var(--card);}
+.bub.l{border-bottom-left-radius:2px;}.bub.r2{border-bottom-right-radius:2px;text-align:right;}
+.who{font-family:'Inconsolata',monospace;font-size:.55rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.1rem;}
+/* IBOX */
+.ibox{border-radius:8px;padding:.55rem .75rem;font-size:.74rem;line-height:1.55;margin:.45rem 0;border:1px solid var(--brd2);background:var(--card);border-left:3px solid var(--acc);}
+.ibox strong{font-weight:700;}
+.ibox.p{border-left-color:var(--port);}.ibox.p strong{color:var(--port);}
+.ibox.ok{border-left-color:var(--team);}.ibox.ok strong{color:var(--team);}
+/* CHECKLIST */
+.cklist{display:flex;flex-direction:column;gap:.35rem;margin:.45rem 0;}
+.cli{display:flex;align-items:flex-start;gap:.5rem;padding:.42rem .65rem;background:var(--card);border:1px solid var(--brd2);border-radius:8px;font-size:.75rem;line-height:1.45;}
+.cli-i{flex-shrink:0;font-size:.88rem;}
+.cli strong{display:block;font-weight:700;font-size:.76rem;margin-bottom:.03rem;}
+.cli span{color:var(--muted);font-size:.68rem;font-family:'Inconsolata',monospace;}
+/* LEVEL CARD */
+.level-card{border-radius:11px;padding:.85rem 1rem;margin-bottom:.5rem;border:2px solid;}
+.lc-hdr{display:flex;align-items:center;gap:.6rem;margin-bottom:.4rem;}
+.lc-icon{font-size:1.8rem;}
+.lc-badge{font-family:'Inconsolata',monospace;font-size:.57rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.15rem;opacity:.8;}
+.lc-name{font-size:.95rem;font-weight:800;letter-spacing:-.02em;}
+.lc-desc{font-size:.74rem;line-height:1.6;color:rgba(216,228,255,.85);}
+.lc-roles{margin-top:.4rem;display:flex;flex-direction:column;gap:.15rem;}
+.lc-role{font-size:.7rem;color:rgba(200,215,255,.75);font-family:'Inconsolata',monospace;}
+.lc-role::before{content:'▸ ';opacity:.6;}
+/* ROLE CARD */
+.role-card{border-radius:9px;padding:.65rem .8rem;margin:.3rem 0;border:1px solid var(--brd2);background:var(--card);display:flex;gap:.5rem;align-items:flex-start;}
+.ri-badge{font-family:'Inconsolata',monospace;font-size:.54rem;padding:.12rem .42rem;border-radius:4px;border:1px solid;font-weight:700;flex-shrink:0;margin-top:.05rem;}
+.ri-name{font-size:.78rem;font-weight:800;margin-bottom:.06rem;}
+.ri-desc{font-size:.68rem;color:var(--muted);line-height:1.45;font-family:'Inconsolata',monospace;}
+/* TRAIN VIS */
+.train-vis{background:var(--card);border:1.5px solid var(--brd2);border-radius:9px;padding:.65rem .75rem;margin:.45rem 0;font-family:'Inconsolata',monospace;font-size:.68rem;}
+.tv-title{font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;}
+.tv-track{display:flex;align-items:center;gap:0;overflow-x:auto;padding-bottom:.2rem;}
+.tv-wagon{flex-shrink:0;padding:.3rem .5rem;border:1.5px solid;border-radius:6px;text-align:center;font-size:.58rem;font-weight:700;margin-right:3px;}
+.tv-arr{color:var(--muted);font-size:.9rem;flex-shrink:0;}
+/* PI TIMELINE */
+.pi-timeline{background:var(--card);border:1.5px solid var(--brd2);border-radius:9px;overflow:hidden;margin:.45rem 0;}
+.pt-hdr{background:var(--surf);padding:.3rem .7rem;font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--brd);}
+.pt-row{display:flex;align-items:center;padding:.38rem .7rem;border-bottom:1px solid var(--brd);gap:.5rem;font-size:.7rem;}
+.pt-row:last-child{border-bottom:none;}
+.pt-label{font-family:'Inconsolata',monospace;font-size:.6rem;font-weight:700;width:80px;flex-shrink:0;}
+.pt-desc{flex:1;color:rgba(216,228,255,.82);}
+.pt-dur{font-family:'Inconsolata',monospace;font-size:.56rem;color:var(--muted);}
+/* CE/CI/CD */
+.ccd-grid{display:grid;grid-template-columns:1fr;gap:.35rem;margin:.45rem 0;}
+.ccd-card{border-radius:9px;padding:.65rem .75rem;border:1.5px solid;}
+.ccd-hdr{display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;}
+.ccd-badge{font-family:'Inconsolata',monospace;font-size:.65rem;font-weight:800;padding:.15rem .5rem;border-radius:5px;border:1px solid;flex-shrink:0;}
+.ccd-name{font-size:.85rem;font-weight:800;}
+.ccd-desc{font-size:.73rem;line-height:1.55;color:rgba(216,228,255,.82);}
+/* BACKLOG LEVELS */
+.backlog-vis{display:flex;flex-direction:column;gap:.3rem;margin:.45rem 0;}
+.bl-row{display:flex;align-items:center;gap:.4rem;padding:.38rem .65rem;background:var(--card);border-radius:7px;border:1px solid var(--brd2);}
+.bl-level{font-family:'Inconsolata',monospace;font-size:.58rem;font-weight:700;width:90px;flex-shrink:0;}
+.bl-item{font-size:.7rem;flex:1;}
+.bl-owner{font-family:'Inconsolata',monospace;font-size:.55rem;color:var(--muted);}
+/* SUMGRID */
+.sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+.sbox{background:var(--card);border:1px solid var(--brd2);border-radius:8px;padding:.6rem;text-align:center;}
+.sbox .ico{font-size:1.2rem;display:block;margin-bottom:.15rem;}
+.sbox .val{font-size:.88rem;font-weight:800;}
+.sbox .lbl{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);margin-top:.04rem;}
+/* NAV */
+.nav{position:sticky;bottom:0;z-index:10;background:var(--bg);border-top:1px solid var(--brd2);padding:.7rem 1.3rem;display:flex;align-items:center;gap:.5rem;}
+.btn{font-family:'Inconsolata',monospace;font-size:.63rem;font-weight:600;padding:.52rem 1rem;border-radius:7px;cursor:pointer;transition:all .18s;text-transform:uppercase;letter-spacing:.04em;}
+.btnp{background:transparent;color:var(--muted);border:1px solid var(--brd2);}
+.btnp:hover{color:var(--text);}
+.btnp:disabled{opacity:.2;cursor:not-allowed;}
+.btnn{flex:1;background:rgba(59,130,246,.12);color:var(--acc);border:1px solid rgba(59,130,246,.3);}
+.btnn:hover{background:rgba(59,130,246,.22);}
+.ctr{font-family:'Inconsolata',monospace;font-size:.57rem;color:var(--muted);white-space:nowrap;}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-row">
+    <h1><span>SAFe</span><br>Scaled<br><em>Agile</em></h1>
+    <div class="tag">Scaled Agile Framework</div>
+  </div>
+  <p>// Portfolió · Essential · Team · PI Planning · CE / CI / CD</p>
+</header>
+<div class="topbar">
+  <div class="tb-t">// SAFe szintek</div>
+  <div class="level-bar" id="levelBar"></div>
+  <div class="role-chips" id="roleChips"></div>
+</div>
+<div class="content" id="content"></div>
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 18</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+<script>
+const LEVELS=[
+  {label:'Portfolió szint',color:'var(--port)',icon:'🏛️'},
+  {label:'Essential szint',color:'var(--ess)',icon:'🚂'},
+  {label:'Team szint',color:'var(--team)',icon:'👥'},
+  {label:'CE/CI/CD',color:'var(--ce)',icon:'🔄'},
+];
+const ROLES_CHIPS=[
+  {label:'LPM',color:'var(--port)'},
+  {label:'Epic Owner',color:'var(--port)'},
+  {label:'Enterprise Architect',color:'var(--port)'},
+  {label:'RTE',color:'var(--ess)'},
+  {label:'Product Mgmt',color:'var(--ess)'},
+  {label:'System Architect',color:'var(--ess)'},
+  {label:'Business Owners',color:'var(--ess)'},
+  {label:'PO',color:'var(--team)'},
+  {label:'SM',color:'var(--team)'},
+];
+
+const STEPS=[
+  // 0. MI A SAFE?
+  {lv:-1,roles:[],render:()=>`
+    <div class="shdr"><div class="sico">🚀</div>
+      <div><div class="stitle">Mi a SAFe és mikor kell?</div>
+      <div class="ssub">// Scaled Agile Framework — amikor 1 Scrum csapat már nem elég</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+        A Scrum csapatok a saját dedikált feladataikkal foglalkoznak. De mi van ha nagy méretű szoftverfejlesztésről beszélünk, ahol 50 Scrum csapat dolgozik ugyanazon a terméken?
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">🙋</div><div class="bub r2"><div class="who" style="color:var(--team);text-align:right">Tanuló</div>
+        50 Scrum csapat? Azok nem koordinálhatók hagyományos Scrum-mal...
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+        Pontosan! Erre ad megoldást a SAFe (Scaled Agile Framework) és a LeSS (Large-Scale Scrum). A SAFe egy több szintű modell — az alsóbb szintek mindig a magasabbtól kapják a feladatokat.
+      </div></div>
+    </div>
+    <div class="ibox"><strong>SAFe alapelv:</strong> Az alsóbb szintek a feladatokat minden esetben a magasabbtól származtatják. A szintek EGYÜTTESEN valósítják az üzleti eredményt — legyen az termék vagy szolgáltatás. Nincs "saját" célkitűzés a szinteken belül, minden a portfolió stratégiából ered.</div>
+  `},
+
+  // 1. 3 SZINT ÁTTEKINTŐ
+  {lv:-1,roles:[],render:()=>`
+    <div class="shdr"><div class="sico">🗺️</div>
+      <div><div class="stitle">SAFe — 3 szint áttekintő</div>
+      <div class="ssub">// Portfolió → Essential → Team</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--port)">
+        <div class="cli-i">🏛️</div>
+        <div><strong style="color:var(--port)">Portfolió szint</strong>
+        <span>Stratégiai döntések: belép-e a cég egy szektorba? Milyen termékekkel? Erőforrástervezés, KPI-ok, EPIC-ek (magas szintű termékleírások) kezelése.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--ess)">
+        <div class="cli-i">🚂</div>
+        <div><strong style="color:var(--ess)">Essential szint</strong>
+        <span>A csapatok munkájának összehangolása. Release Train, PI Planning, Feature-ök priorizálása. Teljesen kitesztelt, működőképes produktumot kell szállítani.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--team)">
+        <div class="cli-i">👥</div>
+        <div><strong style="color:var(--team)">Team szint</strong>
+        <span>Egyedi Scrum/Kanban csapatok — a megszokott sprint-ekkel, PO-val, SM-mel. A Team Backlog az Essential szintből érkezik, szinkronban a többi csapattal.</span></div>
+      </div>
+    </div>
+    <div style="background:var(--card);border:1.5px solid var(--brd2);border-radius:9px;padding:.65rem .75rem;margin:.45rem 0;font-family:'Inconsolata',monospace;font-size:.68rem;line-height:1.8">
+      <div style="font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem">// Backlog lánc — stratégiától a kódig</div>
+      <div style="color:var(--port)">Portfolió Backlog (EPIC-ek) 🏛️</div>
+      <div style="color:var(--muted)">          ↓ lebontja</div>
+      <div style="color:var(--ess)">Program Backlog (Feature-ök) 🚂</div>
+      <div style="color:var(--muted)">          ↓ lebontja</div>
+      <div style="color:var(--team)">Team Backlog (User Story-k) 👥</div>
+      <div style="color:var(--muted)">          ↓ implementálja</div>
+      <div style="color:var(--ci)">Kész kód / szállítható termék ✅</div>
+    </div>
+  `},
+
+  // 2. PORTFOLIÓ SZINT
+  {lv:0,roles:[0,1,2],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,.5)">🏛️</div>
+      <div><div class="stitle">Portfolió szint</div>
+      <div class="ssub">// stratégiai döntések — belép-e a cég egy piacra?</div></div>
+    </div>
+    <div class="level-card" style="background:rgba(168,85,247,.05);border-color:rgba(168,85,247,.35)">
+      <div class="lc-hdr"><div class="lc-icon">🏛️</div>
+        <div>
+          <div class="lc-badge" style="color:var(--port)">PORTFOLIÓ SZINT</div>
+          <div class="lc-name" style="color:var(--port)">Stratégia és erőforrástervezés</div>
+        </div>
+      </div>
+      <div class="lc-desc">Magas szinten a stratégiai döntések születnek. Figyelembe veszi az üzleti igényeket, erőforrásokat, minőségi mutatókat, KPI értékeket és ügyfélelégedettséget.</div>
+    </div>
+    <div class="role-card">
+      <div class="ri-badge" style="background:rgba(168,85,247,.1);color:var(--port);border-color:rgba(168,85,247,.35)">LPM</div>
+      <div>
+        <div class="ri-name">Lean Portfolio Management</div>
+        <div class="ri-desc">Stratégiai- és erőforrástervezés, Lean alapelvek figyelembevételével. Ők döntenek, mibe fektet a cég.</div>
+      </div>
+    </div>
+    <div class="role-card">
+      <div class="ri-badge" style="background:rgba(168,85,247,.1);color:var(--port);border-color:rgba(168,85,247,.35)">Epic Owner</div>
+      <div>
+        <div class="ri-name">Epic Owner</div>
+        <div class="ri-desc">Egy-egy piaci termék magas szintű definíciójáért felelős. Meghatározza a minimálisan piac által elfogadható termékszintet (MVP). Költség- és hatásanalízist készít.</div>
+      </div>
+    </div>
+    <div class="role-card">
+      <div class="ri-badge" style="background:rgba(168,85,247,.1);color:var(--port);border-color:rgba(168,85,247,.35)">Ent. Arch.</div>
+      <div>
+        <div class="ri-name">Enterprise Architect</div>
+        <div class="ri-desc">Követi és érvényesíti a technológia fejlődéssel járó elvárásokat. Szakmai oldalról támogatja a stratégiai döntéseket — "ez technikailag megvalósítható?"</div>
+      </div>
+    </div>
+    <div class="ibox p"><strong>Value Stream fogalom:</strong> A portfolió szinten nem termékeket, hanem értékteremtő folyamatokat (value stream) definiálnak. Több termék együttesen alkothat egy value stream-et — ezek akár a világ több táján fejleszthetők párhuzamosan.</div>
+  `},
+
+  // 3. PORTFOLIÓ ROADMAP
+  {lv:0,roles:[0,1],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,.5)">🗓️</div>
+      <div><div class="stitle">Portfolió Roadmap — tervezési bizonytalanság</div>
+      <div class="ssub">// minél távolabb az idő, annál bizonytalanabb a terv</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">🏛️</div><div class="bub l"><div class="who" style="color:var(--port)">Portfolio Manager</div>
+        Meg tudjátok mondani pontosan mit szállítunk 2 év múlva?
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">👨‍🏫</div><div class="bub r2"><div class="who" style="color:var(--acc);text-align:right">Oktató</div>
+        Nem — és ez RENDBEN VAN! Ahogy előre nézünk az időben, egyre bizonytalanabbá válik a tervezés. Időközben új változók jelennek meg: piaci változás, versenyző új termék, törvényi változás.
+      </div></div>
+    </div>
+    <div style="background:var(--card);border:1.5px solid var(--brd2);border-radius:9px;padding:.65rem .75rem;margin:.45rem 0">
+      <div style="font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">// Portfolio Roadmap — bizonytalanság növekedése</div>
+      <div style="display:flex;align-items:flex-end;gap:4px;height:50px;margin-bottom:.3rem">
+        <div style="flex:1;background:rgba(168,85,247,.7);border-radius:3px 3px 0 0" title="Q1 - biztos"></div>
+        <div style="flex:1;background:rgba(168,85,247,.5);border-radius:3px 3px 0 0;height:75%"></div>
+        <div style="flex:1;background:rgba(168,85,247,.35);border-radius:3px 3px 0 0;height:55%"></div>
+        <div style="flex:1;background:rgba(168,85,247,.2);border-radius:3px 3px 0 0;height:35%" style="border:1px dashed rgba(168,85,247,.4)"></div>
+        <div style="flex:1;background:rgba(168,85,247,.1);border-radius:3px 3px 0 0;height:20%;border:1px dashed rgba(168,85,247,.3)"></div>
+      </div>
+      <div style="display:flex;gap:4px;font-family:'Inconsolata',monospace;font-size:.48rem;color:var(--muted)">
+        <div style="flex:1;text-align:center">Q1 most</div>
+        <div style="flex:1;text-align:center">Q2</div>
+        <div style="flex:1;text-align:center">Q3</div>
+        <div style="flex:1;text-align:center">Q4</div>
+        <div style="flex:1;text-align:center">Q5+</div>
+      </div>
+    </div>
+    <div class="ibox p"><strong>Ezért nem terveznek részletesen a távolra:</strong> Agilis gondolkodás — a közeli EPIC-ek részletesen kidolgozottak, a távoliak csak körvonalazottak. Ahogy közeledik az időpont, pontosítják. Ez a "rolling wave" tervezés.</div>
+  `},
+
+  // 4. ESSENTIAL SZINT
+  {lv:1,roles:[3,4,5,6],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,.5)">🚂</div>
+      <div><div class="stitle">Essential szint</div>
+      <div class="ssub">// csapatok összehangolása — Release Train</div></div>
+    </div>
+    <div class="level-card" style="background:rgba(59,130,246,.05);border-color:rgba(59,130,246,.35)">
+      <div class="lc-hdr"><div class="lc-icon">🚂</div>
+        <div>
+          <div class="lc-badge" style="color:var(--ess)">ESSENTIAL SZINT</div>
+          <div class="lc-name" style="color:var(--ess)">Szinkronizáció és értékszállítás</div>
+        </div>
+      </div>
+      <div class="lc-desc">A csapatok munkájának összehangolása. Teljesen kitesztelt és működőképes produktumnak kell elkészülnie — nem csak a csapatok saját elvárásainak, hanem a teljes termék szintjén is.</div>
+    </div>
+    <div class="role-card">
+      <div class="ri-badge" style="background:rgba(59,130,246,.1);color:var(--ess);border-color:rgba(59,130,246,.35)">RTE</div>
+      <div>
+        <div class="ri-name">Release Train Engineer</div>
+        <div class="ri-desc">A Release Train eseményeit és folyamatait kezeli. Jelzi a fennálló függőségeket és menedzseli a rizikókat. A "vonat karmestere".</div>
+      </div>
+    </div>
+    <div class="role-card">
+      <div class="ri-badge" style="background:rgba(59,130,246,.1);color:var(--ess);border-color:rgba(59,130,246,.35)">Prod. Mgmt</div>
+      <div>
+        <div class="ri-name">Product Management</div>
+        <div class="ri-desc">Azonosítja az ügyféligényeket, definiálja a Feature-öket és priorizálja őket a Program Backlog-ban. A fejlesztői csapatok és az ügyfelek közötti kapcsolat.</div>
+      </div>
+    </div>
+    <div class="role-card">
+      <div class="ri-badge" style="background:rgba(59,130,246,.1);color:var(--ess);border-color:rgba(59,130,246,.35)">Sys. Arch.</div>
+      <div>
+        <div class="ri-name">System Architect</div>
+        <div class="ri-desc">Release Train-eken átívelő technikai irányelvek. Azonosítja a komponenseket, alrendszereket, kapcsolódási pontokat. Technikai fejlesztési ajánlatokat tesz.</div>
+      </div>
+    </div>
+  `},
+
+  // 5. RELEASE TRAIN
+  {lv:1,roles:[3],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,.5)">🚂</div>
+      <div><div class="stitle">Release Train — a "vonat" metafora</div>
+      <div class="ssub">// egyszerre "szállnak fel" a csapatok, egyszerre szállítanak</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--ess)">Oktató</div>
+        Miért "vonat"? Mert a csapatok egyszerre "szállnak fel" — szinkronban indulnak, szinkronban haladnak "állomásonként", és szinkronban "érkeznek meg" a szállításhoz.
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">🙋</div><div class="bub r2"><div class="who" style="color:var(--team);text-align:right">Tanuló</div>
+        Mi az az "állomás" ebben a metaforában?
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--ess)">Oktató</div>
+        A PI (Program Increment) — a 4-5 sprintnyi időszak, amit szinkronban végez az összes csapat. A "vonat sebessége" = a csapatok átlagos kapacitása, amivel kalkulálni lehet a szállítást.
+      </div></div>
+    </div>
+    <div class="train-vis">
+      <div class="tv-title">// Release Train — csapatok párhuzamosan, szinkronban</div>
+      <div class="tv-track">
+        <div class="tv-wagon" style="background:rgba(239,68,68,.15);color:var(--pi);border-color:rgba(239,68,68,.35)">PI Planning</div>
+        <div class="tv-arr">🚂</div>
+        <div class="tv-wagon" style="background:rgba(59,130,246,.1);color:var(--ess);border-color:rgba(59,130,246,.3)">Sprint 1</div>
+        <div class="tv-arr">→</div>
+        <div class="tv-wagon" style="background:rgba(59,130,246,.1);color:var(--ess);border-color:rgba(59,130,246,.3)">Sprint 2</div>
+        <div class="tv-arr">→</div>
+        <div class="tv-wagon" style="background:rgba(59,130,246,.1);color:var(--ess);border-color:rgba(59,130,246,.3)">Sprint 3</div>
+        <div class="tv-arr">→</div>
+        <div class="tv-wagon" style="background:rgba(59,130,246,.1);color:var(--ess);border-color:rgba(59,130,246,.3)">Sprint 4</div>
+        <div class="tv-arr">→</div>
+        <div class="tv-wagon" style="background:rgba(16,185,129,.15);color:var(--team);border-color:rgba(16,185,129,.35)">IP Sprint</div>
+        <div class="tv-arr">→</div>
+        <div class="tv-wagon" style="background:rgba(239,68,68,.15);color:var(--pi);border-color:rgba(239,68,68,.35)">Következő PI</div>
+      </div>
+      <div style="margin-top:.4rem;font-family:'Inconsolata',monospace;font-size:.55rem;color:var(--muted)">Minden csapat egyszerre megy ugyanezen az útvonalon — szinkronban.</div>
+    </div>
+    <div class="ibox"><strong>IP Sprint (Innovation & Planning):</strong> Az utolsó sprint a PI-ban — nem fejlesztésre, hanem: retrospektív, PI tervezés, innováció, technikai adósság törlesztés, csapatok közötti szinkronizálás.</div>
+  `},
+
+  // 6. PI PLANNING
+  {lv:1,roles:[3,4,5,6,7,8],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,.5)">📅</div>
+      <div><div class="stitle">PI Planning — a nagyvállalati sprint tervezés</div>
+      <div class="ssub">// 2 napos esemény, 50+ ember, 4-5 sprint megtervezve</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--pi)">Oktató</div>
+        A PI Planning egy közös tervezési esemény — az összes csapat Product Owner-ei, Scrum Master-ei és kiemelt szerepkörű tagjai részt vesznek. 2 napig tarthat.
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">🙋</div><div class="bub r2"><div class="who" style="color:var(--team);text-align:right">Tanuló</div>
+        Mit csinálnak ott 2 napig?
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--pi)">Oktató</div>
+        Szinkronizálják a következő 4-5 sprint tevékenységeit. Azonosítják a FÜGGŐSÉGEKET — ahol az egyik csapat fejlesztése akadályozhatja a másikát.
+      </div></div>
+    </div>
+    <div class="pi-timeline">
+      <div class="pt-hdr">// PI Planning napirend</div>
+      <div class="pt-row">
+        <div class="pt-label" style="color:var(--port)">1. nap reggel</div>
+        <div class="pt-desc">Portfolió szint bemutatja a stratégiát és a következő PI céljait az összes csapatnak</div>
+        <div class="pt-dur">~3h</div>
+      </div>
+      <div class="pt-row">
+        <div class="pt-label" style="color:var(--ess)">1. nap délelőtt</div>
+        <div class="pt-desc">Product Management bemutatja a Feature-öket, System Architect a technikai irányokat</div>
+        <div class="pt-dur">~2h</div>
+      </div>
+      <div class="pt-row">
+        <div class="pt-label" style="color:var(--team)">1. nap délután</div>
+        <div class="pt-desc">Csapatok terveznek — Team Backlog összeállítás, kapacitás becslés, draft PI terv</div>
+        <div class="pt-dur">~4h</div>
+      </div>
+      <div class="pt-row">
+        <div class="pt-label" style="color:var(--pi)">1. nap este</div>
+        <div class="pt-desc">Draft review — függőségek azonosítása, problémák felszínre hozása (Management Review)</div>
+        <div class="pt-dur">~2h</div>
+      </div>
+      <div class="pt-row">
+        <div class="pt-label" style="color:var(--team)">2. nap</div>
+        <div class="pt-desc">Tervek finomítása, függőségek feloldása, végleges PI terv elkészítése, kockázatok azonosítása</div>
+        <div class="pt-dur">~6h</div>
+      </div>
+      <div class="pt-row">
+        <div class="pt-label" style="color:var(--off)">Eredmény</div>
+        <div class="pt-desc">Függőségmentes, priorizált Team Backlog minden csapatnál — szinkronban egymással</div>
+        <div class="pt-dur">✅ Kész</div>
+      </div>
+    </div>
+  `},
+
+  // 7. FÜGGŐSÉGEK A PI PLANNING-EN
+  {lv:1,roles:[3,4],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,.5)">🔗</div>
+      <div><div class="stitle">Függőségek a PI Planning-en</div>
+      <div class="ssub">// megelőzzük az "integrációs bumm"-ot</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👥</div><div class="bub l"><div class="who" style="color:var(--team)">Team A (Platform)</div>
+        Mi a Platform API v3-at fejlesztjük a PI 2. sprintjére.
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">👥</div><div class="bub r2"><div class="who" style="color:var(--ess);text-align:right">Team B (Feature)</div>
+        Várjatok — mi erre az API-ra támaszkodunk a 1. sprintben! Ha ti csak a 2.-ban vagytok kész, mi blokkolva vagyunk.
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">🚂</div><div class="bub l"><div class="who" style="color:var(--pi)">RTE (Release Train Engineer)</div>
+        Megvan a függőség! Átpriorizáljuk: Platform API v3 → 1. sprint. Team B Feature → 2. sprint. Senki nem blokkol senkit.
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--pi)">
+        <div class="cli-i">🗺️</div>
+        <div><strong>Program Board — a függőségek vizualizálása</strong>
+        <span>Egy nagy tábla az összes csapat sprintjével. Piros nyilak jelölik a függőségeket csapatok között. Mindenki egyszerre látja ki blokkol kit — és ez feloldható TERVEZÉS közben.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--off)">
+        <div class="cli-i">✅</div>
+        <div><strong>Eredmény: függőségmentes Team Backlog</strong>
+        <span>Miután összeállt a függőségmentes lista, minden csapat képes saját Team Backlog-ját összeállítani a PO-val — szinkronban a többi csapattal, nem gátolják egymás szállítását.</span></div>
+      </div>
+    </div>
+    <div class="ibox"><strong>Backlog prioritás az időben:</strong> Ahogy haladunk előre, egyre pontosabban meg lehet határozni melyik Feature mikor kerül szállításra. A Backlog elején lévő, magas prioritású Feature-ök nagy bizonyossággal megérkeznek az ügyfelekhez időben.</div>
+  `},
+
+  // 8. CE — CONTINUOUS EXPLORATION
+  {lv:3,roles:[4],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,.5)">🔭</div>
+      <div><div class="stitle">Continuous Exploration (CE)</div>
+      <div class="ssub">// mi az amit fejleszteni érdemes? — piaci igények feltárása</div></div>
+    </div>
+    <div class="ccd-card" style="background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.35)">
+      <div class="ccd-hdr">
+        <div class="ccd-badge" style="background:rgba(245,158,11,.15);color:var(--ce);border-color:rgba(245,158,11,.4)">CE</div>
+        <div class="ccd-name" style="color:var(--ce)">Continuous Exploration — Feltárás</div>
+      </div>
+      <div class="ccd-desc">A CE során tervezzük meg a szállítani kívánt végtermékünket és kerülnek definiálásra a követelmények. Meg kell vizsgálni a piaci/üzleti igényeket. Az eredményeket be kell építeni a termék backlogba.</div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--ce)">
+        <div class="cli-i">🔍</div>
+        <div><strong>Piaci igények feltárása</strong>
+        <span>Ügyféligények összegyűjtése — interjúk, felmérések, versenytárs elemzés, piackutatás. Ha általános termék: persona-alapú igénymeghatározás. Ha konkrét ügyfél: közvetlen egyeztetés.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--ce)">
+        <div class="cli-i">📋</div>
+        <div><strong>Követelmények meghatározása</strong>
+        <span>Az összegyűjtött igényekből Feature-ök és EPIC-ek születnek — ezek kerülnek a Program Backlog-ba priorizálva. Minél konkrétabb a követelmény, annál pontosabban tud a fejlesztés haladni.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--ce)">
+        <div class="cli-i">🔄</div>
+        <div><strong>Folyamatos — nem egyszeri!</strong>
+        <span>A CE nem egyszer fut le a projekt elején — folyamatosan zajlik. Ahogy a piac változik, ahogy az ügyfelek visszajelzést adnak, frissülnek a követelmények és a Backlog prioritásai.</span></div>
+      </div>
+    </div>
+    <div class="ibox warn"><strong>CE → CI kapcsolat:</strong> A CE azonosítja MIT fejlesszünk. A CI biztosítja, hogy HOGYAN fejlesszük azt folyamatosan szállítható formában. Nincs "big bang" tervezés — a feltárás és fejlesztés egymás mellett fut.</div>
+  `},
+
+  // 9. CI — CONTINUOUS INTEGRATION
+  {lv:3,roles:[3,5],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(99,102,241,.5)">🔄</div>
+      <div><div class="stitle">Continuous Integration (CI)</div>
+      <div class="ssub">// megelőzni az integrációs bumm-ot — folyamatos összeépítés</div></div>
+    </div>
+    <div class="ccd-card" style="background:rgba(99,102,241,.05);border-color:rgba(99,102,241,.35)">
+      <div class="ccd-hdr">
+        <div class="ccd-badge" style="background:rgba(99,102,241,.15);color:var(--ci);border-color:rgba(99,102,241,.4)">CI</div>
+        <div class="ccd-name" style="color:var(--ci)">Continuous Integration — Integráció</div>
+      </div>
+      <div class="ccd-desc">A CI biztosítja, hogy a szállítás folyamatos legyen. Ugyanazon termékfejlesztéshez kapcsolódó lépéseket hajtják végre az egyes csapatok és egy adott időben integrálják a kész produktumot.</div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--ci)">Oktató</div>
+        Az "integrációs bumm" akkor áll elő, ha hosszú ideig nem integrálnak a csapatok — és a szállítás ELŐTT derülnek ki a szoftver együttműködést akadályozó tényezők.
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">🙋</div><div class="bub r2"><div class="who" style="color:var(--team);text-align:right">Tanuló</div>
+        Tehát ha minden nap integráljuk a kódot, az ilyen nem fordulhat elő?
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--ci)">Oktató</div>
+        Pontosan! Ha minden commit után lefut az automatikus build + teszt, a hibák azonnal kiderülnek. 50 csapatnál ez különösen kritikus — egy csapat hibája azonnal látható a többieknek.
+      </div></div>
+    </div>
+    <div class="ibox ok"><strong>SAFe-ben a CI szint:</strong> Nem csak kód szinten, hanem rendszer szinten is integrálnak. System Demo-k tartásával mutatják be az összes csapat közös munkáját — így a stakeholderek is folyamatosan látják az előrehaladást.</div>
+  `},
+
+  // 10. CD — CONTINUOUS DELIVERY
+  {lv:3,roles:[3,4,6],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(34,211,238,.5)">🚀</div>
+      <div><div class="stitle">Continuous Delivery (CD)</div>
+      <div class="ssub">// kész termék → tesztelés → minőségi vizsgálat</div></div>
+    </div>
+    <div class="ccd-card" style="background:rgba(34,211,238,.05);border-color:rgba(34,211,238,.35)">
+      <div class="ccd-hdr">
+        <div class="ccd-badge" style="background:rgba(34,211,238,.15);color:var(--cd);border-color:rgba(34,211,238,.4)">CD</div>
+        <div class="ccd-name" style="color:var(--cd)">Continuous Delivery — Szállítás</div>
+      </div>
+      <div class="ccd-desc">A CD fázisban már a kész termékkel dolgozunk. Különböző teszteket hajtunk végre rajta és minőségi mutatókat vizsgálunk, amelyek segítik a további fejlesztést.</div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--cd)">
+        <div class="cli-i">🧪</div>
+        <div><strong>Rendszer szintű tesztelés</strong>
+        <span>Az összes csapat munkája összeállt — most a teljes rendszert tesztelik. ISTQB módszertanok, funkcionalitás és non-functional követelmények ellenőrzése (teljesítmény, biztonság, stb.).</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--cd)">
+        <div class="cli-i">📊</div>
+        <div><strong>Minőségi mutatók vizsgálata</strong>
+        <span>KPI-ok mérése: response time, hibaszám, felhasználói elégedettség, biztonsági audit. Ezek az adatok visszakerülnek a CE fázisba — meghatározzák a következő iteráció prioritásait.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--cd)">
+        <div class="cli-i">🚀</div>
+        <div><strong>Release — a "vonat megérkezik"</strong>
+        <span>A PI végén az összes csapat szállít — egyidőben. Ez az egyidejűség a Release Train lényege. Az ügyfelek egyszerre kapják meg az összes feature-t, teljesen integrált formában.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 11. CE/CI/CD ÖSSZEFÜGGÉSE
+  {lv:3,roles:[4,3,6],render:()=>`
+    <div class="shdr"><div class="sico">🔄</div>
+      <div><div class="stitle">CE → CI → CD — a három fázis összefüggése</div>
+      <div class="ssub">// folyamatos értékteremtés körfolyamata</div></div>
+    </div>
+    <div style="background:var(--card);border:1.5px solid var(--brd2);border-radius:9px;padding:.7rem .8rem;margin:.45rem 0">
+      <div style="font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem">// A három folyamat köre</div>
+      <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">
+        <div style="padding:.45rem .7rem;border-radius:8px;background:rgba(245,158,11,.1);border:1.5px solid rgba(245,158,11,.35);text-align:center;flex:1;min-width:80px">
+          <div style="font-size:1rem;margin-bottom:.1rem">🔭</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.65rem;font-weight:700;color:var(--ce)">CE</div>
+          <div style="font-size:.62rem;color:var(--muted)">Mit fejlesszünk?</div>
+        </div>
+        <div style="font-size:1.2rem;color:var(--muted)">→</div>
+        <div style="padding:.45rem .7rem;border-radius:8px;background:rgba(99,102,241,.1);border:1.5px solid rgba(99,102,241,.35);text-align:center;flex:1;min-width:80px">
+          <div style="font-size:1rem;margin-bottom:.1rem">🔄</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.65rem;font-weight:700;color:var(--ci)">CI</div>
+          <div style="font-size:.62rem;color:var(--muted)">Hogyan fejlesszük?</div>
+        </div>
+        <div style="font-size:1.2rem;color:var(--muted)">→</div>
+        <div style="padding:.45rem .7rem;border-radius:8px;background:rgba(34,211,238,.1);border:1.5px solid rgba(34,211,238,.35);text-align:center;flex:1;min-width:80px">
+          <div style="font-size:1rem;margin-bottom:.1rem">🚀</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.65rem;font-weight:700;color:var(--cd)">CD</div>
+          <div style="font-size:.62rem;color:var(--muted)">Mikor szállítjuk?</div>
+        </div>
+        <div style="font-size:1.2rem;color:var(--muted)">→ 🔄</div>
+      </div>
+      <div style="margin-top:.45rem;font-family:'Inconsolata',monospace;font-size:.56rem;color:var(--muted)">A CD visszacsatol a CE-be: a tesztelési és minőségi adatok befolyásolják a következő iteráció prioritásait.</div>
+    </div>
+    <div class="ibox ok"><strong>SAFe vs DevOps CE/CI/CD különbség:</strong> DevOps-ban a CI/CD a kód szintjén értendő (automatikus build + deploy). SAFe-ben a CE/CI/CD a PROGRAM szintjén értendő — az összes csapat együttes tervezési, fejlesztési és szállítási ciklusa.</div>
+  `},
+
+  // 12. SAFE vs LeSS
+  {lv:-1,roles:[],render:()=>`
+    <div class="shdr"><div class="sico">⚖️</div>
+      <div><div class="stitle">SAFe vs LeSS — melyiket mikor?</div>
+      <div class="ssub">// Large-Scale Scrum — az egyszerűbb alternatíva</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0">
+      <div style="background:rgba(59,130,246,.06);border:1.5px solid rgba(59,130,246,.3);border-radius:10px;padding:.75rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--ess);font-weight:700;margin-bottom:.3rem">🚂 SAFe</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--muted);line-height:1.65">
+          ▸ Több szint (Portfolió, Essential, Team)<br>
+          ▸ Sok definiált szerepkör<br>
+          ▸ Komplex, de részletes<br>
+          ▸ Nagy (100+ csapat) szervezeteknek<br>
+          ▸ Hosszú bevezetés (1-2 év)<br>
+          ▸ Pl. Siemens, Boeing
+        </div>
+      </div>
+      <div style="background:rgba(16,185,129,.06);border:1.5px solid rgba(16,185,129,.3);border-radius:10px;padding:.75rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--team);font-weight:700;margin-bottom:.3rem">🌱 LeSS (Large-Scale Scrum)</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--muted);line-height:1.65">
+          ▸ Egyszerűsített — Scrum alapokon<br>
+          ▸ Kevés új szerepkör<br>
+          ▸ Könnyebben bevezethető<br>
+          ▸ Kisebb (2-8 csapat) szervezeteknek<br>
+          ▸ Gyorsabban bevezethető<br>
+          ▸ Pl. startupok, közepes cégek
+        </div>
+      </div>
+    </div>
+    <div class="ibox"><strong>Mikor melyik?</strong> SAFe: ha a szervezet már komplex, sok csapat, sok függőség, szabályozott ipar (repülő, orvosi). LeSS: ha agilis kultúra már megvan, és csak a skálázás a kihívás. A kettő nem keverendő szabadon — választani kell.</div>
+  `},
+
+  // 13. ÖSSZEFOGLALÁS
+  {lv:-1,roles:[0,1,2,3,4,5,6,7,8],render:()=>`
+    <div class="shdr"><div class="sico">∑</div>
+      <div><div class="stitle">Összefoglalás — SAFe</div>
+      <div class="ssub">// a legfontosabb fogalmak egyben</div></div>
+    </div>
+    <div class="sumgrid">
+      <div class="sbox" style="border-top:2px solid var(--port)"><span class="ico">🏛️</span><div class="val">Portfolió</div><div class="lbl">Stratégia, EPIC, Value Stream</div></div>
+      <div class="sbox" style="border-top:2px solid var(--ess)"><span class="ico">🚂</span><div class="val">Essential</div><div class="lbl">Release Train, Feature, PI</div></div>
+      <div class="sbox" style="border-top:2px solid var(--team)"><span class="ico">👥</span><div class="val">Team</div><div class="lbl">Scrum sprint, User Story</div></div>
+      <div class="sbox" style="border-top:2px solid var(--ce)"><span class="ico">🔄</span><div class="val">CE/CI/CD</div><div class="lbl">Folyamatos értékszállítás</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--port)">
+        <div class="cli-i">🏛️</div>
+        <div><strong style="color:var(--port)">Portfolió szint</strong>
+        <span>LPM (stratégia), Epic Owner (MVP meghatározás), Enterprise Architect (tech irány). EPIC-ek a Portfolió Backlog-ban. Roadmap — bizonytalanság nő távolabb.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--ess)">
+        <div class="cli-i">🚂</div>
+        <div><strong style="color:var(--ess)">Essential szint</strong>
+        <span>RTE (vonat karmester), Product Mgmt (Feature-ök), System Architect (tech irányelvek), Business Owners (üzleti szemlélet). Release Train = szinkronban szállító csapatok.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--pi)">
+        <div class="cli-i">📅</div>
+        <div><strong style="color:var(--pi)">PI Planning</strong>
+        <span>2 napos esemény. Függőségek azonosítása és feloldása. Eredmény: minden csapat szinkronizált, függőségmentes Team Backlog-gal indul a következő 4-5 sprintre.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--ce)">
+        <div class="cli-i">🔄</div>
+        <div><strong>CE → CI → CD kör</strong>
+        <span>CE: mit fejlesszünk (piaci igények). CI: folyamatos integráció, integrációs bumm elkerülése. CD: kész termék tesztelése, szállítás, visszacsatolás a CE-be.</span></div>
+      </div>
+    </div>
+  `},
+];
+
+function renderBoard(lvIdx,roleIdxs){
+  document.getElementById('levelBar').innerHTML=LEVELS.map((l,i)=>{
+    const on=i===lvIdx;
+    return `<div class="lv-btn ${on?'on':''}" style="border-color:${l.color};color:${l.color}">${l.icon} ${l.label}</div>`;
+  }).join('');
+  document.getElementById('roleChips').innerHTML=ROLES_CHIPS.map((r,i)=>{
+    const on=roleIdxs.includes(i);
+    return `<div class="rc ${on?'on':''}" style="border-color:${r.color};color:${r.color}">${r.label}</div>`;
+  }).join('');
+}
+
+let cur=0;
+function render(){
+  const s=STEPS[cur];
+  renderBoard(s.lv,s.roles);
+  const el=document.getElementById('content');
+  el.innerHTML=s.render();
+  setTimeout(()=>{el.querySelectorAll('.msg:not(.show)').forEach((m,i)=>setTimeout(()=>m.classList.add('show'),i*160));},60);
+  document.getElementById('bprev').disabled=cur===0;
+  document.getElementById('bnext').textContent=cur===STEPS.length-1?'↺ Újra':'Következő →';
+  document.getElementById('ctr').textContent=`${cur+1} / ${STEPS.length}`;
+}
+function next(){cur=cur===STEPS.length-1?0:cur+1;render();}
+function prev(){if(cur>0){cur--;render();}}
+render();
+</script>
+</body>
+</html>

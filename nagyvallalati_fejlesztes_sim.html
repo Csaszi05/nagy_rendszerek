@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nagyvállalati Szoftverfejlesztés</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+:root {
+  --bg:#0a0f1e; --surf:#0f1628; --card:#141d35; --brd:#1e2d50; --brd2:#263a68;
+  --text:#d8e4ff; --muted:#4a5f8a;
+  --acc:#6366f1; --on:#f97316; --near:#f59e0b; --off:#10b981;
+  --lv:#3b82f6; --kv:#a855f7; --home:#22d3ee; --sync:#ef4444;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(99,102,241,.06) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(249,115,22,.04) 0%,transparent 50%);pointer-events:none;z-index:0;}
+header{position:relative;z-index:1;padding:1.2rem 1.3rem .85rem;border-bottom:1px solid var(--brd2);background:linear-gradient(180deg,rgba(99,102,241,.06) 0%,transparent 100%);}
+.hdr-row{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;}
+h1{font-size:1.4rem;font-weight:800;line-height:1.07;letter-spacing:-.02em;}
+h1 span{color:var(--acc);}h1 em{font-style:normal;color:var(--on);}
+.tag{font-family:'Inconsolata',monospace;font-size:.56rem;padding:.25rem .55rem;border-radius:4px;background:rgba(99,102,241,.12);color:var(--acc);border:1px solid rgba(99,102,241,.28);white-space:nowrap;margin-top:.2rem;}
+header p{font-size:.7rem;color:var(--muted);margin-top:.25rem;font-family:'Inconsolata',monospace;}
+/* TOPBAR */
+.topbar{position:relative;z-index:1;background:var(--surf);border-bottom:1px solid var(--brd2);padding:.75rem 1.3rem .65rem;}
+.tb-t{font-family:'Inconsolata',monospace;font-size:.54rem;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin-bottom:.5rem;}
+.steps{display:flex;align-items:center;gap:0;margin-bottom:.45rem;}
+.st{flex:1;display:flex;flex-direction:column;align-items:center;gap:.18rem;position:relative;}
+.st:not(:last-child)::after{content:'';position:absolute;right:0;top:12px;width:50%;height:2px;background:var(--brd);z-index:0;}
+.st:not(:first-child)::before{content:'';position:absolute;left:0;top:12px;width:50%;height:2px;background:var(--brd);z-index:0;}
+.sd{width:24px;height:24px;border-radius:50%;border:2px solid var(--brd2);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:.6rem;z-index:1;transition:all .35s;position:relative;}
+.sl{font-family:'Inconsolata',monospace;font-size:.44rem;color:var(--muted);text-align:center;line-height:1.2;}
+.st.active .sd{transform:scale(1.25);box-shadow:0 0 10px currentColor;}
+.st.done .sd{opacity:.55;}
+.st.active .sl{font-weight:700;}
+.tag-row{display:flex;gap:4px;flex-wrap:wrap;}
+.tg{font-family:'Inconsolata',monospace;font-size:.53rem;font-weight:600;padding:.14rem .4rem;border-radius:3px;border:1px solid;opacity:.25;transition:opacity .3s;}
+.tg.on{opacity:1;}
+/* CONTENT */
+.content{position:relative;z-index:1;padding:.9rem 1.3rem;min-height:275px;}
+.shdr{display:flex;align-items:center;gap:.6rem;margin-bottom:.85rem;}
+.sico{width:36px;height:36px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;border:1.5px solid var(--brd2);background:var(--card);}
+.stitle{font-size:.95rem;font-weight:800;letter-spacing:-.02em;}
+.ssub{font-family:'Inconsolata',monospace;font-size:.56rem;color:var(--muted);margin-top:.03rem;}
+/* CHAT */
+.chat{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.7rem;}
+.msg{display:flex;gap:.4rem;align-items:flex-start;opacity:0;transform:translateY(6px);transition:opacity .3s,transform .3s;}
+.msg.show{opacity:1;transform:translateY(0);}
+.msg.r{flex-direction:row-reverse;}
+.av{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;border:1px solid var(--brd2);background:var(--card);}
+.bub{max-width:82%;padding:.48rem .68rem;border-radius:9px;font-size:.77rem;line-height:1.55;border:1px solid var(--brd2);background:var(--card);}
+.bub.l{border-bottom-left-radius:2px;}.bub.r2{border-bottom-right-radius:2px;text-align:right;}
+.who{font-family:'Inconsolata',monospace;font-size:.55rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.1rem;}
+/* IBOX */
+.ibox{border-radius:8px;padding:.55rem .75rem;font-size:.74rem;line-height:1.55;margin:.45rem 0;border:1px solid var(--brd2);background:var(--card);border-left:3px solid var(--acc);}
+.ibox strong{font-weight:700;}
+.ibox.ok{border-left-color:var(--off);}
+.ibox.ok strong{color:var(--off);}
+.ibox.warn{border-left-color:var(--on);}
+.ibox.warn strong{color:var(--on);}
+/* CHECKLIST */
+.cklist{display:flex;flex-direction:column;gap:.35rem;margin:.45rem 0;}
+.cli{display:flex;align-items:flex-start;gap:.5rem;padding:.42rem .65rem;background:var(--card);border:1px solid var(--brd2);border-radius:8px;font-size:.75rem;line-height:1.45;}
+.cli-i{flex-shrink:0;font-size:.88rem;}
+.cli strong{display:block;font-weight:700;font-size:.76rem;margin-bottom:.03rem;}
+.cli span{color:var(--muted);font-size:.68rem;font-family:'Inconsolata',monospace;}
+/* SHORE CARDS */
+.shore-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.35rem;margin:.45rem 0;}
+.shore-card{border-radius:9px;padding:.65rem .7rem;border:1.5px solid;text-align:center;}
+.sc-icon{font-size:1.4rem;margin-bottom:.2rem;}
+.sc-name{font-size:.8rem;font-weight:800;margin-bottom:.1rem;}
+.sc-sub{font-family:'Inconsolata',monospace;font-size:.54rem;opacity:.7;margin-bottom:.25rem;}
+.sc-list{font-size:.65rem;line-height:1.55;color:rgba(216,228,255,.8);text-align:left;}
+/* COMPARE */
+.comp2{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+.comp3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.35rem;margin:.45rem 0;}
+/* TABLE */
+.cmp-tbl{border-radius:9px;overflow:hidden;border:1.5px solid var(--brd2);margin:.45rem 0;}
+.ct-hdr{display:grid;background:var(--surf);padding:.32rem .65rem;gap:.5rem;font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--brd);align-items:center;}
+.ct-row{display:grid;padding:.38rem .65rem;gap:.5rem;border-bottom:1px solid var(--brd);font-size:.69rem;align-items:start;}
+.ct-row:last-child{border-bottom:none;}
+.ct-label{font-weight:700;font-size:.71rem;}
+/* SUMGRID */
+.sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+.sbox{background:var(--card);border:1px solid var(--brd2);border-radius:8px;padding:.6rem;text-align:center;}
+.sbox .ico{font-size:1.2rem;display:block;margin-bottom:.15rem;}
+.sbox .val{font-size:.88rem;font-weight:800;}
+.sbox .lbl{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);margin-top:.04rem;}
+/* SYNC VIS */
+.sync-vis{background:var(--card);border:1.5px solid var(--brd2);border-radius:9px;padding:.65rem .75rem;margin:.45rem 0;}
+.sv-title{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;}
+.sv-row{display:flex;align-items:center;gap:.5rem;margin:.25rem 0;font-size:.7rem;}
+.sv-label{font-family:'Inconsolata',monospace;font-size:.58rem;font-weight:700;width:90px;flex-shrink:0;}
+.sv-teams{display:flex;gap:3px;flex:1;}
+.sv-team{height:16px;border-radius:3px;flex:1;display:flex;align-items:center;justify-content:center;font-size:.45rem;font-weight:700;font-family:'Inconsolata',monospace;}
+.sv-sync{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+/* NAV */
+.nav{position:sticky;bottom:0;z-index:10;background:var(--bg);border-top:1px solid var(--brd2);padding:.7rem 1.3rem;display:flex;align-items:center;gap:.5rem;}
+.btn{font-family:'Inconsolata',monospace;font-size:.63rem;font-weight:600;padding:.52rem 1rem;border-radius:7px;cursor:pointer;transition:all .18s;text-transform:uppercase;letter-spacing:.04em;}
+.btnp{background:transparent;color:var(--muted);border:1px solid var(--brd2);}
+.btnp:hover{color:var(--text);}
+.btnp:disabled{opacity:.2;cursor:not-allowed;}
+.btnn{flex:1;background:rgba(99,102,241,.12);color:var(--acc);border:1px solid rgba(99,102,241,.3);}
+.btnn:hover{background:rgba(99,102,241,.22);}
+.ctr{font-family:'Inconsolata',monospace;font-size:.57rem;color:var(--muted);white-space:nowrap;}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-row">
+    <h1><span>Nagyvállalati</span><br>Szoftver<br><em>fejlesztés</em></h1>
+    <div class="tag">Projekt átadás // OE-NIK</div>
+  </div>
+  <p>// On/Near/Off-shore · Leányvállalat · Hibrid munka · Szinkron</p>
+</header>
+<div class="topbar">
+  <div class="tb-t">// témakörök</div>
+  <div class="steps" id="steps"></div>
+  <div class="tag-row" id="tagRow"></div>
+</div>
+<div class="content" id="content"></div>
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 16</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+<script>
+const TOPICS=[
+  {label:'Bevezető\n& kontextus',color:'var(--acc)',icon:'🌍'},
+  {label:'On/Near\nOff-shore',color:'var(--on)',icon:'🗺️'},
+  {label:'Leányv.\nvs Kiszerv.',color:'var(--near)',icon:'🏢'},
+  {label:'Hibrid\nmunka',color:'var(--home)',icon:'🏠'},
+  {label:'Szinkr.\nkihívások',color:'var(--sync)',icon:'🔄'},
+  {label:'Összefog.',color:'var(--off)',icon:'∑'},
+];
+const TAGS=[
+  {label:'On-shore',color:'var(--on)'},
+  {label:'Near-shore',color:'var(--near)'},
+  {label:'Off-shore',color:'var(--off)'},
+  {label:'Leányvállalat',color:'var(--lv)'},
+  {label:'Kiszervezés',color:'var(--kv)'},
+  {label:'Home office',color:'var(--home)'},
+];
+
+const STEPS=[
+  // 0. BEVEZETŐ
+  {t:0,tags:[],render:()=>`
+    <div class="shdr"><div class="sico">🌍</div>
+      <div><div class="stitle">Miért különleges a nagyvállalati fejlesztés?</div>
+      <div class="ssub">// Siemens Sinumerik — 50+ év, mobiltelefontok → hajócsavar</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+        A Siemens Sinumerik termékcsalád CNC szerszámgépeket vezérel — 50 éve a piacon. Ugyanaz a platform kezeli a mobiltelefon tok kimarását ÉS a több tonnás hajócsavar kialakítását. Hogyan lehetséges ez?
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">🙋</div><div class="bub r2"><div class="who" style="color:var(--lv);text-align:right">Tanuló</div>
+        Nyilván nagyon skálázható szoftvert írtak?
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+        Igen — de a szoftver maga is óriási: beágyazott vezérlő, PC-s mérnöki rendszerek, digitális iker. Ennek fejlesztéséhez összehangolt, szétosztott munka kell. Erről lesz szó ma.
+      </div></div>
+    </div>
+    <div class="ibox"><strong>A nagy rendszerek sajátossága:</strong> Több önálló szoftver összessége alkotja a végterméket. Ezeket különböző helyszíneken, különböző csapatok fejlesztik — mégis egyszerre kell készen lenniük, és egyszerre kell működniük. Ez az alapkihívás.</div>
+  `},
+
+  // 1. MUNKAVÉGZÉS EVOLÚCIÓJA
+  {t:0,tags:[],render:()=>`
+    <div class="shdr"><div class="sico">⏳</div>
+      <div><div class="stitle">A munkavégzés helye — hogyan fejlődött?</div>
+      <div class="ssub">// természeti erőforrástól a helyfüggetlen szoftverig</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--muted)">
+        <div class="cli-i">🏔️</div>
+        <div><strong>Régen: természeti erőforrás mellett</strong>
+        <span>Ahol természeti erőforrás vagy fontos közlekedési csomópont volt, ott alakultak a települések és vállalatok. A munkás ment az erőforráshoz.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--near)">
+        <div class="cli-i">🚂</div>
+        <div><strong>Aztán: erőforrás mozgott a munkáshoz</strong>
+        <span>Audi motorgyártás Magyarországon — Németországból jön a nyersanyag, itthon gyártják a motort, visszamegy Németországba az összeszerelőbe. A feldolgozás a olcsóbb munkaerőhöz ment.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--acc)">
+        <div class="cli-i">💻</div>
+        <div><strong>Ma: szoftver = teljesen helyfüggetlen</strong>
+        <span>Virtuális termék esetén a munkavégzés helye teljesen szabadon megválasztható — ott ahol a szükséges tudás rendelkezésre áll. Egy fejlesztő Budapestről dolgozhat egy müncheni cégnek.</span></div>
+      </div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+        A szoftverfejlesztés teljesen helyfüggetlensé vált. Ez hatalmas lehetőség — de az ilyen szétosztott munkát koordinálni nem egyszerű!
+      </div></div>
+    </div>
+  `},
+
+  // 2. ON/NEAR/OFF-SHORE
+  {t:1,tags:[0,1,2],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(249,115,22,.5)">🗺️</div>
+      <div><div class="stitle">On-shore / Near-shore / Off-shore</div>
+      <div class="ssub">// hol végeztessük a munkát?</div></div>
+    </div>
+    <div class="shore-grid">
+      <div class="shore-card" style="background:rgba(249,115,22,.06);border-color:rgba(249,115,22,.35)">
+        <div class="sc-icon">🏠</div>
+        <div class="sc-name" style="color:var(--on)">On-shore</div>
+        <div class="sc-sub">Ugyanazon az országon / területen belül</div>
+        <div class="sc-list">✅ Azonos jogi szabályok<br>✅ Azonos munkakultúra<br>✅ Nincs időzóna különbség<br>❌ Általában drágább<br><br>Pl. Budapest → Debrecen kiszervezés</div>
+      </div>
+      <div class="shore-card" style="background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.35)">
+        <div class="sc-icon">🌍</div>
+        <div class="sc-name" style="color:var(--near)">Near-shore</div>
+        <div class="sc-sub">Minimális jogi/kulturális különbség</div>
+        <div class="sc-list">✅ Kis időzóna eltérés<br>✅ Hasonló jogrendszer (pl. EU)<br>⚠️ Kis kulturális különbség<br>✅ Közepes árak<br><br>Pl. Budapest → Prága vagy Bukarest</div>
+      </div>
+      <div class="shore-card" style="background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.35)">
+        <div class="sc-icon">🌏</div>
+        <div class="sc-name" style="color:var(--off)">Off-shore</div>
+        <div class="sc-sub">Komoly időeltolódás + kulturális különbség</div>
+        <div class="sc-list">✅ Legolcsóbb munkaerő<br>❌ Nagy időzóna különbség<br>❌ Kulturális, jogi eltérések<br>❌ Kommunikáció nehézkes<br><br>Pl. Budapest → Bangalore (India)</div>
+      </div>
+    </div>
+    <div class="ibox warn"><strong>Off-shore valós kihívás:</strong> Ha Budapest 9:00, Bangalore 13:30 (télen 13:00). Ez 4,5 óra eltérés. Meetinget tartani reggel 8-ra kell Budapesten, hogy Indiában is munkaidő legyen. + Kulturális különbség a kommunikációban, jogi eltérések a szerződésekben.</div>
+  `},
+
+  // 3. ON/NEAR/OFF-SHORE ÖSSZEHASONLÍTÁS
+  {t:1,tags:[0,1,2],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(249,115,22,.5)">⚖️</div>
+      <div><div class="stitle">Mikor melyik típust érdemes választani?</div>
+      <div class="ssub">// a döntés alapjai</div></div>
+    </div>
+    <div class="cmp-tbl">
+      <div class="ct-hdr" style="grid-template-columns:90px 1fr 1fr 1fr">
+        <div>Szempont</div><div style="color:var(--on)">On-shore</div><div style="color:var(--near)">Near-shore</div><div style="color:var(--off)">Off-shore</div>
+      </div>
+      <div class="ct-row" style="grid-template-columns:90px 1fr 1fr 1fr">
+        <div class="ct-label">Ár</div>
+        <div style="color:var(--sync)">Legdrágább</div>
+        <div style="color:var(--near)">Közepes</div>
+        <div style="color:var(--off)">Legolcsóbb</div>
+      </div>
+      <div class="ct-row" style="grid-template-columns:90px 1fr 1fr 1fr">
+        <div class="ct-label">Kommunikáció</div>
+        <div style="color:var(--off)">Legjobb</div>
+        <div style="color:var(--near)">Jó</div>
+        <div style="color:var(--sync)">Nehézkes</div>
+      </div>
+      <div class="ct-row" style="grid-template-columns:90px 1fr 1fr 1fr">
+        <div class="ct-label">Jogi kockázat</div>
+        <div style="color:var(--off)">Minimális</div>
+        <div style="color:var(--near)">Alacsony</div>
+        <div style="color:var(--sync)">Magas</div>
+      </div>
+      <div class="ct-row" style="grid-template-columns:90px 1fr 1fr 1fr">
+        <div class="ct-label">Időzóna</div>
+        <div style="color:var(--off)">Nincs</div>
+        <div style="color:var(--near)">±1-2h</div>
+        <div style="color:var(--sync)">±5-12h</div>
+      </div>
+      <div class="ct-row" style="grid-template-columns:90px 1fr 1fr 1fr">
+        <div class="ct-label">Mikor jó?</div>
+        <div style="font-size:.63rem">Compliance, érzékeny adat, rövid projekt</div>
+        <div style="font-size:.63rem">EU projektek, hosszú együttműk.</div>
+        <div style="font-size:.63rem">Nagy volumen, standard feladatok</div>
+      </div>
+    </div>
+    <div class="ibox ok"><strong>Valóság a gyakorlatban:</strong> A legtöbb nagy IT cég kombinál — pl. stratégiai fejlesztés on-shore, rutinfeladatok off-shore. A döntésnél a bizalmi szint is számít: kezdetben az ügyfél kevésbé bízik a megbízottban, ezért részletes feladatokat ad ki és folyamatos állapotjelentést vár.</div>
+  `},
+
+  // 4. LEÁNYVÁLLALAT VS KISZERVEZÉS
+  {t:2,tags:[3,4],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,.5)">🏢</div>
+      <div><div class="stitle">Leányvállalat vs Kiszervezés</div>
+      <div class="ssub">// két különböző módja a feladat kihelyezésének</div></div>
+    </div>
+    <div class="comp2">
+      <div style="background:rgba(59,130,246,.06);border:1.5px solid rgba(59,130,246,.3);border-radius:10px;padding:.75rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--lv);font-weight:700;margin-bottom:.35rem">🏦 LEÁNYVÁLLALAT</div>
+        <div style="font-size:.68rem;line-height:1.55;color:rgba(216,228,255,.85)">Az anyavállalat saját részlege más országban. Saját tőkével felel.</div>
+        <div class="cklist" style="margin:.3rem 0 0">
+          <div style="font-family:'Inconsolata',monospace;font-size:.63rem;padding:.15rem 0;color:var(--off)">✅ Új piacra belép az anyacég</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.63rem;padding:.15rem 0;color:var(--off)">✅ Elismertség, munkáltatói márka</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.63rem;padding:.15rem 0;color:var(--off)">✅ Erős kulturális integráció</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.63rem;padding:.15rem 0;color:var(--sync)">❌ Nagy kockázat az anyacégre</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.63rem;padding:.15rem 0;color:var(--sync)">❌ Drága felállítani</div>
+        </div>
+        <div style="margin-top:.4rem;font-size:.65rem;color:var(--muted);font-family:'Inconsolata',monospace">Pl. Audi motorgyár Győrben</div>
+      </div>
+      <div style="background:rgba(168,85,247,.06);border:1.5px solid rgba(168,85,247,.3);border-radius:10px;padding:.75rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--kv);font-weight:700;margin-bottom:.35rem">📋 KISZERVEZÉS</div>
+        <div style="font-size:.68rem;line-height:1.55;color:rgba(216,228,255,.85)">Polgári jogi megállapodás — a vállalkozó saját munkavállalóival végzi el a feladatot.</div>
+        <div class="cklist" style="margin:.3rem 0 0">
+          <div style="font-family:'Inconsolata',monospace;font-size:.63rem;padding:.15rem 0;color:var(--off)">✅ Alacsonyabb kockázat</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.63rem;padding:.15rem 0;color:var(--off)">✅ Rugalmas skálázás</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.63rem;padding:.15rem 0;color:var(--off)">✅ Gyorsan bevezethető</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.63rem;padding:.15rem 0;color:var(--sync)">❌ Erős szerződéses keret kell</div>
+          <div style="font-family:'Inconsolata',monospace;font-size:.63rem;padding:.15rem 0;color:var(--sync)">❌ Lemondasz a közvetlen irányításról</div>
+        </div>
+        <div style="margin-top:.4rem;font-size:.65rem;color:var(--muted);font-family:'Inconsolata',monospace">Pl. IT szolgáltatás kiszervezése</div>
+      </div>
+    </div>
+    <div class="ibox"><strong>Kulcskülönbség:</strong> A leányvállalat dolgozói az anyacéggel állnak munkaviszonyban — az irányítást az anyavállalat nevezi ki. A kiszervezett cég munkavállalói a saját cégükkel állnak munkaviszonyban — az anyacég csak az eredményt "veszi át".</div>
+  `},
+
+  // 5. KISZERVEZÉS RÉSZLETEI
+  {t:2,tags:[4],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,.5)">📝</div>
+      <div><div class="stitle">Kiszervezés — hogyan működik a gyakorlatban?</div>
+      <div class="ssub">// szerződéses viszony, bizalom, folyamatok</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">💼</div><div class="bub l"><div class="who" style="color:var(--kv)">Megrendelő (anyacég)</div>
+        Kiszervezzük az IT helpdesk működtetését egy külső cégnek. Mit kell biztosítani?
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">📋</div><div class="bub r2"><div class="who" style="color:var(--acc);text-align:right">Jogi szakértő</div>
+        Először: jogi és technikai előfeltételek — rendelkezik-e a vállalkozó a szükséges erőforrásokkal és jogilag tisztázott a környezet?
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">💼</div><div class="bub l"><div class="who" style="color:var(--kv)">Megrendelő</div>
+        Mire figyelj a szerződésben?
+      </div></div>
+      <div class="msg show r" style="transition-delay:.45s"><div class="av">📋</div><div class="bub r2"><div class="who" style="color:var(--acc);text-align:right">Jogi szakértő</div>
+        SLA (Service Level Agreement) — mit és mikor kell szállítani, milyen minőségben. Kezdetben az ügyfél kevésbé bízik → részletes feladatok + folyamatos státuszjelentés.
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--kv)">
+        <div class="cli-i">⚖️</div>
+        <div><strong>Erős szerződéses keret</strong>
+        <span>A kiszervezés alapja a polgári jogi megállapodás. A vállalkozó azt vállalja, hogy a feladatot gondosan ellátja, vagy adott eredményt létrehoz — saját munkavállalóival.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--kv)">
+        <div class="cli-i">📊</div>
+        <div><strong>Bizalom növekedésével csökken a kontroll</strong>
+        <span>Kezdetben: folyamatos állapotjelentés, jól definiált kis feladatok. Ahogy épül a bizalom: nagyobb önállóság, hosszabb periódusú szállítás, magasabb szintű feladatok.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--kv)">
+        <div class="cli-i">🌍</div>
+        <div><strong>Nyelvi és kulturális figyelembevétel</strong>
+        <span>Ha más országba helyezik ki: nyelvi különbözőség, kulturális eltérések, időeltolódás. Meg kell határozni azt a fejlesztési modellt, amelyben transzparensen zajlik a közös munka.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 6. HIBRID MUNKAVÉGZÉS
+  {t:3,tags:[5],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(34,211,238,.5)">🏠</div>
+      <div><div class="stitle">Hibrid munkavégzés — Home Office</div>
+      <div class="ssub">// a mai IT ipar alapmodellje — de nem olyan egyszerű</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">💻</div><div class="bub l"><div class="who" style="color:var(--home)">Fejlesztő</div>
+        Dolgozhatom-e home office-ból bármennyi ideig? Jogi szempontból?
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">⚖️</div><div class="bub r2"><div class="who" style="color:var(--acc);text-align:right">HR / Jogi</div>
+        A munkatörvénykönyve NEM definiálja a "home office"-t — ezért évente csak korlátozott lehetőség van rá. Kibővíteni csak a munkavállalóval kötött megállapodással lehet.
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--home)">
+        <div class="cli-i">💻</div>
+        <div><strong>Home Office vs Távmunka — fontos különbség!</strong>
+        <span>Távmunka esetén a munkaszerződésben megjelölt helyen kell a munkát végezni (pl. "otthon, Budapest XI. kerület"). A munkáltató rezsiköltség általánydíjat fizet. Nincs fenntartott iroda.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--home)">
+        <div class="cli-i">🌍</div>
+        <div><strong>Külföldről dolgozni = adózási probléma!</strong>
+        <span>Abban az országban kell adózni, ahol a munkavégzés történik. Ha magyar cégnek dolgozol Spanyolországból 3 hónapig — Spanyolországban is adózási kötelezettség keletkezhet.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--sync)">
+        <div class="cli-i">🤝</div>
+        <div><strong>Csapatkohéziós kockázat</strong>
+        <span>Teljesen remote csapatnál nem alakul ki olyan erős összetartás. Kevésbé ismerik egymást a tagok → több konfliktus, magasabb fluktuáció. Érdemes egészséges egyensúlyt fenntartani.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--home)">
+        <div class="cli-i">🖥️</div>
+        <div><strong>Infrastruktúra a munkavállaló felelőssége</strong>
+        <span>Megfelelő internet kapcsolat, ergonomikus munkakörnyezet — a munkáltató köteles ellenőrizni, hogy megfelel-e a munkajogi előírásoknak (biztonságos szék, kábelek stb.).</span></div>
+      </div>
+    </div>
+  `},
+
+  // 7. SZINKRONIZÁCIÓ KIHÍVÁSAI
+  {t:4,tags:[],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,.5)">🔄</div>
+      <div><div class="stitle">Szinkronizáció — a nagy rendszerek alapkihívása</div>
+      <div class="ssub">// hogyan dolgozik egyszerre 50 csapat ugyanazon a terméken?</div></div>
+    </div>
+    <div class="sync-vis">
+      <div class="sv-title">// Szinkronizáció sűrűsége modellenként</div>
+      <div class="sv-row">
+        <div class="sv-label" style="color:var(--muted)">Tradicionális:</div>
+        <div class="sv-teams">
+          <div class="sv-team" style="background:rgba(59,130,246,.2);color:var(--lv)">Team A</div>
+          <div class="sv-team" style="background:rgba(168,85,247,.2);color:var(--kv)">Team B</div>
+          <div class="sv-team" style="background:rgba(16,185,129,.2);color:var(--off)">Team C</div>
+        </div>
+        <div class="sv-sync" style="background:var(--sync)" title="ritkán szinkronizálnak"></div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.54rem;color:var(--muted)">ritkán szinc.</div>
+      </div>
+      <div class="sv-row">
+        <div class="sv-label" style="color:var(--near)">Iteratív:</div>
+        <div class="sv-teams">
+          <div class="sv-team" style="background:rgba(59,130,246,.2);color:var(--lv)">A</div>
+          <div class="sv-team" style="background:rgba(168,85,247,.2);color:var(--kv)">B</div>
+          <div class="sv-team" style="background:rgba(16,185,129,.2);color:var(--off)">C</div>
+          <div class="sv-team" style="background:rgba(59,130,246,.2);color:var(--lv)">A</div>
+          <div class="sv-team" style="background:rgba(168,85,247,.2);color:var(--kv)">B</div>
+          <div class="sv-team" style="background:rgba(16,185,129,.2);color:var(--off)">C</div>
+        </div>
+        <div class="sv-sync" style="background:var(--near)"></div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.54rem;color:var(--muted)">hónaponta</div>
+      </div>
+      <div class="sv-row">
+        <div class="sv-label" style="color:var(--off)">SAFe/Agile:</div>
+        <div class="sv-teams">
+          ${Array(8).fill(0).map((_,i)=>`<div class="sv-team" style="background:rgba(16,185,129,.2);color:var(--off);font-size:.38rem">S${i+1}</div>`).join('')}
+        </div>
+        <div class="sv-sync" style="background:var(--off)"></div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.54rem;color:var(--muted)">hetente!</div>
+      </div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--sync)">
+        <div class="cli-i">💥</div>
+        <div><strong>Az "integrációs bumm" veszélye</strong>
+        <span>Ha csapatok hónapokig külön dolgoznak, majd összerakják a kódjukat → hatalmas konfliktus, inkompatibilitás, hetekig tartó integrációs "pokol". Az agilis megközelítés ezt folyamatos CI-val kerüli el.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--acc)">
+        <div class="cli-i">🔧</div>
+        <div><strong>Verziókövetés elengedhetetlen</strong>
+        <span>Ekkora méreteknél már nem lehet "szobán belül" megoldani ha valami félrecsúszik. Verziókezelő rendszer (Git) nélkül kaosz — ki módosított mit, mikor, miért?</span></div>
+      </div>
+    </div>
+  `},
+
+  // 8. SZINKRONIZÁCIÓ — FÜGGŐSÉGEK
+  {t:4,tags:[],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,.5)">🕸️</div>
+      <div><div class="stitle">Függőségek kezelése csapatok között</div>
+      <div class="ssub">// ha Team A kész nélkül Team B nem tud haladni</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">💻</div><div class="bub l"><div class="who" style="color:var(--lv)">Team A (Backend)</div>
+        A fizetési API-t majd jövő héten fejezzük be.
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">🎨</div><div class="bub r2"><div class="who" style="color:var(--kv);text-align:right">Team B (Frontend)</div>
+        Jövő héten?! Mi arra várunk, és jövő hétfőn kell a sprint review-ra a checkout flow...
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+        Ez a klasszikus függőségi probléma. Egy csapat késése blokkolja a másikat. Megoldás: ELŐRE azonosítani a függőségeket — ez a SAFe PI Planning célja.
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--sync)">
+        <div class="cli-i">🔗</div>
+        <div><strong>Technikai függőségek</strong>
+        <span>Team B nem tud dolgozni, mert Team A API-ja még nincs kész. Megoldás: mock API, interface-first fejlesztés, párhuzamos munka mockolással.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--sync)">
+        <div class="cli-i">👥</div>
+        <div><strong>Szervezeti függőségek</strong>
+        <span>Egy "platform" csapat fejleszti az infrastruktúrát, amelyre 10 feature csapat épül. Ha a platform elcsúszik — mindenki elcsúszik. Kritikus útvonal azonosítása kulcsfontosságú.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--off)">
+        <div class="cli-i">✅</div>
+        <div><strong>Megoldás: korai szinkronizáció</strong>
+        <span>SAFe PI Planning-en a csapatok ELŐRE jelzik a függőségeket egymásnak — és a sorrendet a függőségek mentén priorizálják. Így senki nem blokkolja véletlenül a másikat.</span></div>
+      </div>
+    </div>
+    <div class="ibox"><strong>Az agilis skalálásnál (SAFe, LeSS) ez az egyik legfontosabb feladat:</strong> A PI Planning meeting pontosan ezért létezik — hogy a csapatok előre lássák egymás terveit, és a függőségeket felismerjék, mielőtt azok blokkolnák a szállítást.</div>
+  `},
+
+  // 9. ÜGYFÉLTÍPUSOK
+  {t:4,tags:[],render:()=>`
+    <div class="shdr"><div class="sico">👥</div>
+      <div><div class="stitle">Ügyféltípusok — ki a végfelhasználó?</div>
+      <div class="ssub">// általános termék vs konkrét ügyfél — más fejlesztési folyamat</div></div>
+    </div>
+    <div class="comp2">
+      <div style="background:rgba(99,102,241,.06);border:1.5px solid rgba(99,102,241,.3);border-radius:10px;padding:.75rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--acc);font-weight:700;margin-bottom:.3rem">🌐 ÁLTALÁNOS TERMÉK</div>
+        <div style="font-size:.68rem;line-height:1.55;margin-bottom:.3rem">Fiktív ügyfélre fejlesztjük — nincs konkrét személy akit megkérdezhetünk.</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--muted);line-height:1.6">
+          ▸ Piackutatással gyűjtjük az igényeket<br>
+          ▸ Felhasználói profilokat (persona) definiálunk<br>
+          ▸ A/B teszt, visszajelzési folyamat<br>
+          ▸ Pl. Microsoft Word, Spotify, Instagram
+        </div>
+      </div>
+      <div style="background:rgba(16,185,129,.06);border:1.5px solid rgba(16,185,129,.3);border-radius:10px;padding:.75rem">
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--off);font-weight:700;margin-bottom:.3rem">🏭 KONKRÉT ÜGYFÉL</div>
+        <div style="font-size:.68rem;line-height:1.55;margin-bottom:.3rem">Egy konkrét megrendelőnek fejlesztünk — közvetlen kapcsolat.</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--muted);line-height:1.6">
+          ▸ Közvetlenül megkérdezhetjük az ügyfelet<br>
+          ▸ Bevonhatjuk a fejlesztésbe és tesztelésbe<br>
+          ▸ Konkrét visszajelzés a termékről<br>
+          ▸ Pl. Siemens Sinumerik egy autógyárnak
+        </div>
+      </div>
+    </div>
+    <div class="ibox ok"><strong>Miért számít ez?</strong> Az általános terméknél nem tudod "felvenni a telefont és megkérdezni". Ezért user research, piackutatás, beta tesztelők szükségesek. Konkrét ügyféllel egyszerűbb — de az ügyfél igénye változhat, és ő egyetlen vevő kieső bevételt jelent, ha elégedetlen.</div>
+  `},
+
+  // 10. DEVOPS KAPCSOLAT
+  {t:4,tags:[],render:()=>`
+    <div class="shdr"><div class="sico">🔄</div>
+      <div><div class="stitle">DevOps / DevSecOps a nagyvállalati kontextusban</div>
+      <div class="ssub">// fejlesztés + üzemeltetés szoros együttműködése</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+        A DevOps struktúra csak akkor valósítható meg, ha az ügyfél oldalon a végterméken kívül üzemeltetési tevékenységre is igény és lehetőség van.
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">🙋</div><div class="bub r2"><div class="who" style="color:var(--lv);text-align:right">Tanuló</div>
+        Mi az előnye ha fejlesztő és üzemeltető szorosan együtt dolgozik?
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--acc)">Oktató</div>
+        Lehetőség nyílik olyan környezeteket használni a fejlesztés során is, amelyek a felhasználóknál állnak rendelkezésre. Folyamatosan feltérképezhetők az ügyfél igényei, gyorsabban reagálhatnak.
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--acc)">
+        <div class="cli-i">🔄</div>
+        <div><strong>DevOps = Dev + Ops szoros együttműködés</strong>
+        <span>A fejlesztői csapat folyamatosan támogatja az üzemeltetést. Eszközök, automatizáció, monitoring — mindez közösen épül és karbantartódik.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--sync)">
+        <div class="cli-i">🔒</div>
+        <div><strong>DevSecOps = + Security minden fázisban</strong>
+        <span>Külső fél által készített termékek esetén a DevSecOps tudja leginkább, mik a sebezhető pontok. Ő tesz javaslatot a biztonsági fejlesztésekre — folyamatosan, nem csak audit során.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 11. ÖSSZEFOGLALÁS
+  {t:5,tags:[0,1,2,3,4,5],render:()=>`
+    <div class="shdr"><div class="sico">∑</div>
+      <div><div class="stitle">Összefoglalás — Nagyvállalati fejlesztés</div>
+      <div class="ssub">// a legfontosabb fogalmak</div></div>
+    </div>
+    <div class="sumgrid">
+      <div class="sbox" style="border-top:2px solid var(--on)"><span class="ico">🗺️</span><div class="val">3 Shore típus</div><div class="lbl">On · Near · Off-shore</div></div>
+      <div class="sbox" style="border-top:2px solid var(--lv)"><span class="ico">🏢</span><div class="val">2 Modell</div><div class="lbl">Leányvállalat vs Kiszervezés</div></div>
+      <div class="sbox" style="border-top:2px solid var(--home)"><span class="ico">🏠</span><div class="val">Hibrid munka</div><div class="lbl">Jogi korlátok + kohézió</div></div>
+      <div class="sbox" style="border-top:2px solid var(--sync)"><span class="ico">🔄</span><div class="val">Szinkron</div><div class="lbl">Integr. bumm elkerülése</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--on)">
+        <div class="cli-i">🗺️</div>
+        <div><strong>On/Near/Off-shore</strong>
+        <span>On = drága, könnyű. Near = közepes, EU szint. Off = olcsó, nehéz koordináció, időzóna+kultúra kihívások.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--lv)">
+        <div class="cli-i">🏢</div>
+        <div><strong>Leányvállalat vs Kiszervezés</strong>
+        <span>Leányvállalat = saját részleg más országban, nagy kockázat, erős integráció. Kiszervezés = polgári jogi megállapodás, alacsonyabb kockázat, kevesebb közvetlen irányítás.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--home)">
+        <div class="cli-i">🏠</div>
+        <div><strong>Hibrid munkavégzés kihívásai</strong>
+        <span>Mt. nem definiálja a home office-t, külföldi munkavégzés = adókötelezettség ott, csapatkohézió csökkenthet, infrastruktúra a munkavállaló felelőssége.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--sync)">
+        <div class="cli-i">🔄</div>
+        <div><strong>Szinkronizáció és függőségek</strong>
+        <span>Integrációs bumm megelőzése folyamatos CI-val. Függőségek előzetes azonosítása (SAFe PI Planning). Verziókezelő rendszer nélkül lehetetlen az együttmunkálkodás.</span></div>
+      </div>
+    </div>
+  `},
+];
+
+function renderBoard(tIdx,tagIdxs){
+  document.getElementById('steps').innerHTML=TOPICS.map((t,i)=>{
+    const on=i===tIdx,done=i<tIdx;
+    const c=on?t.color:done?t.color:'var(--muted)';
+    return `<div class="st ${on?'active':done?'done':''}">
+      <div class="sd" style="border-color:${c};color:${c}">${t.icon}</div>
+      <div class="sl" style="color:${on?t.color:'var(--muted)'}">${t.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('tagRow').innerHTML=TAGS.map((tg,i)=>{
+    const on=tagIdxs.includes(i);
+    return `<div class="tg ${on?'on':''}" style="border-color:${tg.color};color:${tg.color}">${tg.label}</div>`;
+  }).join('');
+}
+
+let cur=0;
+function render(){
+  const s=STEPS[cur];
+  renderBoard(s.t,s.tags);
+  const el=document.getElementById('content');
+  el.innerHTML=s.render();
+  setTimeout(()=>{el.querySelectorAll('.msg:not(.show)').forEach((m,i)=>setTimeout(()=>m.classList.add('show'),i*160));},60);
+  document.getElementById('bprev').disabled=cur===0;
+  document.getElementById('bnext').textContent=cur===STEPS.length-1?'↺ Újra':'Következő →';
+  document.getElementById('ctr').textContent=`${cur+1} / ${STEPS.length}`;
+}
+function next(){cur=cur===STEPS.length-1?0:cur+1;render();}
+function prev(){if(cur>0){cur--;render();}}
+render();
+</script>
+</body>
+</html>
