@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Git & Verziókövetés — Interaktív Szimuláció</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+
+:root {
+  --bg:    #0a0f1e;
+  --surf:  #0f1628;
+  --card:  #141d35;
+  --brd:   #1e2d50;
+  --brd2:  #263a68;
+  --text:  #d8e4ff;
+  --muted: #4a5f8a;
+
+  --git: #f97316;
+  --svn: #3b82f6;
+  --cc:  #a855f7;
+  --add: #10b981;
+  --del: #ef4444;
+  --mod: #f59e0b;
+  --acc: #f97316;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Sora',sans-serif; min-height:100vh; overflow-x:hidden; }
+body::before {
+  content:''; position:fixed; inset:0;
+  background: radial-gradient(ellipse at 20% 0%, rgba(249,115,22,0.06) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 100%, rgba(59,130,246,0.04) 0%, transparent 50%);
+  pointer-events:none; z-index:0;
+}
+
+header {
+  position:relative; z-index:1; padding:1.2rem 1.3rem 0.85rem;
+  border-bottom:1px solid var(--brd2);
+  background:linear-gradient(180deg, rgba(249,115,22,0.06) 0%, transparent 100%);
+}
+.hdr-row { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+h1 { font-size:1.4rem; font-weight:800; line-height:1.07; letter-spacing:-0.02em; }
+h1 span { color:var(--git); }
+h1 em { font-style:normal; color:var(--svn); }
+.tag { font-family:'Inconsolata',monospace; font-size:0.56rem; padding:0.25rem 0.55rem; border-radius:4px; background:rgba(249,115,22,0.12); color:var(--git); border:1px solid rgba(249,115,22,0.28); white-space:nowrap; margin-top:0.2rem; }
+header p { font-size:0.7rem; color:var(--muted); margin-top:0.25rem; font-family:'Inconsolata',monospace; }
+
+/* TOP BAR */
+.topbar { position:relative; z-index:1; background:var(--surf); border-bottom:1px solid var(--brd2); padding:0.75rem 1.3rem 0.65rem; }
+.tb-title { font-family:'Inconsolata',monospace; font-size:0.54rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.09em; margin-bottom:0.5rem; }
+.topic-steps { display:flex; align-items:center; gap:0; margin-bottom:0.45rem; }
+.ts-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:0.18rem; position:relative; }
+.ts-item:not(:last-child)::after { content:''; position:absolute; right:0; top:12px; width:50%; height:2px; background:var(--brd); z-index:0; }
+.ts-item:not(:first-child)::before { content:''; position:absolute; left:0; top:12px; width:50%; height:2px; background:var(--brd); z-index:0; }
+.ts-dot { width:24px; height:24px; border-radius:50%; border:2px solid var(--brd2); background:var(--card); display:flex; align-items:center; justify-content:center; font-size:0.6rem; z-index:1; transition:all 0.35s; position:relative; }
+.ts-label { font-family:'Inconsolata',monospace; font-size:0.44rem; color:var(--muted); text-align:center; line-height:1.2; }
+.ts-item.active .ts-dot { transform:scale(1.25); box-shadow:0 0 10px currentColor; }
+.ts-item.done .ts-dot { opacity:0.55; }
+.ts-item.active .ts-label { font-weight:700; }
+.vcs-chips { display:flex; gap:4px; flex-wrap:wrap; }
+.vcs-chip { font-family:'Inconsolata',monospace; font-size:0.55rem; font-weight:700; padding:0.16rem 0.45rem; border-radius:3px; border:1px solid; opacity:0.25; transition:opacity 0.3s; }
+.vcs-chip.on { opacity:1; }
+
+/* CONTENT */
+.content { position:relative; z-index:1; padding:0.9rem 1.3rem; min-height:275px; }
+.shdr { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.85rem; }
+.sico { width:36px; height:36px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1rem; border:1.5px solid var(--brd2); background:var(--card); }
+.stitle { font-size:0.95rem; font-weight:800; letter-spacing:-0.02em; }
+.ssub { font-family:'Inconsolata',monospace; font-size:0.56rem; color:var(--muted); margin-top:0.03rem; }
+
+/* CHAT */
+.chat { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.7rem; }
+.msg { display:flex; gap:0.4rem; align-items:flex-start; opacity:0; transform:translateY(6px); transition:opacity 0.3s, transform 0.3s; }
+.msg.show { opacity:1; transform:translateY(0); }
+.msg.r { flex-direction:row-reverse; }
+.av { width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:0.9rem; flex-shrink:0; border:1px solid var(--brd2); background:var(--card); }
+.bub { max-width:82%; padding:0.48rem 0.68rem; border-radius:9px; font-size:0.77rem; line-height:1.55; border:1px solid var(--brd2); background:var(--card); }
+.bub.l { border-bottom-left-radius:2px; }
+.bub.r2 { border-bottom-right-radius:2px; text-align:right; }
+.who { font-family:'Inconsolata',monospace; font-size:0.55rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.1rem; }
+
+/* TERMINAL BLOCK */
+.terminal {
+  background:#0d1117; border:1px solid #30363d; border-radius:8px;
+  overflow:hidden; margin:0.45rem 0;
+}
+.term-hdr {
+  background:#161b22; padding:0.3rem 0.75rem; display:flex; align-items:center; gap:0.4rem;
+  border-bottom:1px solid #30363d;
+  font-family:'Inconsolata',monospace; font-size:0.52rem; color:#8b949e;
+}
+.term-dot { width:10px; height:10px; border-radius:50%; }
+.term-body { padding:0.65rem 0.8rem; font-family:'Inconsolata',monospace; font-size:0.7rem; line-height:1.75; }
+.t-prompt { color:#58a6ff; }
+.t-cmd { color:#e6edf3; }
+.t-out { color:#8b949e; }
+.t-ok { color:#3fb950; }
+.t-err { color:#f85149; }
+.t-warn { color:#d29922; }
+.t-file { color:#79c0ff; }
+.t-branch { color:#d2a8ff; }
+.t-hash { color:#ffa657; }
+.t-comment { color:#8b949e; font-style:italic; }
+
+/* IBOX */
+.ibox { border-radius:8px; padding:0.55rem 0.75rem; font-size:0.74rem; line-height:1.55; margin:0.45rem 0; border:1px solid var(--brd2); background:var(--card); border-left:3px solid var(--git); }
+.ibox strong { font-weight:700; }
+.ibox.s-b { border-left-color:var(--svn); }
+.ibox.s-b strong { color:var(--svn); }
+.ibox.ok-b { border-left-color:var(--add); }
+.ibox.ok-b strong { color:var(--add); }
+
+/* CHECKLIST */
+.cklist { display:flex; flex-direction:column; gap:0.35rem; margin:0.45rem 0; }
+.cli { display:flex; align-items:flex-start; gap:0.5rem; padding:0.42rem 0.65rem; background:var(--card); border:1px solid var(--brd2); border-radius:8px; font-size:0.75rem; line-height:1.45; }
+.cli-i { flex-shrink:0; font-size:0.88rem; }
+.cli strong { display:block; font-weight:700; font-size:0.76rem; margin-bottom:0.03rem; }
+.cli span { color:var(--muted); font-size:0.68rem; font-family:'Inconsolata',monospace; }
+
+/* COMPARE TABLE */
+.cmp-table { border-radius:9px; overflow:hidden; border:1.5px solid var(--brd2); margin:0.45rem 0; }
+.cmp-hdr { display:grid; padding:0.32rem 0.65rem; gap:0.5rem; background:var(--surf); font-family:'Inconsolata',monospace; font-size:0.52rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; border-bottom:1px solid var(--brd); align-items:center; }
+.cmp-row { display:grid; padding:0.38rem 0.65rem; gap:0.5rem; border-bottom:1px solid var(--brd); font-size:0.69rem; align-items:start; }
+.cmp-row:last-child { border-bottom:none; }
+.cmp-label { font-weight:700; font-size:0.71rem; }
+
+/* BRANCH VIS */
+.branch-vis { background:#0d1117; border:1px solid #30363d; border-radius:9px; padding:0.7rem 0.85rem; margin:0.45rem 0; font-family:'Inconsolata',monospace; font-size:0.68rem; line-height:1.9; }
+.bv-title { font-size:0.52rem; color:#8b949e; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.4rem; }
+
+/* SUMGRID */
+.sumgrid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+.sbox { background:var(--card); border:1px solid var(--brd2); border-radius:8px; padding:0.6rem; text-align:center; }
+.sbox .ico { font-size:1.2rem; display:block; margin-bottom:0.15rem; }
+.sbox .val { font-size:0.88rem; font-weight:800; }
+.sbox .lbl { font-family:'Inconsolata',monospace; font-size:0.52rem; color:var(--muted); margin-top:0.04rem; }
+
+/* NAV */
+.nav { position:sticky; bottom:0; z-index:10; background:var(--bg); border-top:1px solid var(--brd2); padding:0.7rem 1.3rem; display:flex; align-items:center; gap:0.5rem; }
+.btn { font-family:'Inconsolata',monospace; font-size:0.63rem; font-weight:600; padding:0.52rem 1rem; border-radius:7px; cursor:pointer; transition:all 0.18s; text-transform:uppercase; letter-spacing:0.04em; }
+.btnp { background:transparent; color:var(--muted); border:1px solid var(--brd2); }
+.btnp:hover { color:var(--text); }
+.btnp:disabled { opacity:0.2; cursor:not-allowed; }
+.btnn { flex:1; background:rgba(249,115,22,0.12); color:var(--git); border:1px solid rgba(249,115,22,0.3); }
+.btnn:hover { background:rgba(249,115,22,0.22); }
+.ctr { font-family:'Inconsolata',monospace; font-size:0.57rem; color:var(--muted); white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <h1><span>Git</span> &amp;<br>Verzió<br><em>követés</em></h1>
+    <div class="tag">Git · SVN · ClearCase</div>
+  </div>
+  <p>// clone · add · commit · push · branch · merge · tag</p>
+</header>
+
+<div class="topbar">
+  <div class="tb-title">// témakörök</div>
+  <div class="topic-steps" id="topicSteps"></div>
+  <div class="vcs-chips" id="vcsChips"></div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 20</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+
+<script>
+const TOPICS = [
+  { label:'VCS\nalapok',    color:'var(--git)', icon:'📂' },
+  { label:'Git\nalapok',   color:'var(--git)', icon:'🟠' },
+  { label:'Git\nbranchelés', color:'var(--git)', icon:'🌿' },
+  { label:'SVN\nalapok',   color:'var(--svn)', icon:'🔵' },
+  { label:'Összehason\nlítás', color:'var(--cc)', icon:'⚖️' },
+  { label:'Össze\nfoglalás', color:'var(--add)', icon:'∑' },
+];
+
+const VCS_CHIPS = [
+  { label:'Git',       color:'var(--git)' },
+  { label:'SVN',       color:'var(--svn)' },
+  { label:'ClearCase', color:'var(--cc)'  },
+];
+
+const STEPS = [
+
+  // ── 0. MIÉRT KELL VCS? ───────────────────────────────────────────
+  {
+    topic:0, vcs:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">📂</div>
+        <div><div class="stitle">Miért kell verziókövetés?</div>
+        <div class="ssub">// a "final_v3_VEGLEGES_tenyleg.zip" probléma</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">😰</div>
+          <div class="bub l"><div class="who" style="color:var(--del)">Fejlesztő (VCS nélkül)</div>
+            Elrontottam a kódot. Volt egy "main_backup_2025-03-15.zip" fájlom... csak nem tudom melyik mappában. Van 12 mappa, mindegyik "backup" valahogy.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--svn);text-align:right">Tanuló</div>
+            Ez nyilván rossz. De mi a pontos probléma?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--git)">Oktató</div>
+            Nem tudod: 1. KI változtatott 2. MIKOR változtatott 3. MIT változtatott 4. MIÉRT változtatott. És nem tudsz visszaállni egy korábbi működő állapotba.
+          </div>
+        </div>
+      </div>
+      <div class="cmp-table">
+        <div class="cmp-hdr" style="grid-template-columns:1fr 1fr">
+          <div>❌ VCS nélkül</div><div>✅ VCS-szel (Git)</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:1fr 1fr">
+          <div style="color:var(--del)">main_final_v2_tenyleg.zip</div>
+          <div style="color:var(--add)">git log → minden változás listázva</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:1fr 1fr">
+          <div style="color:var(--del)">Ki csinálta? Nem tudom...</div>
+          <div style="color:var(--add)">git blame → sor-szintű szerzők</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:1fr 1fr">
+          <div style="color:var(--del)">Visszaállás? Remélem volt backup</div>
+          <div style="color:var(--add)">git revert → bármely commit visszavonható</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:1fr 1fr">
+          <div style="color:var(--del)">Párhuzamos munka? Email-ben küldözgetünk</div>
+          <div style="color:var(--add)">git branch → mindenki a saját ágán dolgozik</div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 1. GIT BEVEZETŐ ──────────────────────────────────────────────
+  {
+    topic:1, vcs:[0],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(249,115,22,0.5)">🟠</div>
+        <div><div class="stitle">Git — az elosztott verziókövetés</div>
+        <div class="ssub">// Linus Torvalds, 2005 — Linux kernelhez fejlesztette</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--git)">Oktató</div>
+            A Git elosztott (distributed) VCS — minden fejlesztőnek van egy TELJES MÁSOLATA a repóból. Ha a szerver leáll, mindenki tud dolgozni.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--svn);text-align:right">Tanuló</div>
+            Ez miben különbözik az SVN-től?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--git)">Oktató</div>
+            SVN centralizált — csak egy szerver van. Ha az leáll, senki nem tud commitolni. Git-ben mindenki offline is commitolhat, aztán szinkronizál.
+          </div>
+        </div>
+      </div>
+      <div class="branch-vis">
+        <div class="bv-title">// Git elosztott architektúra</div>
+        <div style="color:#58a6ff">Remote repo (GitHub/GitLab)</div>
+        <div style="color:#8b949e">       │             │             │</div>
+        <div style="color:#3fb950">  Anna gépe    Béla gépe   Szerver (CI)</div>
+        <div style="color:#8b949e">  (teljes repo) (teljes repo) (teljes repo)</div>
+        <div style="margin-top:0.35rem;color:#ffa657;font-size:0.62rem">→ Mindenki önállóan committolhat, a push/pull szinkronizál</div>
+      </div>
+      <div class="ibox"><strong>Fork és Clone különbség:</strong> Clone = letöltöm a repót a saját gépemre, jogom van vissza push-olni (ha developer vagyok). Fork = GitLab-ban lemásolom a repót a saját account-omra — akkor használatos, ha nincs jogom az eredetibe, és merge request-tel küldöm vissza.</div>
+    `
+  },
+
+  // ── 2. GIT ALAPPARANCSOK ─────────────────────────────────────────
+  {
+    topic:1, vcs:[0],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(249,115,22,0.5)">💻</div>
+        <div><div class="stitle">Git alapparancsok — napi munkában</div>
+        <div class="ssub">// clone → add → commit → push — a fejlesztő mindennapja</div></div>
+      </div>
+      <div class="terminal">
+        <div class="term-hdr">
+          <div class="term-dot" style="background:#ff5f57"></div>
+          <div class="term-dot" style="background:#febc2e"></div>
+          <div class="term-dot" style="background:#28c840"></div>
+          <div style="margin-left:0.5rem">bash — fejlesztői workflow</div>
+        </div>
+        <div class="term-body">
+          <div><span class="t-comment"># 1. Repo letöltése a gépemre</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git clone https://github.com/ceg/webshop.git</span></div>
+          <div><span class="t-ok">Cloning into 'webshop'... done.</span></div>
+          <br>
+          <div><span class="t-comment"># 2. Megváltozott fájlok ellenőrzése</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git status</span></div>
+          <div><span class="t-warn">modified:   src/auth/login.js</span></div>
+          <div><span class="t-warn">untracked:  src/auth/mfa.js</span></div>
+          <br>
+          <div><span class="t-comment"># 3. Fájlok hozzáadása a staging area-hoz</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git add src/auth/</span></div>
+          <div><span class="t-comment"># (git reset ha visszavonnád)</span></div>
+          <br>
+          <div><span class="t-comment"># 4. Commit — elmenti a változtatást üzenettel</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git commit -m "feat: add MFA support to login #SHOP-189"</span></div>
+          <div><span class="t-ok">[feature/mfa <span class="t-hash">a3f9d2c</span>] feat: add MFA support</span></div>
+          <br>
+          <div><span class="t-comment"># 5. Feltöltés a távoli repóba</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git push origin feature/mfa</span></div>
+          <div><span class="t-ok">Branch 'feature/mfa' set up to track remote.</span></div>
+        </div>
+      </div>
+      <div class="ibox"><strong>A Staging Area (Index) trükkje:</strong> A git add nem commitol — csak "tervbe veszi" a változtatást. Így logikusan csoportosíthatod: pl. 5 fájlt módosítottál, de csak 3-at commitolsz egyszerre (mert azok egy logikai egység). A maradék jön a következő commitba.</div>
+    `
+  },
+
+  // ── 3. GIT PULL LOG CHECKOUT ─────────────────────────────────────
+  {
+    topic:1, vcs:[0],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(249,115,22,0.5)">💻</div>
+        <div><div class="stitle">Git — pull, log, checkout</div>
+        <div class="ssub">// frissítés, előzmények, navigáció a repóban</div></div>
+      </div>
+      <div class="terminal">
+        <div class="term-hdr">
+          <div class="term-dot" style="background:#ff5f57"></div>
+          <div class="term-dot" style="background:#febc2e"></div>
+          <div class="term-dot" style="background:#28c840"></div>
+          <div style="margin-left:0.5rem">bash — git pull, log, checkout</div>
+        </div>
+        <div class="term-body">
+          <div><span class="t-comment"># Mások változtatásainak letöltése</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git pull origin main</span></div>
+          <div><span class="t-ok">2 files changed, 47 insertions(+), 3 deletions(-)</span></div>
+          <br>
+          <div><span class="t-comment"># Mi történt tegnap óta?</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git log --since="yesterday" --oneline</span></div>
+          <div><span class="t-hash">a3f9d2c</span> <span class="t-ok">feat: add MFA support</span> <span class="t-comment">(Anna)</span></div>
+          <div><span class="t-hash">b7e1f09</span> <span class="t-warn">fix: cart total calculation</span> <span class="t-comment">(Béla)</span></div>
+          <div><span class="t-hash">c2d3a45</span> <span class="t-out">refactor: extract auth service</span> <span class="t-comment">(Csaba)</span></div>
+          <br>
+          <div><span class="t-comment"># Visszaállás egy korábbi verzióra (olvasásra)</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git checkout b7e1f09</span></div>
+          <div><span class="t-warn">HEAD is now at b7e1f09 fix: cart total</span></div>
+          <br>
+          <div><span class="t-comment"># Visszatérés a main ágra</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git checkout main</span></div>
+          <div><span class="t-ok">Switched to branch 'main'</span></div>
+        </div>
+      </div>
+      <div class="ibox"><strong>git log --since trükk:</strong> git log --since="2025-01-01" --author="Anna" --oneline → pontosan látod mikor, ki, mit commitolt. Debugging-nál arany: "mikor tört el a login?" → git log → commit → git show → pontosan látod a változást.</div>
+    `
+  },
+
+  // ── 4. GIT BRANCH LÉTREHOZÁS ─────────────────────────────────────
+  {
+    topic:2, vcs:[0],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(249,115,22,0.5)">🌿</div>
+        <div><div class="stitle">Git Branch — párhuzamos fejlesztés</div>
+        <div class="ssub">// feature ágak, release ágak, hotfix ágak</div></div>
+      </div>
+      <div class="branch-vis">
+        <div class="bv-title">// Git branch stratégia — webshop fejlesztés</div>
+        <div><span style="color:#58a6ff">main:</span>    <span style="color:#3fb950">●</span>──────────────────────────────<span style="color:#3fb950">●</span>──→</div>
+        <div><span style="color:#8b949e">         │ checkout -b feature/mfa   merge │</span></div>
+        <div><span style="color:#ffa657">feature: └──<span style="color:#3fb950">●</span>──<span style="color:#3fb950">●</span>──<span style="color:#3fb950">●</span>──────────────────┘</span></div>
+        <div style="margin-top:0.3rem"><span style="color:#58a6ff">main:</span>    <span style="color:#3fb950">●</span>──────────────────<span style="color:#3fb950">●</span>──→</div>
+        <div><span style="color:#8b949e">         │ checkout -b hotfix  │</span></div>
+        <div><span style="color:#f85149">hotfix:  └──<span style="color:#3fb950">●</span>──────────────┘</span> <span style="color:#8b949e">(sürgős javítás)</span></div>
+      </div>
+      <div class="terminal">
+        <div class="term-hdr">
+          <div class="term-dot" style="background:#ff5f57"></div>
+          <div class="term-dot" style="background:#febc2e"></div>
+          <div class="term-dot" style="background:#28c840"></div>
+          <div style="margin-left:0.5rem">bash — branch workflow</div>
+        </div>
+        <div class="term-body">
+          <div><span class="t-comment"># Új branch létrehozása és váltás rá</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git checkout -b feature/apple-pay</span></div>
+          <div><span class="t-ok">Switched to a new branch 'feature/apple-pay'</span></div>
+          <br>
+          <div><span class="t-comment"># Melyik ágon vagyok most?</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git branch</span></div>
+          <div><span class="t-ok">* feature/apple-pay</span></div>
+          <div><span class="t-out">  main</span></div>
+          <div><span class="t-out">  feature/mfa</span></div>
+          <br>
+          <div><span class="t-comment"># ... fejlesztés, commitok ...</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git push origin feature/apple-pay</span></div>
+          <div><span class="t-comment"># → GitLab/GitHub-on Merge Request nyitható</span></div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Branch elnevezési konvenciók:</strong> feature/apple-pay · bugfix/cart-total · hotfix/security-patch · release/v2.3.x · chore/update-deps. Ezek a prefix-ek egy pillantásra megmondják, mi a branch célja.</div>
+    `
+  },
+
+  // ── 5. MERGE & CONFLICT ──────────────────────────────────────────
+  {
+    topic:2, vcs:[0],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(249,115,22,0.5)">🔀</div>
+        <div><div class="stitle">Merge és Conflict megoldás</div>
+        <div class="ssub">// mi van ha ketten ugyanazt a sort módosítják?</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">😱</div>
+          <div class="bub l"><div class="who" style="color:var(--del)">Fejlesztő</div>
+            git merge feature/apple-pay — és MERGE CONFLICT! Mit csináljak??
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub r2"><div class="who" style="color:var(--git);text-align:right">Oktató</div>
+            Normális! Ha két branch ugyanazt a sort módosította, a Gitnek segítség kell: melyiket tartsa meg? Nézd meg a fájlt — megjelöli mindkét verziót.
+          </div>
+        </div>
+      </div>
+      <div class="terminal">
+        <div class="term-hdr">
+          <div class="term-dot" style="background:#ff5f57"></div>
+          <div class="term-dot" style="background:#febc2e"></div>
+          <div class="term-dot" style="background:#28c840"></div>
+          <div style="margin-left:0.5rem">checkout.js — conflict megjelölve</div>
+        </div>
+        <div class="term-body">
+          <div><span class="t-out">function processPayment(amount) {</span></div>
+          <div><span class="t-err">&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD (main)</span></div>
+          <div><span class="t-warn">  return stripe.charge(amount);</span></div>
+          <div><span class="t-err">=======</span></div>
+          <div><span class="t-ok">  return applePay.charge(amount);</span></div>
+          <div><span class="t-err">&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/apple-pay</span></div>
+          <div><span class="t-out">}</span></div>
+          <br>
+          <div><span class="t-comment"># Megoldás: mindkettő kell? Vagy csak az egyik?</span></div>
+          <div><span class="t-comment"># Kézzel szerkesztjük, aztán:</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git add checkout.js</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git commit -m "merge: resolve payment method conflict"</span></div>
+          <div><span class="t-ok">Merge made by the 'ort' strategy.</span></div>
+        </div>
+      </div>
+      <div class="ibox ok-b"><strong>Conflict megelőzés:</strong> Minél kisebb és rövidebb életű a branch, annál kevesebb conflict. A legtöbb csapat "short-lived feature branch" stratégiát követ: max 1-3 napig él a branch, utána merge. Így minimális az esély az ütközésre.</div>
+    `
+  },
+
+  // ── 6. GIT TAG ───────────────────────────────────────────────────
+  {
+    topic:2, vcs:[0],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(249,115,22,0.5)">🏷️</div>
+        <div><div class="stitle">Git Tag — commit megjelölése</div>
+        <div class="ssub">// a release pillanatának "befagyasztása"</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--git)">Oktató</div>
+            A tag egy "bélyeg" egy commitra. Amíg a branch mozog (új commitok kerülnek rá), a tag rögzített — mindig ugyanoda mutat. Ez a Baseline!
+          </div>
+        </div>
+      </div>
+      <div class="terminal">
+        <div class="term-hdr">
+          <div class="term-dot" style="background:#ff5f57"></div>
+          <div class="term-dot" style="background:#febc2e"></div>
+          <div class="term-dot" style="background:#28c840"></div>
+          <div style="margin-left:0.5rem">bash — tag / baseline workflow</div>
+        </div>
+        <div class="term-body">
+          <div><span class="t-comment"># v2.3.1 release kiadása → tag létrehozás</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git tag -a v2.3.1 -m "Release: Apple Pay integration"</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git push origin v2.3.1</span></div>
+          <br>
+          <div><span class="t-comment"># 6 hónap múlva: mi volt a v2.3.0-ban?</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git checkout v2.3.0</span></div>
+          <div><span class="t-ok">HEAD is now at c9f2a31 (tag: v2.3.0)</span></div>
+          <div><span class="t-comment"># → Pontosan a v2.3.0-ban lévő kódot látom</span></div>
+          <br>
+          <div><span class="t-comment"># Mi a különbség v2.2.0 és v2.3.0 között?</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git diff v2.2.0..v2.3.0 --stat</span></div>
+          <div><span class="t-out"> src/payment/stripe.js  | 47 <span style="color:var(--add)">+++++</span><span style="color:var(--del)">--</span></span></div>
+          <div><span class="t-ok"> src/payment/applepay.js | 128 <span style="color:var(--add)">++++++++++++</span></span></div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Tag típusok:</strong> Lightweight tag (git tag v2.3.1) — egyszerű pointer. Annotated tag (git tag -a v2.3.1 -m "...") — tartalmaz üzenetet, szerzőt, dátumot — ez az ajánlott. A release-ekhez mindig annotated tag-et használjunk.</div>
+    `
+  },
+
+  // ── 7. SVN ALAPOK ────────────────────────────────────────────────
+  {
+    topic:3, vcs:[1],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,0.5)">🔵</div>
+        <div><div class="stitle">SVN — Subversion alapok</div>
+        <div class="ssub">// centralizált VCS — egy szerver, working copy</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--svn)">Oktató</div>
+            Az SVN centralizált — van egy központi szerver (repository), és a fejlesztők "working copy"-t töltenek le belőle. Nincs teljes helyi másolat, mint Git-ben.
+          </div>
+        </div>
+      </div>
+      <div class="terminal">
+        <div class="term-hdr">
+          <div class="term-dot" style="background:#ff5f57"></div>
+          <div class="term-dot" style="background:#febc2e"></div>
+          <div class="term-dot" style="background:#28c840"></div>
+          <div style="margin-left:0.5rem">bash — SVN parancsok</div>
+        </div>
+        <div class="term-body">
+          <div><span class="t-comment"># Repo letöltése working copy-ba (≈ git clone)</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">svn checkout https://svn.ceg.hu/repos/webshop .</span></div>
+          <div><span class="t-ok">Checked out revision 1247.</span></div>
+          <br>
+          <div><span class="t-comment"># Új fájl hozzáadása (≈ git add + commit együtt)</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">svn add src/payment/applepay.js</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">svn commit -m "feat: add Apple Pay support"</span></div>
+          <div><span class="t-ok">Committed revision 1248.</span></div>
+          <br>
+          <div><span class="t-comment"># Mások változtatásainak letöltése (≈ git pull)</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">svn update</span></div>
+          <div><span class="t-ok">Updated to revision 1249.</span></div>
+          <br>
+          <div><span class="t-comment"># Branch létrehozása (másolással, nem switcheléssel!)</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">svn copy ^/trunk ^/branches/feature-applepay -m "new branch"</span></div>
+          <br>
+          <div><span class="t-comment"># Fájl zárolása (más ne módosíthasson)</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">svn lock checkout.js -m "I'm editing this"</span></div>
+        </div>
+      </div>
+      <div class="ibox s-b"><strong>SVN revízió vs Git hash:</strong> SVN-ben a verziók szekvenciális számok (r1247, r1248) — könnyen hivatkozható. Git-ben SHA hash (a3f9d2c) — egyedi, de nehezebben megjegyezhető. SVN-ben a revision számon cross-repo nem egyedi, Git hash-e globálisan egyedi.</div>
+    `
+  },
+
+  // ── 8. SVN vs GIT összehasonlítás ───────────────────────────────
+  {
+    topic:3, vcs:[0,1],
+    render:()=>`
+      <div class="shdr"><div class="sico">⚖️</div>
+        <div><div class="stitle">SVN Merge — az összefésülés nehezebb</div>
+        <div class="ssub">// SVN branch/merge vs Git branch/merge</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">😤</div>
+          <div class="bub l"><div class="who" style="color:var(--del)">Fejlesztő (SVN-nel)</div>
+            3 hete nyílt ez a branch, most megpróbálom merge-elni a trunk-ba... 47 conflict, és nem is tudom melyik revision-öktől kellene mergelni...
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub r2"><div class="who" style="color:var(--git);text-align:right">Oktató</div>
+            Ez az SVN egyik legnagyobb hátránya — a merge nehéz, ezért sokan kerülik a branch-elést. Git-ben a merge tracking automatikus és sokkal okosabb.
+          </div>
+        </div>
+      </div>
+      <div class="terminal">
+        <div class="term-hdr">
+          <div class="term-dot" style="background:#ff5f57"></div>
+          <div class="term-dot" style="background:#febc2e"></div>
+          <div class="term-dot" style="background:#28c840"></div>
+          <div style="margin-left:0.5rem">bash — SVN merge (bonyolult!)</div>
+        </div>
+        <div class="term-body">
+          <div><span class="t-comment"># SVN merge — meg kell adni melyik revízióktól!</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">svn merge -r1200:1248 ^/branches/feature-applepay .</span></div>
+          <div><span class="t-warn">Conflict discovered in 'checkout.js'.</span></div>
+          <div><span class="t-warn">Select: (p) postpone, (e) edit, (mc) mine ...</span></div>
+          <br>
+          <div><span class="t-comment"># Git ugyanez — sokkal egyszerűbb:</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">git merge feature/applepay</span></div>
+          <div><span class="t-comment"># Git tudja hol vált szét a branch — nem kell megadni</span></div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Mikor érdemes SVN-t használni?</strong> Nagy bináris fájloknál (game assets, CAD fájlok) — Git nem igazán kezeli a nagy binárisokat. Régi enterprise rendszereknél ahol az SVN már be van integrálva. Egyébként: 2025-ben az ipar de facto standardje a Git.</div>
+    `
+  },
+
+  // ── 9. GIT vs SVN vs ClearCase ──────────────────────────────────
+  {
+    topic:4, vcs:[0,1,2],
+    render:()=>`
+      <div class="shdr"><div class="sico">⚖️</div>
+        <div><div class="stitle">Git vs SVN vs ClearCase</div>
+        <div class="ssub">// mikor melyiket érdemes választani?</div></div>
+      </div>
+      <div class="cmp-table">
+        <div class="cmp-hdr" style="grid-template-columns:90px 1fr 1fr 1fr">
+          <div>Szempont</div>
+          <div style="color:var(--git)">🟠 Git</div>
+          <div style="color:var(--svn)">🔵 SVN</div>
+          <div style="color:var(--cc)">🟣 ClearCase</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:90px 1fr 1fr 1fr">
+          <div class="cmp-label">Típus</div>
+          <div>Elosztott — teljes másolat mindenkinél</div>
+          <div>Centralizált — 1 szerver</div>
+          <div>Centralizált — vállalati szintű</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:90px 1fr 1fr 1fr">
+          <div class="cmp-label">Branch</div>
+          <div style="color:var(--add)">Könnyű, gyors, ajánlott</div>
+          <div style="color:var(--mod)">Nehézkes, kerülik</div>
+          <div style="color:var(--mod)">Komplex, de erős</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:90px 1fr 1fr 1fr">
+          <div class="cmp-label">Offline</div>
+          <div style="color:var(--add)">Igen — commit offline is</div>
+          <div style="color:var(--del)">Nem — szerver kell</div>
+          <div style="color:var(--del)">Nem — szerver kell</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:90px 1fr 1fr 1fr">
+          <div class="cmp-label">Sebesség</div>
+          <div style="color:var(--add)">Nagyon gyors (lokális)</div>
+          <div style="color:var(--mod)">Közepes (hálózati)</div>
+          <div style="color:var(--mod)">Lassabb</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:90px 1fr 1fr 1fr">
+          <div class="cmp-label">Használat</div>
+          <div style="color:var(--add)">Ipar de facto standard</div>
+          <div style="color:var(--mod)">Régi rendszerek</div>
+          <div style="color:var(--mod)">Nagyvállalati (IBM, repülő)</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:90px 1fr 1fr 1fr">
+          <div class="cmp-label">Lock</div>
+          <div>Nincs (optimistic)</div>
+          <div style="color:var(--svn)">svn lock — van!</div>
+          <div style="color:var(--cc)">Van — erős zárolás</div>
+        </div>
+      </div>
+      <div class="ibox"><strong>ClearCase mikor?</strong> Repülőgép-ipari szoftver (DO-178C compliance), orvostechnikai eszközök (IEC 62304) — ahol a szabványok speciális audit trail és lock mechanizmust követelnek. A ClearCase Cleartool mkelem/co/ci parancsai ezt biztosítják.</div>
+    `
+  },
+
+  // ── 10. CLEARCASE ALAPOK ──────────────────────────────────────────
+  {
+    topic:4, vcs:[2],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,0.5)">🟣</div>
+        <div><div class="stitle">ClearCase — vállalati VCS</div>
+        <div class="ssub">// IBM Rational ClearCase — repülő, auto, orvosi ipar</div></div>
+      </div>
+      <div class="terminal">
+        <div class="term-hdr">
+          <div class="term-dot" style="background:#ff5f57"></div>
+          <div class="term-dot" style="background:#febc2e"></div>
+          <div class="term-dot" style="background:#28c840"></div>
+          <div style="margin-left:0.5rem">cleartool — alapparancsok</div>
+        </div>
+        <div class="term-body">
+          <div><span class="t-comment"># Elem létrehozása verziókezelés alá (≈ git add)</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">cleartool mkelem -c "new payment module" applepay.c</span></div>
+          <br>
+          <div><span class="t-comment"># Check out — zárolás szerkesztéshez (≈ git checkout)</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">cleartool co -c "editing payment logic" applepay.c</span></div>
+          <div><span class="t-ok">Checked out "applepay.c" from version "/main/3".</span></div>
+          <br>
+          <div><span class="t-comment"># Check in — mentés (≈ git commit)</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">cleartool ci -c "add Apple Pay validation" applepay.c</span></div>
+          <div><span class="t-ok">Checked in "applepay.c" version "/main/4".</span></div>
+          <br>
+          <div><span class="t-comment"># Label (tag) létrehozása (≈ git tag)</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">cleartool mklbtype -c "Release 2.3.1" REL_2_3_1</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">cleartool mklabel -r REL_2_3_1 .</span></div>
+          <br>
+          <div><span class="t-comment"># Replika készítése (elosztott telepítéshez)</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">multitool mkreplica -c "Budapest office" bud-server:/vobs/webshop</span></div>
+        </div>
+      </div>
+      <div class="ibox" style="border-left-color:var(--cc)"><strong>ClearCase vs Git főkülönbség:</strong> ClearCase-ben a checkout = zárolás — amíg Anna checkout-olta, MÁS NEM SZERKESZTHETI azt a fájlt. Megelőzi a konfliktusgkat — de lassítja a fejlesztést. Git-ben mindenki szerkeszthet párhuzamosan, a konflikt megoldás utólag zajlik.</div>
+    `
+  },
+
+  // ── 11. TELJES ÖSSZEFOGLALÁS ──────────────────────────────────────
+  {
+    topic:5, vcs:[0,1,2],
+    render:()=>`
+      <div class="shdr"><div class="sico">∑</div>
+        <div><div class="stitle">Összefoglalás — Verziókövetés</div>
+        <div class="ssub">// Git · SVN · ClearCase + alapfogalmak</div></div>
+      </div>
+      <div class="cmp-table">
+        <div class="cmp-hdr" style="grid-template-columns:100px 1fr 1fr 1fr">
+          <div>Parancs</div>
+          <div style="color:var(--git)">Git</div>
+          <div style="color:var(--svn)">SVN</div>
+          <div style="color:var(--cc)">ClearCase</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:100px 1fr 1fr 1fr;font-size:0.65rem">
+          <div class="cmp-label">Letöltés</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--git)">git clone</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--svn)">svn checkout</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--cc)">cleartool mkview</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:100px 1fr 1fr 1fr;font-size:0.65rem">
+          <div class="cmp-label">Mentés</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--git)">git add + commit</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--svn)">svn commit</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--cc)">ct co + ct ci</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:100px 1fr 1fr 1fr;font-size:0.65rem">
+          <div class="cmp-label">Feltöltés</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--git)">git push</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--svn)">svn commit</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--cc)">automatikus</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:100px 1fr 1fr 1fr;font-size:0.65rem">
+          <div class="cmp-label">Frissítés</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--git)">git pull</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--svn)">svn update</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--cc)">ct update</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:100px 1fr 1fr 1fr;font-size:0.65rem">
+          <div class="cmp-label">Branch</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--git)">git checkout -b</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--svn)">svn copy</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--cc)">ct mkbranch</div>
+        </div>
+        <div class="cmp-row" style="grid-template-columns:100px 1fr 1fr 1fr;font-size:0.65rem">
+          <div class="cmp-label">Tag/Label</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--git)">git tag -a v1.0</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--svn)">svn copy (tag)</div>
+          <div style="font-family:'Inconsolata',monospace;color:var(--cc)">ct mklbtype + mklabel</div>
+        </div>
+      </div>
+      <div class="ibox ok-b"><strong>A 3 alapkérdés és a válasz:</strong> KI? → git log --author · MIT? → git diff commit1..commit2 · MIKOR? → git log --since="2025-01-01" · MIÉRT? → a commit üzenet! (Ezért írj ÉRTELMES commit üzeneteket: "fix: cart total not applying 10% discount" — nem "fix stuff")</div>
+    `
+  },
+];
+
+function renderBoard(topicIdx, vcsIdxs) {
+  document.getElementById('topicSteps').innerHTML = TOPICS.map((t,i)=>{
+    const on = i===topicIdx, done = i<topicIdx;
+    const c = on ? t.color : done ? t.color : 'var(--muted)';
+    return `<div class="ts-item ${on?'active':done?'done':''}">
+      <div class="ts-dot" style="border-color:${c};color:${c}">${t.icon}</div>
+      <div class="ts-label" style="color:${on?t.color:'var(--muted)'}">${t.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('vcsChips').innerHTML = VCS_CHIPS.map((v,i)=>{
+    const on = vcsIdxs.includes(i);
+    return `<div class="vcs-chip ${on?'on':''}" style="border-color:${v.color};color:${v.color}">${v.label}</div>`;
+  }).join('');
+}
+
+let cur = 0;
+function render() {
+  const s = STEPS[cur];
+  renderBoard(s.topic, s.vcs);
+  const el = document.getElementById('content');
+  el.innerHTML = s.render();
+  setTimeout(()=>{el.querySelectorAll('.msg:not(.show)').forEach((m,i)=>setTimeout(()=>m.classList.add('show'),i*160));},60);
+  document.getElementById('bprev').disabled = cur===0;
+  document.getElementById('bnext').textContent = cur===STEPS.length-1?'↺ Újra':'Következő →';
+  document.getElementById('ctr').textContent = `${cur+1} / ${STEPS.length}`;
+}
+function next(){cur=cur===STEPS.length-1?0:cur+1;render();}
+function prev(){if(cur>0){cur--;render();}}
+render();
+</script>
+</body>
+</html>

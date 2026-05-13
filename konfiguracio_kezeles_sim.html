@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Konfigurációkezelés</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+
+:root {
+  --bg:    #0a0f1e;
+  --surf:  #0f1628;
+  --card:  #141d35;
+  --brd:   #1e2d50;
+  --brd2:  #263a68;
+  --text:  #d8e4ff;
+  --muted: #4a5f8a;
+
+  --cm:   #6366f1;   /* CM fő szín */
+  --ver:  #3b82f6;   /* Verziókövetés */
+  --val:  #f59e0b;   /* Változáskövetés */
+  --gen:  #10b981;   /* Generálás */
+  --kia:  #a855f7;   /* Kiadáskezelés */
+  --int:  #22d3ee;   /* Integráció */
+  --ok:   #10b981;
+  --acc:  #6366f1;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Sora',sans-serif; min-height:100vh; overflow-x:hidden; }
+body::before {
+  content:''; position:fixed; inset:0;
+  background: radial-gradient(ellipse at 20% 0%, rgba(99,102,241,0.06) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 100%, rgba(34,211,238,0.04) 0%, transparent 50%);
+  pointer-events:none; z-index:0;
+}
+
+header {
+  position:relative; z-index:1; padding:1.2rem 1.3rem 0.85rem;
+  border-bottom:1px solid var(--brd2);
+  background:linear-gradient(180deg, rgba(99,102,241,0.06) 0%, transparent 100%);
+}
+.hdr-row { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+h1 { font-size:1.4rem; font-weight:800; line-height:1.07; letter-spacing:-0.02em; }
+h1 span { color:var(--cm); }
+h1 em   { font-style:normal; color:var(--int); }
+.tag { font-family:'Inconsolata',monospace; font-size:0.56rem; padding:0.25rem 0.55rem; border-radius:4px; background:rgba(99,102,241,0.12); color:var(--cm); border:1px solid rgba(99,102,241,0.28); white-space:nowrap; margin-top:0.2rem; }
+header p { font-size:0.7rem; color:var(--muted); margin-top:0.25rem; font-family:'Inconsolata',monospace; }
+
+/* TOP BAR */
+.topbar { position:relative; z-index:1; background:var(--surf); border-bottom:1px solid var(--brd2); padding:0.75rem 1.3rem 0.65rem; }
+.tb-title { font-family:'Inconsolata',monospace; font-size:0.54rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.09em; margin-bottom:0.5rem; }
+.area-steps { display:flex; align-items:center; gap:0; margin-bottom:0.45rem; }
+.as-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:0.18rem; position:relative; }
+.as-item:not(:last-child)::after { content:''; position:absolute; right:0; top:12px; width:50%; height:2px; background:var(--brd); z-index:0; }
+.as-item:not(:first-child)::before { content:''; position:absolute; left:0; top:12px; width:50%; height:2px; background:var(--brd); z-index:0; }
+.as-dot { width:24px; height:24px; border-radius:50%; border:2px solid var(--brd2); background:var(--card); display:flex; align-items:center; justify-content:center; font-size:0.6rem; z-index:1; transition:all 0.35s; position:relative; }
+.as-label { font-family:'Inconsolata',monospace; font-size:0.44rem; color:var(--muted); text-align:center; line-height:1.2; }
+.as-item.active .as-dot { transform:scale(1.25); box-shadow:0 0 10px currentColor; }
+.as-item.done .as-dot { opacity:0.55; }
+.as-item.active .as-label { font-weight:700; }
+.kv-chips { display:flex; gap:4px; flex-wrap:wrap; }
+.kv-chip { font-family:'Inconsolata',monospace; font-size:0.53rem; font-weight:600; padding:0.15rem 0.42rem; border-radius:3px; border:1px solid; opacity:0.25; transition:opacity 0.3s; }
+.kv-chip.on { opacity:1; }
+
+/* CONTENT */
+.content { position:relative; z-index:1; padding:0.9rem 1.3rem; min-height:275px; }
+.shdr { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.85rem; }
+.sico { width:36px; height:36px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1rem; border:1.5px solid var(--brd2); background:var(--card); }
+.stitle { font-size:0.95rem; font-weight:800; letter-spacing:-0.02em; }
+.ssub { font-family:'Inconsolata',monospace; font-size:0.56rem; color:var(--muted); margin-top:0.03rem; }
+
+/* CHAT */
+.chat { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.7rem; }
+.msg { display:flex; gap:0.4rem; align-items:flex-start; opacity:0; transform:translateY(6px); transition:opacity 0.3s, transform 0.3s; }
+.msg.show { opacity:1; transform:translateY(0); }
+.msg.r { flex-direction:row-reverse; }
+.av { width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:0.9rem; flex-shrink:0; border:1px solid var(--brd2); background:var(--card); }
+.bub { max-width:82%; padding:0.48rem 0.68rem; border-radius:9px; font-size:0.77rem; line-height:1.55; border:1px solid var(--brd2); background:var(--card); }
+.bub.l { border-bottom-left-radius:2px; }
+.bub.r2 { border-bottom-right-radius:2px; text-align:right; }
+.who { font-family:'Inconsolata',monospace; font-size:0.55rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.1rem; }
+
+/* DEF CARD */
+.def-card { border-radius:10px; padding:0.75rem 0.85rem; margin:0.35rem 0; border:1.5px solid; }
+.dc-label { font-family:'Inconsolata',monospace; font-size:0.56rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.2rem; }
+.dc-text { font-size:0.78rem; line-height:1.6; color:rgba(216,228,255,0.9); }
+.dc-example { margin-top:0.35rem; background:var(--surf); border-radius:6px; padding:0.38rem 0.55rem; font-size:0.7rem; line-height:1.45; border-left:2px solid; color:rgba(216,228,255,0.75); }
+.ex-l { font-family:'Inconsolata',monospace; font-size:0.5rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.1rem; }
+
+/* IBOX */
+.ibox { border-radius:8px; padding:0.55rem 0.75rem; font-size:0.74rem; line-height:1.55; margin:0.45rem 0; border:1px solid var(--brd2); background:var(--card); border-left:3px solid var(--cm); }
+.ibox strong { font-weight:700; }
+.ibox.v-b { border-left-color:var(--ver); }
+.ibox.v-b strong { color:var(--ver); }
+.ibox.g-b { border-left-color:var(--ok); }
+.ibox.g-b strong { color:var(--ok); }
+
+/* CHECKLIST */
+.cklist { display:flex; flex-direction:column; gap:0.35rem; margin:0.45rem 0; }
+.cli { display:flex; align-items:flex-start; gap:0.5rem; padding:0.42rem 0.65rem; background:var(--card); border:1px solid var(--brd2); border-radius:8px; font-size:0.75rem; line-height:1.45; }
+.cli-i { flex-shrink:0; font-size:0.88rem; }
+.cli strong { display:block; font-weight:700; font-size:0.76rem; margin-bottom:0.03rem; }
+.cli span { color:var(--muted); font-size:0.68rem; font-family:'Inconsolata',monospace; }
+
+/* 5 TERÜLET WHEEL */
+.five-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.35rem; margin:0.45rem 0; }
+.five-card { border-radius:9px; padding:0.6rem 0.7rem; border:1.5px solid; text-align:center; }
+.fc-icon { font-size:1.3rem; margin-bottom:0.15rem; }
+.fc-name { font-size:0.8rem; font-weight:800; margin-bottom:0.08rem; }
+.fc-desc { font-family:'Inconsolata',monospace; font-size:0.57rem; color:var(--muted); line-height:1.3; }
+
+/* STATE MACHINE */
+.state-flow { background:var(--card); border:1.5px solid var(--brd2); border-radius:9px; padding:0.65rem 0.75rem; margin:0.45rem 0; }
+.sf-title { font-family:'Inconsolata',monospace; font-size:0.52rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.45rem; }
+.sf-row { display:flex; align-items:center; gap:0.4rem; margin:0.25rem 0; flex-wrap:wrap; }
+.sf-state { font-family:'Inconsolata',monospace; font-size:0.6rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:4px; border:1px solid; }
+.sf-arrow { color:var(--muted); font-size:0.7rem; flex-shrink:0; }
+.sf-action { font-size:0.64rem; color:var(--muted); flex:1; min-width:80px; }
+
+/* COMPARE TABLE */
+.cmp-table { border-radius:9px; overflow:hidden; border:1.5px solid var(--brd2); margin:0.45rem 0; }
+.cmp-hdr { display:grid; grid-template-columns:100px 1fr 1fr; background:var(--surf); padding:0.32rem 0.65rem; gap:0.5rem; font-family:'Inconsolata',monospace; font-size:0.52rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; border-bottom:1px solid var(--brd); align-items:center; }
+.cmp-row { display:grid; grid-template-columns:100px 1fr 1fr; padding:0.38rem 0.65rem; gap:0.5rem; border-bottom:1px solid var(--brd); font-size:0.7rem; align-items:center; }
+.cmp-row:last-child { border-bottom:none; }
+.cmp-label { font-weight:700; font-size:0.72rem; }
+
+/* SUMGRID */
+.sumgrid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; margin:0.45rem 0; }
+.sbox { background:var(--card); border:1px solid var(--brd2); border-radius:8px; padding:0.6rem; text-align:center; }
+.sbox .ico { font-size:1.2rem; display:block; margin-bottom:0.15rem; }
+.sbox .val { font-size:0.88rem; font-weight:800; }
+.sbox .lbl { font-family:'Inconsolata',monospace; font-size:0.52rem; color:var(--muted); margin-top:0.04rem; }
+
+/* BUILD PIPELINE VIS */
+.pipeline { background:var(--card); border:1.5px solid var(--brd2); border-radius:9px; overflow:hidden; margin:0.45rem 0; }
+.pl-hdr { background:var(--surf); padding:0.3rem 0.7rem; font-family:'Inconsolata',monospace; font-size:0.52rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; border-bottom:1px solid var(--brd); }
+.pl-row { display:flex; align-items:center; padding:0.38rem 0.7rem; border-bottom:1px solid var(--brd); gap:0.5rem; font-size:0.7rem; }
+.pl-row:last-child { border-bottom:none; }
+.pl-step { font-family:'Inconsolata',monospace; font-size:0.6rem; font-weight:700; width:80px; flex-shrink:0; }
+.pl-desc { flex:1; color:rgba(216,228,255,0.82); }
+.pl-tool { font-family:'Inconsolata',monospace; font-size:0.55rem; color:var(--muted); }
+
+/* ITIL */
+.itil-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.35rem; margin:0.45rem 0; }
+.itil-card { background:var(--card); border:1px solid var(--brd2); border-radius:8px; padding:0.5rem 0.6rem; border-top:2px solid; }
+.ic-code { font-family:'Inconsolata',monospace; font-size:0.65rem; font-weight:800; margin-bottom:0.1rem; }
+.ic-name { font-size:0.7rem; font-weight:700; margin-bottom:0.08rem; }
+.ic-desc { font-size:0.62rem; color:var(--muted); line-height:1.35; font-family:'Inconsolata',monospace; }
+
+/* NAV */
+.nav { position:sticky; bottom:0; z-index:10; background:var(--bg); border-top:1px solid var(--brd2); padding:0.7rem 1.3rem; display:flex; align-items:center; gap:0.5rem; }
+.btn { font-family:'Inconsolata',monospace; font-size:0.63rem; font-weight:600; padding:0.52rem 1rem; border-radius:7px; cursor:pointer; transition:all 0.18s; text-transform:uppercase; letter-spacing:0.04em; }
+.btnp { background:transparent; color:var(--muted); border:1px solid var(--brd2); }
+.btnp:hover { color:var(--text); }
+.btnp:disabled { opacity:0.2; cursor:not-allowed; }
+.btnn { flex:1; background:rgba(99,102,241,0.12); color:var(--cm); border:1px solid rgba(99,102,241,0.3); }
+.btnn:hover { background:rgba(99,102,241,0.22); }
+.ctr { font-family:'Inconsolata',monospace; font-size:0.57rem; color:var(--muted); white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <h1><span>Konfiguráció</span><br>kezelés<br><em>CM</em></h1>
+    <div class="tag">evosoft // 2025</div>
+  </div>
+  <p>// Verziókövetés · Változáskövetés · Generálás · Kiadás · Integráció</p>
+</header>
+
+<div class="topbar">
+  <div class="tb-title">// CM területek</div>
+  <div class="area-steps" id="areaSteps"></div>
+  <div class="kv-chips" id="kvChips"></div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 20</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+
+<script>
+const AREAS = [
+  { label:'Alapok\n& Célok',      color:'var(--cm)',  icon:'📐' },
+  { label:'Verzió\nkövetés',      color:'var(--ver)', icon:'🌿' },
+  { label:'Változás\nkövetés',    color:'var(--val)', icon:'🔄' },
+  { label:'Generálás\n(Build)',   color:'var(--gen)', icon:'🔨' },
+  { label:'Kiadás\n& Integrác.', color:'var(--kia)', icon:'📦' },
+  { label:'ITIL\n& Értékek',     color:'var(--int)', icon:'∑'  },
+];
+
+const KV_CHIPS = [
+  { label:'Verzió',   color:'var(--ver)' },
+  { label:'Branch',   color:'var(--ver)' },
+  { label:'Merge',    color:'var(--ver)' },
+  { label:'Baseline', color:'var(--val)' },
+  { label:'Build',    color:'var(--gen)' },
+  { label:'Release',  color:'var(--kia)' },
+];
+
+const STEPS = [
+
+  // ── 0. BEVEZETŐ — MIÉRT KELL? ────────────────────────────────────
+  {
+    area:0, chips:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">❓</div>
+        <div><div class="stitle">Miért kell a konfigurációkezelés?</div>
+        <div class="ssub">// a káosz és a kontroll között</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--cm)">Oktató</div>
+            Képzeld el: 5 fejlesztő dolgozik egyszerre ugyanazon a kódon. Mindenki menti a saját gépére. Hogyan tudják összerakni?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--ver);text-align:right">Tanuló</div>
+            Emailben küldözgetik egymásnak? "main_v2_FINAL_vegleges_tenyleg.zip"?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--cm)">Oktató</div>
+            Pontosan ezt csinálták régen — és pontosan ezért lett katasztrofális. Ki tudja mi van a "final_v3"-ban? Mi változott? Ki csinálta? Vissza lehet-e állni az előző verzióra?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.45s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--ver);text-align:right">Tanuló</div>
+            Szóval a konfigurációkezelés pont erre a problémára ad megoldást?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.6s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--cm)">Oktató</div>
+            Igen! Plusz arra is, hogy mindig reprodukálható legyen a rendszer egy adott állapota — 6 hónap múlva is ugyanazt tudd felépíteni, amit ma telepítettél.
+          </div>
+        </div>
+      </div>
+      <div class="ibox"><strong>A valódi probléma (2025):</strong> Egy modern szoftver nem csak kódból áll. A szerver konfigurációja, az adatbázis verziója, a build tool verziója, a CI/CD pipeline — mind befolyásolja a végeredményt. Ha bármelyik eltér → "nálam működik" szindróma.</div>
+    `
+  },
+
+  // ── 1. DEFINÍCIÓK ────────────────────────────────────────────────
+  {
+    area:0, chips:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">📐</div>
+        <div><div class="stitle">Alapfogalmak — 3 definíció</div>
+        <div class="ssub">// konfiguráció, konfigurációs elem, CM cél</div></div>
+      </div>
+      <div class="def-card" style="background:rgba(99,102,241,0.05);border-color:rgba(99,102,241,0.35)">
+        <div class="dc-label" style="color:var(--cm)">DEF — Konfiguráció</div>
+        <div class="dc-text">Konfigurációs elemek gyűjteménye, amely <strong>kijelöli a projekt egy állapotát</strong>.</div>
+        <div class="dc-example" style="border-color:var(--cm)">
+          <div class="ex-l" style="color:var(--cm)">Példa — webshop v2.3.1 konfigurációja</div>
+          <div>backend: commit #a3f9d2c · frontend: commit #b7e1f09 · DB schema: v45 · Node.js: 20.11 · nginx: 1.25 · Jenkins: 2.478</div>
+          <div style="margin-top:0.2rem">→ Ez <em>együtt</em> azonosítja a rendszer egy pontos állapotát</div>
+        </div>
+      </div>
+      <div class="def-card" style="background:rgba(59,130,246,0.05);border-color:rgba(59,130,246,0.35)">
+        <div class="dc-label" style="color:var(--ver)">DEF — Konfigurációs elem (Configuration Item)</div>
+        <div class="dc-text">Egyetlen, nyomon követhető egység a konfiguráción belül — lehet kód, dokumentum, vagy környezeti elem.</div>
+        <div class="dc-example" style="border-color:var(--ver)">
+          <div class="ex-l" style="color:var(--ver)">Mi számít konfigurációs elemnek?</div>
+          <div>🗂️ Szoftverkód (adott commit/állapot) · 📄 Dokumentáció (ahhoz a kódhoz tartozó) · 🖥️ Fejlesztői környezet (pl. .NET 9.0) · ⚙️ Build környezet (Jenkins 2.478, Ubuntu 24.10)</div>
+        </div>
+      </div>
+      <div class="def-card" style="background:rgba(16,185,129,0.05);border-color:rgba(16,185,129,0.35)">
+        <div class="dc-label" style="color:var(--ok)">DEF — A konfigurációkezelés célja</div>
+        <div class="dc-text">A fejlesztés <strong>ellenőrzött körülmények között</strong> történjen, a rögzített állapotok <strong>reprodukálhatóak</strong> legyenek — a termék tervezett teljes élettartama folyamán.</div>
+      </div>
+    `
+  },
+
+  // ── 2. 5 TERÜLET ÁTTEKINTŐ ───────────────────────────────────────
+  {
+    area:0, chips:[0,1,2,3,4,5],
+    render:()=>`
+      <div class="shdr"><div class="sico">🗺️</div>
+        <div><div class="stitle">A konfigurációkezelés 5 területe</div>
+        <div class="ssub">// minden egymásra épül</div></div>
+      </div>
+      <div class="five-grid">
+        <div class="five-card" style="background:rgba(59,130,246,0.07);border-color:rgba(59,130,246,0.35)">
+          <div class="fc-icon">🌿</div>
+          <div class="fc-name" style="color:var(--ver)">Verziókövetés</div>
+          <div class="fc-desc">Ki? Mit? Mikor?<br>Git, SVN, ClearCase</div>
+        </div>
+        <div class="five-card" style="background:rgba(245,158,11,0.07);border-color:rgba(245,158,11,0.35)">
+          <div class="fc-icon">🔄</div>
+          <div class="fc-name" style="color:var(--val)">Változáskövetés</div>
+          <div class="fc-desc">Bug, feature, refactor<br>Work items, Jira</div>
+        </div>
+        <div class="five-card" style="background:rgba(16,185,129,0.07);border-color:rgba(16,185,129,0.35)">
+          <div class="fc-icon">🔨</div>
+          <div class="fc-name" style="color:var(--gen)">Generálás (Build)</div>
+          <div class="fc-desc">Kódból binárist<br>Maven, Jenkins, Docker</div>
+        </div>
+        <div class="five-card" style="background:rgba(168,85,247,0.07);border-color:rgba(168,85,247,0.35)">
+          <div class="fc-icon">📦</div>
+          <div class="fc-name" style="color:var(--kia)">Kiadáskezelés</div>
+          <div class="fc-desc">Verziók, deployment<br>Release notes, tag</div>
+        </div>
+        <div class="five-card" style="background:rgba(34,211,238,0.07);border-color:rgba(34,211,238,0.35);grid-column:span 2">
+          <div class="fc-icon">🔌</div>
+          <div class="fc-name" style="color:var(--int)">Integráció (CI)</div>
+          <div class="fc-desc">Folyamatos összeépítés · Automatikus tesztelés · "Nálam működik" szindróma eliminálása</div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Miért épp ez az 5?</strong> Ezek együtt teszik lehetővé, hogy egy 50+ fős csapat ugyanazon a kódon dolgozzon, miközben mindig tudják: melyik verzió fut production-ban, ki változtatott mit, és bármelyik régebbi állapot percek alatt visszaállítható.</div>
+    `
+  },
+
+  // ── 3. VERZIÓKÖVETÉS — ALAPFOGALMAK ──────────────────────────────
+  {
+    area:1, chips:[0],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,0.5)">🌿</div>
+        <div><div class="stitle">Verziókövetés — alapfogalmak</div>
+        <div class="ssub">// ki? mit? mikor? — a 3 alapkérdés</div></div>
+      </div>
+      <div class="cmp-table">
+        <div class="cmp-hdr"><div>Fogalom</div><div>Magyar</div><div>Példa</div></div>
+        <div class="cmp-row">
+          <div class="cmp-label" style="color:var(--ver)">Repository</div>
+          <div>Tároló — a verziókezelt tartalom otthona</div>
+          <div style="color:var(--muted);font-size:0.65rem">github.com/cég/projekt</div>
+        </div>
+        <div class="cmp-row">
+          <div class="cmp-label" style="color:var(--ver)">Commit</div>
+          <div>Változtatás elmentése a repoba, üzenettel</div>
+          <div style="color:var(--muted);font-size:0.65rem">git commit -m "fix login bug"</div>
+        </div>
+        <div class="cmp-row">
+          <div class="cmp-label" style="color:var(--ver)">Checkout</div>
+          <div>Adott verzió letöltése a munkaterületre</div>
+          <div style="color:var(--muted);font-size:0.65rem">git checkout main</div>
+        </div>
+        <div class="cmp-row">
+          <div class="cmp-label" style="color:var(--ver)">Baseline</div>
+          <div>Rögzített, "befagyasztott" állapot (mérföldkő)</div>
+          <div style="color:var(--muted);font-size:0.65rem">v2.0.0 release tag</div>
+        </div>
+        <div class="cmp-row">
+          <div class="cmp-label" style="color:var(--ver)">Trunk/Main</div>
+          <div>A fő fejlesztési ág</div>
+          <div style="color:var(--muted);font-size:0.65rem">main, master branch</div>
+        </div>
+        <div class="cmp-row">
+          <div class="cmp-label" style="color:var(--ver)">Diff / Delta</div>
+          <div>Két verzió közötti különbség</div>
+          <div style="color:var(--muted);font-size:0.65rem">git diff HEAD~1 HEAD</div>
+        </div>
+      </div>
+      <div class="ibox v-b"><strong>Verzióazonosítás 3 típusa:</strong> Számozás-alapú (v1.2.3 — Semantic Versioning) · Attribútum-alapú (napi cimke: 2025-05-13) · Változtatásorientált (feature-x release, sprint-42)</div>
+    `
+  },
+
+  // ── 4. BRANCH & MERGE ────────────────────────────────────────────
+  {
+    area:1, chips:[0,1,2],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,0.5)">🌿</div>
+        <div><div class="stitle">Branch és Merge — párhuzamos fejlesztés</div>
+        <div class="ssub">// hogyan dolgozik egyszerre 50 fejlesztő?</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--ver)">Oktató</div>
+            Anna a bejelentkezés funkción dolgozik. Béla ugyanakkor a kosár funkción. Ha mindketten a main ágon dolgoznak, egymás munkáját rontják el. A megoldás?
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">💻</div>
+          <div class="bub r2"><div class="who" style="color:var(--ver);text-align:right">Fejlesztő</div>
+            Branch! Mindenki a saját ágán dolgozik, aztán összefésülik.
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--card);border:1.5px solid rgba(59,130,246,0.3);border-radius:9px;padding:0.7rem;margin:0.45rem 0;font-family:'Inconsolata',monospace;font-size:0.68rem;line-height:1.8">
+        <div style="color:var(--muted);font-size:0.52rem;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.4rem">// Branch és Merge folyamat</div>
+        <div style="color:var(--ver)">main:  ●────────────────────────●────→</div>
+        <div style="color:var(--ok)">       │ git checkout -b feature/login │</div>
+        <div style="color:#f59e0b)">login: └──●──●──●────────────merge─┘</div>
+        <div style="color:var(--ok)">           │  │  │  (Anna dolgozik)    </div>
+        <div style="color:var(--kia)">cart:  └──────●──●──●──merge──┘       </div>
+        <div style="color:var(--ok)">                              (Béla dolgozik)</div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--ver)">
+          <div class="cli-i">🌿</div>
+          <div><strong>Branch (Ág)</strong>
+          <span>A fejlesztés párhuzamos vonala. Feature branch: git checkout -b feature/login → Anna a saját ágán dolgozik, a main nem sérül.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--ver)">
+          <div class="cli-i">🔀</div>
+          <div><strong>Merge (Összefésülés)</strong>
+          <span>A branch visszakerül a main-be: git merge feature/login. Ha mindkét ág ugyanazt a sort módosította → merge conflict, amit kézzel kell megoldani.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--kia)">
+          <div class="cli-i">🏷️</div>
+          <div><strong>Label / Tag (Cimke)</strong>
+          <span>Egy adott commit megjelölése névvel. Pl. git tag v2.3.1 → ez a baseline, bármikor visszaállítható. Nem változik — a commit "fénykép"-e.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 5. SZEREPKÖRÖK ───────────────────────────────────────────────
+  {
+    area:1, chips:[0],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,0.5)">👥</div>
+        <div><div class="stitle">Verziókövetési szerepkörök</div>
+        <div class="ssub">// ki mit láthat és csinálhat a repóban?</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--muted)">
+          <div class="cli-i">👁️</div>
+          <div><strong>Guest — Vendég</strong>
+          <span>Olvasási jog a kódhoz. Látja a commitokat, a diff-eket — de nem módosíthat semmit. Pl. egy ügyfél, aki szemmel tartja a fejlesztést.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--low,#3b82f6)">
+          <div class="cli-i">📊</div>
+          <div><strong>Reporter — Riporter</strong>
+          <span>Hibákat és feladatokat tud rögzíteni (Issue tracking). Látja a kódot, de nem commitolhat. Pl. tesztelő, aki bugokat jelent.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--ver)">
+          <div class="cli-i">💻</div>
+          <div><strong>Developer — Fejlesztő</strong>
+          <span>Branch-eket hozhat létre, commit-olhat, merge request-et nyithat. De a main/master ágra nem push-olhat közvetlenül — merge request kell.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--ok)">
+          <div class="cli-i">👑</div>
+          <div><strong>Owner — Tulajdonos</strong>
+          <span>Teljes jogkör. Main ágra is pusholhat, merge request-eket fogadhat el, jogosultságokat kezelhet. A repo "kapuőre".</span></div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">💻</div>
+          <div class="bub l"><div class="who" style="color:var(--ver)">Junior fejlesztő</div>
+            Kész vagyok a feature-rel! git push origin main
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🔒</div>
+          <div class="bub r2"><div class="who" style="color:var(--ok);text-align:right">GitLab</div>
+            ❌ Protected branch — direct push tiltva. Nyiss merge request-et, a lead review után elfogadja.
+          </div>
+        </div>
+      </div>
+      <div class="ibox v-b"><strong>Protected branch:</strong> A main/master ágra közvetlen push tiltva. Minden változtatás merge request-en megy át → code review → CI zöld → csak akkor kerül be. Ez védi a production-t a véletlen hibáktól.</div>
+    `
+  },
+
+  // ── 6. VÁLTOZÁSKÖVETÉS ───────────────────────────────────────────
+  {
+    area:2, chips:[3],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,0.5)">🔄</div>
+        <div><div class="stitle">Változáskövetés</div>
+        <div class="ssub">// miért változik a szoftver? hogyan kezeljük?</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--val)">Oktató</div>
+            A változáskövetés nem csak a kód változásait követi — hanem az okát, státuszát, és minden érintett fájlt, dokumentumot, build környezetet is.
+          </div>
+        </div>
+      </div>
+      <div class="def-card" style="background:rgba(245,158,11,0.05);border-color:rgba(245,158,11,0.3)">
+        <div class="dc-label" style="color:var(--val)">Mire terjed ki a változáskövetés?</div>
+        <div class="dc-text">Forráskód · Dokumentáció · Fejlesztési és build környezet</div>
+      </div>
+      <div class="def-card" style="background:rgba(245,158,11,0.05);border-color:rgba(245,158,11,0.3)">
+        <div class="dc-label" style="color:var(--val)">Mi okozza a változásokat? (Work Item típusok)</div>
+        <div class="cklist" style="margin:0.3rem 0 0">
+          <div class="cli" style="border-left:3px solid #ef4444">
+            <div class="cli-i">🐛</div>
+            <div><strong>Bug (Hibajavítás)</strong>
+            <span>Pl. a kosár végösszege nem számol helyesen 10% kedvezménnyel. → Jira ticket → developer ágon javítja → review → merge → tesztelés → lezárva.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--ver)">
+            <div class="cli-i">✨</div>
+            <div><strong>Feature (Fejlesztés)</strong>
+            <span>Pl. "Apple Pay integrálása a checkout-ba" — ügyféligény alapján. User story, sprint tervezés, implementáció, acceptance teszt.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--muted)">
+            <div class="cli-i">♻️</div>
+            <div><strong>Refactoring</strong>
+            <span>A kód tisztítása, újraírása — nem változik a funkció, de olvashatóbb, hatékonyabb lesz. Pl. spaghetti kódból clean architecture.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid var(--val)">
+            <div class="cli-i">💰</div>
+            <div><strong>Ügyféligény / Költség</strong>
+            <span>Pl. "az oldalnak megfelelőnek kell lennie WCAG 2.1 akadálymentesítési szabványnak" — compliance miatt vagy az ügyfél kérésére.</span></div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 7. WORK ITEM ÉLETCIKLUS ──────────────────────────────────────
+  {
+    area:2, chips:[3],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,0.5)">📊</div>
+        <div><div class="stitle">Work Item állapotátmenet</div>
+        <div class="ssub">// egy bug útja a nyitástól a lezárásig</div></div>
+      </div>
+      <div class="state-flow">
+        <div class="sf-title">// Egy bug életciklusa Jira-ban</div>
+        <div class="sf-row">
+          <div class="sf-state" style="background:rgba(107,114,128,0.15);color:var(--muted);border-color:var(--muted)">NEW</div>
+          <div class="sf-arrow">→</div>
+          <div class="sf-state" style="background:rgba(59,130,246,0.15);color:var(--ver);border-color:var(--ver)">OPEN</div>
+          <div class="sf-arrow">→</div>
+          <div class="sf-state" style="background:rgba(245,158,11,0.15);color:var(--val);border-color:var(--val)">IN PROGRESS</div>
+        </div>
+        <div class="sf-row" style="padding-left:2rem">
+          <div class="sf-arrow">↓</div>
+          <div class="sf-action" style="color:var(--muted)">fejlesztő elkezdi</div>
+        </div>
+        <div class="sf-row">
+          <div class="sf-state" style="background:rgba(245,158,11,0.15);color:var(--val);border-color:var(--val)">IN PROGRESS</div>
+          <div class="sf-arrow">→</div>
+          <div class="sf-state" style="background:rgba(168,85,247,0.15);color:var(--kia);border-color:var(--kia)">CODE REVIEW</div>
+          <div class="sf-arrow">→</div>
+          <div class="sf-state" style="background:rgba(34,211,238,0.15);color:var(--int);border-color:var(--int)">TESTING</div>
+        </div>
+        <div class="sf-row">
+          <div class="sf-state" style="background:rgba(16,185,129,0.15);color:var(--ok);border-color:var(--ok)">DONE ✅</div>
+          <div class="sf-action" style="color:var(--muted)">← tesztelő elfogadja</div>
+        </div>
+        <div style="margin-top:0.3rem;font-size:0.68rem;color:var(--muted);font-family:'Inconsolata',monospace">
+          Ha a tesztelő hibát talál → visszamegy IN PROGRESS-be → LOOP
+        </div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--val)">
+          <div class="cli-i">🔗</div>
+          <div><strong>Összekötés commit-tal</strong>
+          <span>Modern rendszerekben (Jira + GitHub): a commit üzenetbe bekerül a ticket száma: "fix: checkout total calculation #SHOP-234". Automatikusan lezárja a ticketet merge után.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--val)">
+          <div class="cli-i">📈</div>
+          <div><strong>Visszakövethetőség</strong>
+          <span>3 hónap múlva megkérdezi az ügyfél: "mikor javítottátok a kosár hibát?" → Jira ticket → commit → build → release → pontos dátum, pontos kód.</span></div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 8. GENERÁLÁS (BUILD) ─────────────────────────────────────────
+  {
+    area:3, chips:[4],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,0.5)">🔨</div>
+        <div><div class="stitle">Generálás — a Build folyamat</div>
+        <div class="ssub">// forráskódból futtatható program — reprodukálhatóan</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--gen)">Oktató</div>
+            A generálás célja: ugyanabból a forráskódból, bármikor, ugyanazt a binárist kapjuk. Ha ez nem teljesül — "nálam működik" szindróma.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--ver);text-align:right">Tanuló</div>
+            Miért ne ugyanazt kapnánk? Ugyanaz a kód...
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--gen)">Oktató</div>
+            Ha Anna gépén Node.js 18, Bélánál Node.js 20 van — a build eltérő lehet. Ezért IaC-szal és Docker-rel rögzítjük a build környezetet is. A Dockerfile maga is konfigurációs elem!
+          </div>
+        </div>
+      </div>
+      <div class="pipeline">
+        <div class="pl-hdr">// Tipikus Build pipeline — forráskódtól a deployig</div>
+        <div class="pl-row">
+          <div class="pl-step" style="color:var(--ver)">📥 Checkout</div>
+          <div class="pl-desc">Forráskód letöltése a repóból (adott commit)</div>
+          <div class="pl-tool">git clone #a3f9d2c</div>
+        </div>
+        <div class="pl-row">
+          <div class="pl-step" style="color:var(--gen)">🔨 Compile</div>
+          <div class="pl-desc">Forráskód fordítása (Java → .class, TypeScript → JS)</div>
+          <div class="pl-tool">mvn compile / tsc</div>
+        </div>
+        <div class="pl-row">
+          <div class="pl-step" style="color:var(--kia)">📦 Package</div>
+          <div class="pl-desc">Bináris csomagolása (JAR, WAR, Docker image)</div>
+          <div class="pl-tool">mvn package / docker build</div>
+        </div>
+        <div class="pl-row">
+          <div class="pl-step" style="color:#a855f7">🧪 Test</div>
+          <div class="pl-desc">Unit + integrációs tesztek futtatása</div>
+          <div class="pl-tool">mvn test / jest</div>
+        </div>
+        <div class="pl-row">
+          <div class="pl-step" style="color:var(--int)">📤 Publish</div>
+          <div class="pl-desc">Artifact feltöltése a registry-be</div>
+          <div class="pl-tool">Nexus / Docker Hub</div>
+        </div>
+      </div>
+      <div class="ibox g-b"><strong>4 kulcs-elv a generálásnál:</strong> 1. Forráskódból binárist — mindig csak a source igazság. 2. Bármikor ugyanazt ugyanabból — reprodukálható build. 3. Párhuzamosítás — Jenkins párhuzamos job-ok. 4. Modularitás — modulonként külön buildelhető.</div>
+    `
+  },
+
+  // ── 9. KIADÁSKEZELÉS ─────────────────────────────────────────────
+  {
+    area:4, chips:[5],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,0.5)">📦</div>
+        <div><div class="stitle">Kiadáskezelés — Release Management</div>
+        <div class="ssub">// melyik verzió megy ki mikor és hova?</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--kia)">
+          <div class="cli-i">🏷️</div>
+          <div><strong>Szemantikus verziózás — SemVer (MAJOR.MINOR.PATCH)</strong>
+          <span>v2.3.1 → MAJOR (2): visszafele nem kompatibilis változás · MINOR (3): új funkció, visszafele kompatibilis · PATCH (1): hibajavítás. Pl. v3.0.0 = breaking change!</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--kia)">
+          <div class="cli-i">🌿</div>
+          <div><strong>Release branch stratégia</strong>
+          <span>Kiadás előtt létrehozzák a release/v2.3.x branch-et — csak bugfix kerülhet rá, új feature nem. Párhuzamosan fut a main-nel, ahol a következő verzió fejlesztése zajlik.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--kia)">
+          <div class="cli-i">📋</div>
+          <div><strong>Release Notes — Kiadási megjegyzések</strong>
+          <span>"Mi változott az előző verzióhoz képest?" Az összes commit, bug fix, új funkció dokumentálva — az ügyfél és az ops csapat számára érthető formában.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--int)">
+          <div class="cli-i">🚀</div>
+          <div><strong>Deployment — Telepítési stratégiák</strong>
+          <span>Blue-Green: párhuzamos éles környezet, forgalom átváltható · Canary: csak a felhasználók 5%-a kapja az újat · Rolling: fokozatos csere pod-onként (K8s)</span></div>
+        </div>
+      </div>
+      <div class="ibox"><strong>Miért fontos a kiadáskezelés?</strong> Egy vállalati ügyfélinél a szoftver 3 helyen fut: dev, staging, production. Mindhárom más verziót futtathat. A kiadáskezelés teszi lehetővé, hogy pontosan tudják melyik verzió hol van — és azt, hogy visszaállíthassanak.</div>
+    `
+  },
+
+  // ── 10. INTEGRÁCIÓ (CI) ──────────────────────────────────────────
+  {
+    area:4, chips:[4,5],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(34,211,238,0.5)">🔌</div>
+        <div><div class="stitle">Integráció — Continuous Integration</div>
+        <div class="ssub">// folyamatosan összeépítjük — hibák azonnal kiderülnek</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--int)">Oktató</div>
+            A CI előtt: Anna 3 hetet dolgozik a login feature-ön. Béla 3 hetet a fizetési rendszeren. Aztán megpróbálják összerakni — és nem működik együtt. 2 hét integrációs pokol.
+          </div>
+        </div>
+        <div class="msg show r" style="transition-delay:.15s">
+          <div class="av">🙋</div>
+          <div class="bub r2"><div class="who" style="color:var(--ver);text-align:right">Tanuló</div>
+            A CI-vel ez nem fordulhat elő?
+          </div>
+        </div>
+        <div class="msg show" style="transition-delay:.3s">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--int)">Oktató</div>
+            Mert CI-vel minden push után automatikusan lefut a teljes build + teszt. Ha Anna commitja összetöri Béla kódját — azonnal kiderül, nem 3 hét múlva.
+          </div>
+        </div>
+      </div>
+      <div class="pipeline">
+        <div class="pl-hdr">// CI pipeline — git push után automatikusan</div>
+        <div class="pl-row">
+          <div class="pl-step" style="color:var(--ver)">git push</div>
+          <div class="pl-desc">Fejlesztő feltölti a kódot</div>
+          <div class="pl-tool">feature/login branch</div>
+        </div>
+        <div class="pl-row">
+          <div class="pl-step" style="color:var(--gen)">build</div>
+          <div class="pl-desc">Automatikus fordítás — lefordul-e?</div>
+          <div class="pl-tool">Jenkins / GitHub Actions</div>
+        </div>
+        <div class="pl-row">
+          <div class="pl-step" style="color:#a855f7">unit test</div>
+          <div class="pl-desc">247 unit teszt — mind átmegy?</div>
+          <div class="pl-tool">JUnit / Jest / pytest</div>
+        </div>
+        <div class="pl-row">
+          <div class="pl-step" style="color:var(--int)">integration</div>
+          <div class="pl-desc">Együtt működnek-e a modulok?</div>
+          <div class="pl-tool">Selenium / Playwright</div>
+        </div>
+        <div class="pl-row">
+          <div class="pl-step" style="color:var(--ok)">✅ ZÖLD</div>
+          <div class="pl-desc">Merge request elfogadható</div>
+          <div class="pl-tool">~15 perc automatikusan</div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 11. ITIL KAPCSOLAT ───────────────────────────────────────────
+  {
+    area:5, chips:[],
+    render:()=>`
+      <div class="shdr"><div class="sico" style="border-color:rgba(34,211,238,0.5)">📚</div>
+        <div><div class="stitle">ITIL kapcsolat — CM az IT üzemeltetésben</div>
+        <div class="ssub">// Information Technology Infrastructure Library</div></div>
+      </div>
+      <div class="chat">
+        <div class="msg show">
+          <div class="av">👨‍🏫</div>
+          <div class="bub l"><div class="who" style="color:var(--int)">Oktató</div>
+            Az ITIL az IT szolgáltatáskezelés nemzetközi keretrendszere. A konfigurációkezelés (CM) az ITIL-ben a Service Transition (ST) fázisba tartozik — az a pillanat, amikor a fejlesztés átmegy üzemeltetésbe.
+          </div>
+        </div>
+      </div>
+      <div class="itil-grid">
+        <div class="itil-card" style="border-color:var(--muted)">
+          <div class="ic-code" style="color:var(--muted)">SS</div>
+          <div class="ic-name">Service Strategy</div>
+          <div class="ic-desc">Stratégia — mit akarunk nyújtani, kinek, milyen áron</div>
+        </div>
+        <div class="itil-card" style="border-color:var(--ver)">
+          <div class="ic-code" style="color:var(--ver)">SD</div>
+          <div class="ic-name">Service Design</div>
+          <div class="ic-desc">Tervezés — hogyan épül fel a szolgáltatás</div>
+        </div>
+        <div class="itil-card" style="border-color:var(--cm)">
+          <div class="ic-code" style="color:var(--cm)">ST ★</div>
+          <div class="ic-name">Service Transition</div>
+          <div class="ic-desc">Átmenet — itt van a CM! Dev → Ops átadás, kiadáskezelés</div>
+        </div>
+        <div class="itil-card" style="border-color:var(--gen)">
+          <div class="ic-code" style="color:var(--gen)">SO</div>
+          <div class="ic-name">Service Operation</div>
+          <div class="ic-desc">Üzemeltetés — napi működés, incident kezelés</div>
+        </div>
+        <div class="itil-card" style="border-color:var(--ok)">
+          <div class="ic-code" style="color:var(--ok)">CSI</div>
+          <div class="ic-name">Continual Service Improvement</div>
+          <div class="ic-desc">Folyamatos fejlesztés — visszacsatolás, mérés, javítás</div>
+        </div>
+        <div class="itil-card" style="border-color:var(--kia)">
+          <div class="ic-code" style="color:var(--kia)">ABC</div>
+          <div class="ic-name">Attitude · Behavior · Culture</div>
+          <div class="ic-desc">Veszély: a technika nem elég, az emberek hozzáállása dönt</div>
+        </div>
+      </div>
+      <div class="ibox"><strong>CM az ITIL-ben (ST fázis):</strong> A Service Transition gondoskodik arról, hogy a fejlesztett szoftver kontrollált módon kerüljön át az éles üzemeltetésbe. CMDB (Configuration Management Database) nyilvántartja az összes CI-t és kapcsolatukat.</div>
+    `
+  },
+
+  // ── 12. ÉRTÉKEK & ABC ─────────────────────────────────────────────
+  {
+    area:5, chips:[],
+    render:()=>`
+      <div class="shdr"><div class="sico">⭐</div>
+        <div><div class="stitle">CM értékek és a legnagyobb veszély</div>
+        <div class="ssub">// Biztonság · Minőség · Stabilitás · ABC</div></div>
+      </div>
+      <div class="sumgrid">
+        <div class="sbox" style="border-top:2px solid #ef4444"><span class="ico">🔒</span><div class="val">Biztonság</div><div class="lbl">kontrollált hozzáférés, audit</div></div>
+        <div class="sbox" style="border-top:2px solid var(--cm)"><span class="ico">⭐</span><div class="val">Minőség</div><div class="lbl">reprodukálható, tesztelt</div></div>
+        <div class="sbox" style="border-top:2px solid var(--ok)"><span class="ico">🏔️</span><div class="val">Stabilitás</div><div class="lbl">visszaállítható állapotok</div></div>
+        <div class="sbox" style="border-top:2px solid var(--ver)"><span class="ico">🔄</span><div class="val">Folyamatos fejl.</div><div class="lbl">CI/CD, automatizálás</div></div>
+      </div>
+      <div style="background:rgba(239,68,68,0.05);border:2px solid rgba(239,68,68,0.3);border-radius:11px;padding:0.8rem;margin:0.45rem 0">
+        <div style="font-family:'Inconsolata',monospace;font-size:0.56rem;color:#ef4444;font-weight:700;margin-bottom:0.3rem">⚠️ VESZÉLYEK — ABC modell</div>
+        <div class="cklist" style="margin:0">
+          <div class="cli" style="border-left:3px solid #ef4444">
+            <div class="cli-i">😤</div>
+            <div><strong>A — Attitude (Hozzáállás)</strong>
+            <span>"Minek commit-olom le, majd holnap..." · "Ezt nem kell review-olni, nyilvánvalóan jó" · "A baseline-ok bürokratikus blokk" — rossz hozzáállás romba dönti a legjobb CM rendszert is.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid #f97316">
+            <div class="cli-i">🚶</div>
+            <div><strong>B — Behavior (Viselkedés)</strong>
+            <span>A fejlesztő megkerüli a review folyamatot: "gyorsan pusholok main-re, nincs idő". Vagy: nem dokumentálja a változást. Az egyéni viselkedés dönt.</span></div>
+          </div>
+          <div class="cli" style="border-left:3px solid #f59e0b">
+            <div class="cli-i">🏢</div>
+            <div><strong>C — Culture (Kultúra)</strong>
+            <span>Ha a cégkultúra "ship fast, fix later" — a CM szabályokat senki nem tartja be. A kultúra felülírja a folyamatot. Top-down kell: a vezető is tartja be a szabályokat.</span></div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+
+  // ── 13. ÖSSZEFOGLALÁS ────────────────────────────────────────────
+  {
+    area:5, chips:[0,1,2,3,4,5],
+    render:()=>`
+      <div class="shdr"><div class="sico">∑</div>
+        <div><div class="stitle">Összefoglalás — Konfigurációkezelés</div>
+        <div class="ssub">// definíciók + 5 terület + ITIL + ABC</div></div>
+      </div>
+      <div class="cklist">
+        <div class="cli" style="border-left:3px solid var(--cm)">
+          <div class="cli-i">📐</div>
+          <div><strong>Konfiguráció = CI-k gyűjteménye, ami meghatározza a projekt állapotát</strong>
+          <span>Cél: ellenőrzött fejlesztés + reprodukálható állapotok a teljes élettartam alatt</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--ver)">
+          <div class="cli-i">🌿</div>
+          <div><strong>Verziókövetés</strong>
+          <span>Ki? Mit? Mikor? — Commit, Branch, Merge, Tag/Label, Baseline. Git/SVN/ClearCase.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--val)">
+          <div class="cli-i">🔄</div>
+          <div><strong>Változáskövetés</strong>
+          <span>Work Item életciklusa (New→Done). Okok: Bug, Feature, Refactor, Ügyféligény. Commit ↔ Ticket összekötés.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--gen)">
+          <div class="cli-i">🔨</div>
+          <div><strong>Generálás</strong>
+          <span>Ugyanabból mindig ugyanazt. Build pipeline: Checkout→Compile→Test→Package→Publish. IaC rögzíti a build környezetet.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--kia)">
+          <div class="cli-i">📦</div>
+          <div><strong>Kiadáskezelés + Integráció</strong>
+          <span>SemVer, Release branch, Release Notes. CI: minden push → automatikus build+teszt → hibák azonnal kiderülnek.</span></div>
+        </div>
+        <div class="cli" style="border-left:3px solid var(--int)">
+          <div class="cli-i">📚</div>
+          <div><strong>ITIL: CM a Service Transition (ST) fázisban</strong>
+          <span>SS → SD → ST(CM) → SO → CSI. ABC veszélyek: Attitude, Behavior, Culture — a technika önmagában nem elég.</span></div>
+        </div>
+      </div>
+    `
+  },
+];
+
+function renderBoard(areaIdx, chipIdxs) {
+  document.getElementById('areaSteps').innerHTML = AREAS.map((a,i)=>{
+    const on = i===areaIdx, done = i<areaIdx;
+    const c = on ? a.color : done ? a.color : 'var(--muted)';
+    return `<div class="as-item ${on?'active':done?'done':''}">
+      <div class="as-dot" style="border-color:${c};color:${c}">${a.icon}</div>
+      <div class="as-label" style="color:${on?a.color:'var(--muted)'}">${a.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('kvChips').innerHTML = KV_CHIPS.map((ch,i)=>{
+    const on = chipIdxs.includes(i);
+    return `<div class="kv-chip ${on?'on':''}" style="border-color:${ch.color};color:${ch.color}">${ch.label}</div>`;
+  }).join('');
+}
+
+let cur = 0;
+function render() {
+  const s = STEPS[cur];
+  renderBoard(s.area, s.chips);
+  const el = document.getElementById('content');
+  el.innerHTML = s.render();
+  setTimeout(()=>{el.querySelectorAll('.msg:not(.show)').forEach((m,i)=>setTimeout(()=>m.classList.add('show'),i*160));},60);
+  document.getElementById('bprev').disabled = cur===0;
+  document.getElementById('bnext').textContent = cur===STEPS.length-1?'↺ Újra':'Következő →';
+  document.getElementById('ctr').textContent = `${cur+1} / ${STEPS.length}`;
+}
+function next(){cur=cur===STEPS.length-1?0:cur+1;render();}
+function prev(){if(cur>0){cur--;render();}}
+render();
+</script>
+</body>
+</html>
