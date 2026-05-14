@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Extreme Programming (XP) Szimuláció</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+:root {
+  --bg:#0a0f1e; --surf:#0f1628; --card:#141d35; --brd:#1e2d50; --brd2:#263a68;
+  --text:#d8e4ff; --muted:#4a5f8a;
+  --xp:#ec4899; --val:#f59e0b; --prac:#10b981;
+  --good:#10b981; --bad:#ef4444; --warn:#f59e0b;
+  --pair:#3b82f6; --tdd:#10b981; --refac:#a855f7; --ci:#22d3ee;
+  --acc:#ec4899;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(236,72,153,.06) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(245,158,11,.04) 0%,transparent 50%);pointer-events:none;z-index:0;}
+header{position:relative;z-index:1;padding:1.2rem 1.3rem .85rem;border-bottom:1px solid var(--brd2);background:linear-gradient(180deg,rgba(236,72,153,.06) 0%,transparent 100%);}
+.hdr-row{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;}
+h1{font-size:1.4rem;font-weight:800;line-height:1.07;letter-spacing:-.02em;}
+h1 span{color:var(--xp);}h1 em{font-style:normal;color:var(--val);}
+.tag{font-family:'Inconsolata',monospace;font-size:.56rem;padding:.25rem .55rem;border-radius:4px;background:rgba(236,72,153,.12);color:var(--xp);border:1px solid rgba(236,72,153,.28);white-space:nowrap;margin-top:.2rem;}
+header p{font-size:.7rem;color:var(--muted);margin-top:.25rem;font-family:'Inconsolata',monospace;}
+.topbar{position:relative;z-index:1;background:var(--surf);border-bottom:1px solid var(--brd2);padding:.75rem 1.3rem .65rem;}
+.tb-t{font-family:'Inconsolata',monospace;font-size:.54rem;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin-bottom:.5rem;}
+.steps{display:flex;align-items:center;gap:0;margin-bottom:.45rem;}
+.st{flex:1;display:flex;flex-direction:column;align-items:center;gap:.18rem;position:relative;}
+.st:not(:last-child)::after{content:'';position:absolute;right:0;top:12px;width:50%;height:2px;background:var(--brd);z-index:0;}
+.st:not(:first-child)::before{content:'';position:absolute;left:0;top:12px;width:50%;height:2px;background:var(--brd);z-index:0;}
+.sd{width:24px;height:24px;border-radius:50%;border:2px solid var(--brd2);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:.6rem;z-index:1;transition:all .35s;position:relative;}
+.sl{font-family:'Inconsolata',monospace;font-size:.44rem;color:var(--muted);text-align:center;line-height:1.2;}
+.st.active .sd{transform:scale(1.25);box-shadow:0 0 10px currentColor;}
+.st.done .sd{opacity:.55;}
+.st.active .sl{font-weight:700;}
+.val-row{display:flex;gap:4px;flex-wrap:wrap;}
+.vc{font-family:'Inconsolata',monospace;font-size:.53rem;font-weight:700;padding:.14rem .4rem;border-radius:3px;border:1px solid;opacity:.25;transition:opacity .3s;}
+.vc.on{opacity:1;}
+.content{position:relative;z-index:1;padding:.9rem 1.3rem;min-height:275px;}
+.shdr{display:flex;align-items:center;gap:.6rem;margin-bottom:.85rem;}
+.sico{width:36px;height:36px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;border:1.5px solid var(--brd2);background:var(--card);}
+.stitle{font-size:.95rem;font-weight:800;letter-spacing:-.02em;}
+.ssub{font-family:'Inconsolata',monospace;font-size:.56rem;color:var(--muted);margin-top:.03rem;}
+.chat{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.7rem;}
+.msg{display:flex;gap:.4rem;align-items:flex-start;opacity:0;transform:translateY(6px);transition:opacity .3s,transform .3s;}
+.msg.show{opacity:1;transform:translateY(0);}
+.msg.r{flex-direction:row-reverse;}
+.av{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;border:1px solid var(--brd2);background:var(--card);}
+.bub{max-width:82%;padding:.48rem .68rem;border-radius:9px;font-size:.77rem;line-height:1.55;border:1px solid var(--brd2);background:var(--card);}
+.bub.l{border-bottom-left-radius:2px;}.bub.r2{border-bottom-right-radius:2px;text-align:right;}
+.who{font-family:'Inconsolata',monospace;font-size:.55rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.1rem;}
+.ibox{border-radius:8px;padding:.55rem .75rem;font-size:.74rem;line-height:1.55;margin:.45rem 0;border:1px solid var(--brd2);background:var(--card);border-left:3px solid var(--xp);}
+.ibox strong{font-weight:700;}
+.ibox.good{border-left-color:var(--good);}.ibox.good strong{color:var(--good);}
+.ibox.warn{border-left-color:var(--warn);}.ibox.warn strong{color:var(--warn);}
+.cklist{display:flex;flex-direction:column;gap:.35rem;margin:.45rem 0;}
+.cli{display:flex;align-items:flex-start;gap:.5rem;padding:.42rem .65rem;background:var(--card);border:1px solid var(--brd2);border-radius:8px;font-size:.75rem;line-height:1.45;}
+.cli-i{flex-shrink:0;font-size:.88rem;}
+.cli strong{display:block;font-weight:700;font-size:.76rem;margin-bottom:.03rem;}
+.cli span{color:var(--muted);font-size:.68rem;font-family:'Inconsolata',monospace;}
+
+/* VALUE CARD */
+.value-grid{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin:.45rem 0;}
+.value-card{padding:.65rem .75rem;border-radius:9px;border:1.5px solid;text-align:center;}
+.vc-icon{font-size:1.4rem;margin-bottom:.2rem;}
+.vc-name{font-size:.8rem;font-weight:800;margin-bottom:.15rem;}
+.vc-desc{font-size:.62rem;line-height:1.5;color:rgba(216,228,255,.8);font-family:'Inconsolata',monospace;}
+
+/* PRACTICE CARD */
+.practice-card{padding:.65rem .8rem;border-radius:10px;border:1.5px solid;margin:.3rem 0;}
+.pc-hdr{display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem;}
+.pc-icon{font-size:1.2rem;}
+.pc-num{font-family:'Inconsolata',monospace;font-size:.6rem;font-weight:800;padding:.15rem .4rem;border-radius:4px;border:1px solid;flex-shrink:0;}
+.pc-name{font-size:.82rem;font-weight:800;}
+.pc-desc{font-size:.7rem;line-height:1.55;color:rgba(216,228,255,.82);}
+
+/* TDD VISUAL */
+.tdd-vis{background:var(--card);border:1.5px solid var(--brd2);border-radius:10px;padding:.7rem;margin:.45rem 0;}
+.tdd-title{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem;text-align:center;}
+.tdd-cycle{display:flex;align-items:center;justify-content:center;gap:.4rem;flex-wrap:wrap;}
+.tdd-step{padding:.55rem .75rem;border-radius:50px;border:2px solid;text-align:center;min-width:90px;}
+.tdd-step-name{font-family:'Inconsolata',monospace;font-size:.65rem;font-weight:800;}
+.tdd-step-desc{font-size:.55rem;color:var(--muted);margin-top:.1rem;font-family:'Inconsolata',monospace;}
+.tdd-arr{font-size:1.5rem;color:var(--muted);}
+
+/* CODE BLOCK */
+.code{background:#0d1117;border:1px solid var(--brd2);border-radius:8px;padding:.6rem .75rem;margin:.35rem 0;font-family:'Inconsolata',monospace;font-size:.7rem;line-height:1.7;}
+.cb-label{font-size:.5rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem;}
+.c-kw{color:#ff7b72;}.c-fn{color:#d2a8ff;}.c-str{color:#a5d6ff;}.c-var{color:#ffa657;}.c-cmt{color:#8b949e;font-style:italic;}
+.c-bad{background:rgba(239,68,68,.18);border-radius:3px;padding:0 2px;}
+.c-good{background:rgba(16,185,129,.15);border-radius:3px;padding:0 2px;}
+
+/* PAIR PROGRAMMING */
+.pair-vis{background:var(--card);border:1.5px solid var(--brd2);border-radius:10px;padding:.75rem;margin:.45rem 0;}
+.pp-flow{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;align-items:center;}
+.pp-role{padding:.55rem;border-radius:8px;border:1.5px solid;text-align:center;}
+.pp-icon{font-size:1.5rem;margin-bottom:.15rem;}
+.pp-name{font-family:'Inconsolata',monospace;font-size:.65rem;font-weight:800;}
+.pp-desc{font-size:.6rem;color:var(--muted);font-family:'Inconsolata',monospace;line-height:1.5;margin-top:.15rem;}
+
+/* COMPARE */
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+.cmp-card{padding:.7rem .75rem;border-radius:10px;border:1.5px solid;}
+
+/* SUMGRID */
+.sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+.sbox{background:var(--card);border:1px solid var(--brd2);border-radius:8px;padding:.6rem;text-align:center;}
+.sbox .ico{font-size:1.2rem;display:block;margin-bottom:.15rem;}
+.sbox .val{font-size:.88rem;font-weight:800;}
+.sbox .lbl{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);margin-top:.04rem;}
+
+.nav{position:sticky;bottom:0;z-index:10;background:var(--bg);border-top:1px solid var(--brd2);padding:.7rem 1.3rem;display:flex;align-items:center;gap:.5rem;}
+.btn{font-family:'Inconsolata',monospace;font-size:.63rem;font-weight:600;padding:.52rem 1rem;border-radius:7px;cursor:pointer;transition:all .18s;text-transform:uppercase;letter-spacing:.04em;}
+.btnp{background:transparent;color:var(--muted);border:1px solid var(--brd2);}
+.btnp:hover{color:var(--text);}
+.btnp:disabled{opacity:.2;cursor:not-allowed;}
+.btnn{flex:1;background:rgba(236,72,153,.12);color:var(--xp);border:1px solid rgba(236,72,153,.3);}
+.btnn:hover{background:rgba(236,72,153,.22);}
+.ctr{font-family:'Inconsolata',monospace;font-size:.57rem;color:var(--muted);white-space:nowrap;}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-row">
+    <h1><span>XP</span><br>Extreme<br><em>Programming</em></h1>
+    <div class="tag">Kent Beck · 1999</div>
+  </div>
+  <p>// 5 érték · 12+ gyakorlat · TDD · Pair Programming · CI</p>
+</header>
+<div class="topbar">
+  <div class="tb-t">// témakörök</div>
+  <div class="steps" id="steps"></div>
+  <div class="val-row" id="valRow"></div>
+</div>
+<div class="content" id="content"></div>
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 13</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+<script>
+const TOPICS=[
+  {label:'Mi az\nXP?',color:'var(--xp)',icon:'🎯'},
+  {label:'5\nérték',color:'var(--val)',icon:'⭐'},
+  {label:'Pair\nprog.',color:'var(--pair)',icon:'👥'},
+  {label:'TDD\nciklus',color:'var(--tdd)',icon:'🧪'},
+  {label:'Refac\ntoring',color:'var(--refac)',icon:'♻️'},
+  {label:'Folyamat\ngyakorl.',color:'var(--ci)',icon:'🔄'},
+  {label:'Csapat\ngyakorl.',color:'var(--good)',icon:'👨‍👩‍👧'},
+  {label:'XP vs\nScrum',color:'var(--xp)',icon:'⚖️'},
+  {label:'Össze.',color:'var(--xp)',icon:'∑'},
+];
+const VALUES=[
+  {label:'Communication',color:'var(--pair)'},
+  {label:'Simplicity',color:'var(--val)'},
+  {label:'Feedback',color:'var(--tdd)'},
+  {label:'Courage',color:'var(--bad)'},
+  {label:'Respect',color:'var(--refac)'},
+];
+
+const STEPS=[
+  // 0. MI AZ XP?
+  {t:0,vals:[],render:()=>`
+    <div class="shdr"><div class="sico">🎯</div>
+      <div><div class="stitle">Mi az az Extreme Programming?</div>
+      <div class="ssub">// Kent Beck, 1999 — Chrysler C3 projekt</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--xp)">Oktató</div>
+        Az XP egy <strong>könnyűsúlyú agilis</strong> módszertan. Kent Beck dolgozta ki a 90-es években, és <em>"Extreme Programming Explained"</em> könyvével 1999-ben publikálta.
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">🙋</div><div class="bub r2"><div class="who" style="color:var(--val);text-align:right">Tanuló</div>
+        Mi az "extreme" benne? Veszélyes?
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--xp)">Oktató</div>
+        Nem! Az "extreme" azt jelenti: a HASZNOS programozási gyakorlatokat <strong>EXTRÉM SZINTEN</strong> alkalmazzuk. Ha a code review jó → folyamatos review (pair programming). Ha a tesztelés jó → előbb a teszt (TDD). Stb.
+      </div></div>
+    </div>
+    <div class="ibox"><strong>Híres definíció:</strong> "Az XP egy diszciplínált megközelítés a magas minőségű szoftverfejlesztésre, AGILE, GYORS és RUGALMAS." A különbség: a gyakorlatok mindegyike olyan szintre van víve, amennyire MAX hatékony.</div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--xp)">
+        <div class="cli-i">📅</div>
+        <div><strong>Kent Beck, 1996</strong>
+        <span>Először a Chrysler C3 (Comprehensive Compensation) projekten alkalmazta. 1999-ben publikálta a könyvét.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--xp)">
+        <div class="cli-i">📚</div>
+        <div><strong>Agile Manifesto egyik gyökere</strong>
+        <span>Az XP volt az egyik FŐ inspirációja a 2001-es Agile Manifesto-nak. Kent Beck a 17 aláíró egyike.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--xp)">
+        <div class="cli-i">🎯</div>
+        <div><strong>Kis-közepes csapatra (2-12 fő)</strong>
+        <span>NEM nagyvállalati módszertan. Kis csapatra, dinamikus követelményekre tervezve. Co-located csapat (egy szobában).</span></div>
+      </div>
+    </div>
+  `},
+
+  // 1. KIK HASZNÁLJÁK
+  {t:0,vals:[],render:()=>`
+    <div class="shdr"><div class="sico">🏢</div>
+      <div><div class="stitle">Mikor és kinek jó az XP?</div>
+      <div class="ssub">// nem mindenkinek</div></div>
+    </div>
+    <div class="cmp">
+      <div class="cmp-card" style="background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.35)">
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--good);font-weight:700;margin-bottom:.3rem">✅ XP JÓ HA</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.65rem;color:var(--muted);line-height:1.7">
+          ▸ Kis-közepes csapat (2-12 fő)<br>
+          ▸ Co-located (egy irodában)<br>
+          ▸ Gyorsan változó követelmények<br>
+          ▸ Ügyfél BEVONHATÓ (on-site)<br>
+          ▸ Csapat motivált<br>
+          ▸ Magas kódminőség célja
+        </div>
+      </div>
+      <div class="cmp-card" style="background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.35)">
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--bad);font-weight:700;margin-bottom:.3rem">❌ XP NEM JÓ HA</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.65rem;color:var(--muted);line-height:1.7">
+          ▸ Nagy csapat (50+ fő)<br>
+          ▸ Elosztott csapat (több város)<br>
+          ▸ Fixed scope, fixed price<br>
+          ▸ Ügyfél nem elérhető<br>
+          ▸ Erősen szabályozott (repülő, orvosi)<br>
+          ▸ Külső senior fejlesztők átképzés nélkül
+        </div>
+      </div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--xp)">Oktató</div>
+        Az XP-t SOK gyakorlatából manapság szinte mindenki használ valamit — pair programming, TDD, CI mindenhol jelen van. Az "tisztán XP" projekt ritka, de a gyakorlatok megtalálhatók másutt is.
+      </div></div>
+    </div>
+  `},
+
+  // 2. 5 ÉRTÉK
+  {t:1,vals:[0,1,2,3,4],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,.5)">⭐</div>
+      <div><div class="stitle">Az XP 5 értéke</div>
+      <div class="ssub">// minden gyakorlat ezekre épül</div></div>
+    </div>
+    <div class="value-grid">
+      <div class="value-card" style="background:rgba(59,130,246,.06);border-color:rgba(59,130,246,.35)">
+        <div class="vc-icon">💬</div>
+        <div class="vc-name" style="color:var(--pair)">Communication</div>
+        <div class="vc-desc">Folyamatos kommunikáció a csapatban. Ne email-ben — szóban.</div>
+      </div>
+      <div class="value-card" style="background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.35)">
+        <div class="vc-icon">🪶</div>
+        <div class="vc-name" style="color:var(--val)">Simplicity</div>
+        <div class="vc-desc">A legegyszerűbb működő megoldás. KISS · YAGNI · DRY.</div>
+      </div>
+      <div class="value-card" style="background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.35)">
+        <div class="vc-icon">🔄</div>
+        <div class="vc-name" style="color:var(--tdd)">Feedback</div>
+        <div class="vc-desc">Gyors visszacsatolás minden szintről — kódtól ügyfélig.</div>
+      </div>
+      <div class="value-card" style="background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.35)">
+        <div class="vc-icon">💪</div>
+        <div class="vc-name" style="color:var(--bad)">Courage</div>
+        <div class="vc-desc">Bátran változtatni a kódot. Mondani az igazságot. Nem rejtegetni.</div>
+      </div>
+      <div class="value-card" style="background:rgba(168,85,247,.06);border-color:rgba(168,85,247,.35);grid-column:span 2">
+        <div class="vc-icon">🤝</div>
+        <div class="vc-name" style="color:var(--refac)">Respect</div>
+        <div class="vc-desc">Egymás tisztelete — fejlesztők, üzleti szakértők, ügyfél. 2004-ben Beck adta hozzá az eredeti 4-hez.</div>
+      </div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--pair)">
+        <div class="cli-i">💬</div>
+        <div><strong>Communication — szóbeli, nem írásbeli</strong>
+        <span>A dokumentáció helyett közvetlen szóbeli kommunikáció. Egy 5 perces beszélgetés többet ér mint egy 5 oldalas email.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--val)">
+        <div class="cli-i">🪶</div>
+        <div><strong>Simplicity — "Do the simplest thing that could possibly work"</strong>
+        <span>Ne tervezz a jövőre! YAGNI (You Aren't Gonna Need It). Ha kell, később hozzáadhatod. A komplexitás később kínos lesz.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--tdd)">
+        <div class="cli-i">🔄</div>
+        <div><strong>Feedback — minden szintről</strong>
+        <span>Unit teszt visszajelez kód minőségéről. Pair programming visszajelez tervezésről. CI visszajelez integrációról. On-site ügyfél visszajelez üzletileg.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">💪</div>
+        <div><strong>Courage — "Bátran változtatni"</strong>
+        <span>Bátran refaktorálni egy rossz kódot. Bátran törölni egy nem használt feature-t. Bátran kimondani: "ez a követelmény nem reális".</span></div>
+      </div>
+    </div>
+  `},
+
+  // 3. PAIR PROGRAMMING
+  {t:2,vals:[0],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,.5)">👥</div>
+      <div><div class="stitle">Pair Programming — páros programozás</div>
+      <div class="ssub">// két fejlesztő egy gép előtt</div></div>
+    </div>
+    <div class="pair-vis">
+      <div style="font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem;text-align:center">// Pair programming — szerepek</div>
+      <div class="pp-flow">
+        <div class="pp-role" style="background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.4)">
+          <div class="pp-icon">⌨️</div>
+          <div class="pp-name" style="color:var(--pair)">DRIVER</div>
+          <div class="pp-desc">A gép előtt ül. Ő ÍR. Taktikailag gondolkozik: "Hogyan írom le ezt a sort?"</div>
+        </div>
+        <div class="pp-role" style="background:rgba(168,85,247,.08);border-color:rgba(168,85,247,.4)">
+          <div class="pp-icon">👀</div>
+          <div class="pp-name" style="color:var(--refac)">NAVIGATOR</div>
+          <div class="pp-desc">Figyel és gondolkodik. Stratégiailag: "Helyes irány? Más megoldás?"</div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:.5rem;font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--muted)">→ <strong style="color:var(--xp)">~25 perc után cserélnek</strong> ←</div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">🙋</div><div class="bub l"><div class="who" style="color:var(--val)">Tanuló</div>
+        Hát ez kétszer annyi pénz! Egy gép, két fejlesztő. Nem pazarlás?
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">👨‍🏫</div><div class="bub r2"><div class="who" style="color:var(--good);text-align:right">Oktató</div>
+        ÚGY tűnik — de a kutatások szerint: a kódminőség SOKKAL jobb, kevesebb bug, gyorsabb on-boarding, jobb design. Az utólagos hibajavítás drágább lenne!
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--pair)">
+        <div class="cli-i">🐛</div>
+        <div><strong>~15% kevesebb hiba</strong>
+        <span>Tudományos kutatások szerint a pair programmingnak kódoljanak — a hibák száma jelentősen csökken. Az "instant code review" elkapja a hibákat azonnal.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--pair)">
+        <div class="cli-i">🎓</div>
+        <div><strong>Tudás megosztás</strong>
+        <span>Junior + Senior pár → a junior gyorsan tanul. Két senior → új ötletek születnek. Minden tag ismeri a kódbázist.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--pair)">
+        <div class="cli-i">🎯</div>
+        <div><strong>Jobb design</strong>
+        <span>Két ember párhuzamosan gondolkozik az architektúrán. Több szempont kerül szóba. Kevesebb későbbi refaktor.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--warn)">
+        <div class="cli-i">⚠️</div>
+        <div><strong>De: ha rossz a pár, nem működik</strong>
+        <span>Két introvertált senior csendben ül? Junior fél kérdezni? A pair programmingnak GYAKORLAT kell.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 4. TDD
+  {t:3,vals:[2],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,.5)">🧪</div>
+      <div><div class="stitle">TDD — Test Driven Development</div>
+      <div class="ssub">// "Először teszt, aztán kód"</div></div>
+    </div>
+    <div class="tdd-vis">
+      <div class="tdd-title">// TDD ciklus — Red, Green, Refactor</div>
+      <div class="tdd-cycle">
+        <div class="tdd-step" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.5)">
+          <div class="tdd-step-name" style="color:var(--bad)">🔴 RED</div>
+          <div class="tdd-step-desc">Írj hibás tesztet</div>
+        </div>
+        <div class="tdd-arr">→</div>
+        <div class="tdd-step" style="background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.5)">
+          <div class="tdd-step-name" style="color:var(--good)">🟢 GREEN</div>
+          <div class="tdd-step-desc">Írj annyi kódot, hogy átmenjen</div>
+        </div>
+        <div class="tdd-arr">→</div>
+        <div class="tdd-step" style="background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.5)">
+          <div class="tdd-step-name" style="color:var(--refac)">♻️ REFACTOR</div>
+          <div class="tdd-step-desc">Tisztítsd a kódot</div>
+        </div>
+        <div class="tdd-arr">↻</div>
+      </div>
+    </div>
+    <div class="code">
+      <div class="cb-label">// 1. RED — írunk egy tesztet, ami HIBÁS</div>
+      <span class="c-fn">test</span>(<span class="c-str">'add returns 5 for 2+3'</span>, () => {<br>
+      &nbsp;&nbsp;<span class="c-fn">expect</span>(<span class="c-fn">add</span>(<span class="c-var">2</span>, <span class="c-var">3</span>)).<span class="c-fn">toBe</span>(<span class="c-var">5</span>);<br>
+      });<br>
+      <span class="c-cmt">// ❌ FAIL — még nincs is add() függvény!</span>
+    </div>
+    <div class="code">
+      <div class="cb-label">// 2. GREEN — írunk MINIMÁLIS kódot, hogy átmenjen</div>
+      <span class="c-kw">function</span> <span class="c-fn">add</span>(a, b) {<br>
+      &nbsp;&nbsp;<span class="c-kw">return</span> <span class="c-var">5</span>; <span class="c-cmt">// hihetetlen, de így átmegy!</span><br>
+      }<br>
+      <span class="c-cmt">// ✅ PASS</span>
+    </div>
+    <div class="code">
+      <div class="cb-label">// 3. REFACTOR — most már lehet "okosabb" kód</div>
+      <span class="c-kw">function</span> <span class="c-fn">add</span>(a, b) {<br>
+      &nbsp;&nbsp;<span class="c-kw">return</span> a + b;<br>
+      }<br>
+      <span class="c-cmt">// ✅ Még mindig PASS — most már igazi implementáció</span>
+    </div>
+    <div class="ibox good"><strong>Miért írunk először tesztet?</strong> 1) Kényszerít a követelmények megértésére. 2) A tesztek MAGUKAT írják meg (nem utólag, "nem érek rá"). 3) Refaktoring biztonságos lesz — a tesztek megvédenek a regressziótól. 4) Az API design automatikusan jobb lesz.</div>
+  `},
+
+  // 5. REFAKTORÁLÁS
+  {t:4,vals:[1,3],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,.5)">♻️</div>
+      <div><div class="stitle">Refactoring — folyamatos javítás</div>
+      <div class="ssub">// "Make it work, make it right, make it fast"</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--refac)">Oktató</div>
+        Az XP-ben a kódot FOLYAMATOSAN javítjuk — nem egy "nagy refaktor sprint"-ben. Minden alkalommal, amikor érintünk egy fájlt, kicsit jobbá tesszük. Ez a <strong>"Boy Scout Rule"</strong>: "Always leave the campground cleaner than you found it."
+      </div></div>
+    </div>
+    <div class="practice-card" style="background:rgba(168,85,247,.05);border-color:rgba(168,85,247,.35)">
+      <div class="pc-hdr">
+        <div class="pc-icon">♻️</div>
+        <div class="pc-num" style="background:rgba(168,85,247,.15);color:var(--refac);border-color:rgba(168,85,247,.4)">REFAC</div>
+        <div class="pc-name" style="color:var(--refac)">Refaktoring elvei</div>
+      </div>
+      <div class="pc-desc">A KÜLSŐ viselkedés NEM változik. A BELSŐ struktúra javul. A tesztek biztonságot adnak — ha valami eltört, azonnal jelzi.</div>
+    </div>
+    <div class="code">
+      <div class="cb-label">❌ ELŐTTE — túl hosszú, ismétlődő</div>
+      <span class="c-kw">function</span> <span class="c-fn">processOrder</span>(order) {<br>
+      &nbsp;&nbsp;<span class="c-kw">if</span> (order.items.length === 0) <span class="c-kw">return</span>;<br>
+      &nbsp;&nbsp;<span class="c-kw">let</span> total = 0;<br>
+      &nbsp;&nbsp;<span class="c-kw">for</span> (<span class="c-kw">let</span> item <span class="c-kw">of</span> order.items) {<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;total += item.price * item.qty;<br>
+      &nbsp;&nbsp;}<br>
+      &nbsp;&nbsp;<span class="c-kw">if</span> (order.discount) total *= (<span class="c-var">1</span> - order.discount);<br>
+      &nbsp;&nbsp;<span class="c-kw">if</span> (total &gt; <span class="c-var">100</span>) total += <span class="c-var">5</span>; <span class="c-cmt">// shipping</span><br>
+      &nbsp;&nbsp;<span class="c-kw">return</span> total;<br>
+      }
+    </div>
+    <div class="code">
+      <div class="cb-label">✅ UTÁNA — kibontva kis függvényekre</div>
+      <span class="c-kw">function</span> <span class="c-fn">processOrder</span>(order) {<br>
+      &nbsp;&nbsp;<span class="c-kw">if</span> (<span class="c-fn">isEmpty</span>(order)) <span class="c-kw">return</span> <span class="c-var">0</span>;<br>
+      &nbsp;&nbsp;<span class="c-kw">const</span> subtotal = <span class="c-fn">calculateSubtotal</span>(order.items);<br>
+      &nbsp;&nbsp;<span class="c-kw">const</span> discounted = <span class="c-fn">applyDiscount</span>(subtotal, order.discount);<br>
+      &nbsp;&nbsp;<span class="c-kw">return</span> <span class="c-fn">addShipping</span>(discounted);<br>
+      }
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--refac)">
+        <div class="cli-i">🪒</div>
+        <div><strong>Extract method</strong>
+        <span>Hosszú függvény → szed kisebb függvényekre. Mindegyik EGY dolgot csinál (Single Responsibility).</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--refac)">
+        <div class="cli-i">🔄</div>
+        <div><strong>Rename</strong>
+        <span>Jobb név → érthetőbb kód. Pl. <code style="font-family:Inconsolata,monospace;font-size:.65rem">x</code> → <code style="font-family:Inconsolata,monospace;font-size:.65rem">customerEmail</code>.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--refac)">
+        <div class="cli-i">📦</div>
+        <div><strong>Extract class</strong>
+        <span>Túl nagy osztály → kettébontás. Pl. Order osztály → Order + OrderCalculator.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 6. FOLYAMAT GYAKORLATOK
+  {t:5,vals:[2],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(34,211,238,.5)">🔄</div>
+      <div><div class="stitle">Folyamat gyakorlatok</div>
+      <div class="ssub">// CI, Small Releases, Sustainable Pace</div></div>
+    </div>
+    <div class="practice-card" style="background:rgba(34,211,238,.05);border-color:rgba(34,211,238,.35)">
+      <div class="pc-hdr">
+        <div class="pc-icon">🔄</div>
+        <div class="pc-num" style="background:rgba(34,211,238,.15);color:var(--ci);border-color:rgba(34,211,238,.4)">CI</div>
+        <div class="pc-name" style="color:var(--ci)">Continuous Integration</div>
+      </div>
+      <div class="pc-desc">Az XP HOZTA be a CI fogalmát! Minden fejlesztő naponta TÖBBSZÖR integrálja a kódját. Az integrációs bumm elkerülése. (Manapság Jenkins, GitHub Actions, GitLab CI.)</div>
+    </div>
+    <div class="practice-card" style="background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.35)">
+      <div class="pc-hdr">
+        <div class="pc-icon">📦</div>
+        <div class="pc-num" style="background:rgba(245,158,11,.15);color:var(--val);border-color:rgba(245,158,11,.4)">SR</div>
+        <div class="pc-name" style="color:var(--val)">Small Releases</div>
+      </div>
+      <div class="pc-desc">Gyakori, kicsi kiadások. Ne félévente egy nagy release — hetente / kéthetente kis újdonságok. Az ügyfél hamar lát értéket, hamar visszajelez.</div>
+    </div>
+    <div class="practice-card" style="background:rgba(168,85,247,.05);border-color:rgba(168,85,247,.35)">
+      <div class="pc-hdr">
+        <div class="pc-icon">⚡</div>
+        <div class="pc-num" style="background:rgba(168,85,247,.15);color:var(--refac);border-color:rgba(168,85,247,.4)">PLAN</div>
+        <div class="pc-name" style="color:var(--refac)">Planning Game</div>
+      </div>
+      <div class="pc-desc">A tervezés EGYÜTT zajlik — fejlesztők és ügyfél (vagy PO). Story kártyák, becslés, prioritizálás. NEM gantt chart-ot rajzolunk, kártyákat raknak az asztalra.</div>
+    </div>
+    <div class="practice-card" style="background:rgba(16,185,129,.05);border-color:rgba(16,185,129,.35)">
+      <div class="pc-hdr">
+        <div class="pc-icon">😴</div>
+        <div class="pc-num" style="background:rgba(16,185,129,.15);color:var(--good);border-color:rgba(16,185,129,.4)">PACE</div>
+        <div class="pc-name" style="color:var(--good)">Sustainable Pace (40h)</div>
+      </div>
+      <div class="pc-desc">"Heti 40 óra" — NEM túlhajszoljuk a csapatot. A kimerült fejlesztő hibázik. Hosszú távon a 40 órás csapat termékenyebb mint a 60 órás.</div>
+    </div>
+    <div class="ibox warn"><strong>Burn out:</strong> Sok cég azt hiszi, hogy egy crunch (60-80 óra/hét) gyorsabb termelést hoz. Az XP szerint NEM — a hibák száma nő, a minőség romlik, a fejlesztők elmennek. A 40 óra a fenntartható tempó.</div>
+  `},
+
+  // 7. CSAPAT GYAKORLATOK
+  {t:6,vals:[0,4],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,.5)">👨‍👩‍👧</div>
+      <div><div class="stitle">Csapat gyakorlatok</div>
+      <div class="ssub">// On-site Customer · Collective Ownership · Coding Standards</div></div>
+    </div>
+    <div class="practice-card" style="background:rgba(16,185,129,.05);border-color:rgba(16,185,129,.35)">
+      <div class="pc-hdr">
+        <div class="pc-icon">🏢</div>
+        <div class="pc-num" style="background:rgba(16,185,129,.15);color:var(--good);border-color:rgba(16,185,129,.4)">OSC</div>
+        <div class="pc-name" style="color:var(--good)">On-site Customer</div>
+      </div>
+      <div class="pc-desc">Az ügyfél (vagy egy szakértő ügyfél képviselője) FIZIKAILAG a csapattal van. Egy szobában! Bármilyen kérdés azonnal megválaszolható.</div>
+    </div>
+    <div class="practice-card" style="background:rgba(59,130,246,.05);border-color:rgba(59,130,246,.35)">
+      <div class="pc-hdr">
+        <div class="pc-icon">📂</div>
+        <div class="pc-num" style="background:rgba(59,130,246,.15);color:var(--pair);border-color:rgba(59,130,246,.4)">CCO</div>
+        <div class="pc-name" style="color:var(--pair)">Collective Code Ownership</div>
+      </div>
+      <div class="pc-desc">A kód a CSAPATÉ — nem egy emberé. Bárki módosíthat bármilyen részt. Nincs "ez Béla kódja, ne nyúlj hozzá".</div>
+    </div>
+    <div class="practice-card" style="background:rgba(168,85,247,.05);border-color:rgba(168,85,247,.35)">
+      <div class="pc-hdr">
+        <div class="pc-icon">📐</div>
+        <div class="pc-num" style="background:rgba(168,85,247,.15);color:var(--refac);border-color:rgba(168,85,247,.4)">STD</div>
+        <div class="pc-name" style="color:var(--refac)">Coding Standards</div>
+      </div>
+      <div class="pc-desc">A csapat MEGEGYEZIK a kódstílusban, naming convention-ben. Ennek köszönhetően a kód olyan, mintha EGY ember írta volna. Csökkenti a kontextusváltás idejét.</div>
+    </div>
+    <div class="practice-card" style="background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.35)">
+      <div class="pc-hdr">
+        <div class="pc-icon">🎨</div>
+        <div class="pc-num" style="background:rgba(245,158,11,.15);color:var(--val);border-color:rgba(245,158,11,.4)">META</div>
+        <div class="pc-name" style="color:var(--val)">System Metaphor</div>
+      </div>
+      <div class="pc-desc">A rendszerre egy közös METAFORA — egyszerű mese, amit mindenki ért. Pl. "az árukezelő rendszer = futószalag a gyárban". Segít a kommunikációban.</div>
+    </div>
+    <div class="ibox good"><strong>"Trust the team":</strong> Az XP csapatban a felelősség MEGOSZTOTT. Senki nem mondhatja "ez nem az én bajom". A csapat együtt szállít, együtt felel a minőségért.</div>
+  `},
+
+  // 8. XP VS SCRUM
+  {t:7,vals:[],render:()=>`
+    <div class="shdr"><div class="sico">⚖️</div>
+      <div><div class="stitle">XP vs Scrum — összehasonlítás</div>
+      <div class="ssub">// "Scrum mondja MIT, XP mondja HOGYAN"</div></div>
+    </div>
+    <div style="background:var(--card);border:1.5px solid var(--brd2);border-radius:9px;overflow:hidden;margin:.45rem 0">
+      <div style="display:grid;grid-template-columns:90px 1fr 1fr;background:var(--surf);padding:.3rem .65rem;gap:.5rem;font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--brd);align-items:center">
+        <div>Szempont</div>
+        <div style="color:var(--xp)">XP</div>
+        <div style="color:var(--good)">Scrum</div>
+      </div>
+      <div style="display:grid;grid-template-columns:90px 1fr 1fr;padding:.38rem .65rem;gap:.5rem;border-bottom:1px solid var(--brd);font-size:.68rem;align-items:center">
+        <div style="font-weight:700">Iteráció</div>
+        <div style="color:var(--muted)">1-2 hét</div>
+        <div style="color:var(--muted)">1-4 hét (sprint)</div>
+      </div>
+      <div style="display:grid;grid-template-columns:90px 1fr 1fr;padding:.38rem .65rem;gap:.5rem;border-bottom:1px solid var(--brd);font-size:.68rem;align-items:center">
+        <div style="font-weight:700">Változás</div>
+        <div style="color:var(--good)">Iteráción belül is</div>
+        <div style="color:var(--warn)">Sprint közben TILOS</div>
+      </div>
+      <div style="display:grid;grid-template-columns:90px 1fr 1fr;padding:.38rem .65rem;gap:.5rem;border-bottom:1px solid var(--brd);font-size:.68rem;align-items:center">
+        <div style="font-weight:700">Mit fed le</div>
+        <div style="color:var(--muted)">Engineering practices (TDD, pair, refactor)</div>
+        <div style="color:var(--muted)">Csak a folyamat (sprint, daily, review)</div>
+      </div>
+      <div style="display:grid;grid-template-columns:90px 1fr 1fr;padding:.38rem .65rem;gap:.5rem;border-bottom:1px solid var(--brd);font-size:.68rem;align-items:center">
+        <div style="font-weight:700">Priorit.</div>
+        <div style="color:var(--muted)">Ügyfél bármikor átrendezi</div>
+        <div style="color:var(--muted)">PO sprint előtt rögzít</div>
+      </div>
+      <div style="display:grid;grid-template-columns:90px 1fr 1fr;padding:.38rem .65rem;gap:.5rem;font-size:.68rem;align-items:center">
+        <div style="font-weight:700">Tempó</div>
+        <div style="color:var(--muted)">Heti ritmus</div>
+        <div style="color:var(--muted)">Sprint ritmus</div>
+      </div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--xp)">Oktató</div>
+        A két módszer NEM kizáró. Sőt — sok cég <strong>"Scrum + XP gyakorlatok"</strong>-ot használ. A Scrum adja a keretet (sprint, ceremóniák), az XP adja a TECHNIKAI gyakorlatokat (TDD, pair, CI, refactor).
+      </div></div>
+    </div>
+    <div class="ibox good"><strong>"Scrum kombinálva XP-vel":</strong> Sok modern agilis csapat ezt csinálja. Scrum sprint planning + Daily + Retro + XP pair programming + TDD + CI + refactor. A két módszer kiegészíti egymást.</div>
+  `},
+
+  // 9. XP KRITIKÁK
+  {t:7,vals:[],render:()=>`
+    <div class="shdr"><div class="sico">⚠️</div>
+      <div><div class="stitle">Kritikák és problémák az XP-vel</div>
+      <div class="ssub">// nem mindenkinek jó</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">📏</div>
+        <div><strong>Skálázódik rosszul</strong>
+        <span>50+ fős csapatban a pair programming + on-site customer + collective ownership nem működik. Komplex függőségek között elveszik.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">📚</div>
+        <div><strong>Dokumentáció hiánya</strong>
+        <span>Az XP a kódot és pair programmingot helyezi előtérbe. De ha új ember csatlakozik 3 év után — mihez nyúljon? A teszteken kívül nincs sok doku.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">🏢</div>
+        <div><strong>On-site customer ritka</strong>
+        <span>A gyakorlatban kevés ügyfél tud "egy szobában" lenni a fejlesztőkkel. Pláne nem nagyvállalati környezetben.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">🌍</div>
+        <div><strong>Remote csapatra nehéz</strong>
+        <span>Az XP feltételez egy fizikai jelenlétet — pair programming, közös szóbeli kommunikáció. Remote munkában nehezebb (de nem lehetetlen).</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">🎯</div>
+        <div><strong>Hosszútávú vízió hiánya</strong>
+        <span>Az XP "csak amit most kell" gondolkodása veszélyes lehet. Néha kell stratégiai gondolkodás 6-12 hónapra.</span></div>
+      </div>
+    </div>
+    <div class="ibox warn"><strong>"Pure XP" ritka:</strong> Manapság szinte sehol nem alkalmazzák az XP-t TELJES egészében. De a gyakorlatai (TDD, CI, pair, refactor, planning game) ÉLNEK más módszertanokban. Az XP "öröksége" hatalmas — Kent Beck és társai megalapozták a modern szoftverfejlesztést.</div>
+  `},
+
+  // 10. MAI HATÁS
+  {t:7,vals:[],render:()=>`
+    <div class="shdr"><div class="sico">🌟</div>
+      <div><div class="stitle">Az XP mai hatása</div>
+      <div class="ssub">// nélküle nem lenne modern fejlesztés</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--good)">Oktató</div>
+        Talán nem dolgozol XP csapatban — DE szinte BIZTOS, hogy XP gyakorlatokat HASZNÁLSZ. Nézzük végig.
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">🧪</div>
+        <div><strong>TDD — ipari standard</strong>
+        <span>Jelen van mindenhol. Jest, JUnit, pytest — mind TDD szellemében épült. A "tesztet először" gondolkodás XP-től származik.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">🔄</div>
+        <div><strong>CI/CD — DevOps alapja</strong>
+        <span>Az XP HOZTA be a Continuous Integration fogalmat. Ma a Jenkins, GitHub Actions, GitLab CI, CircleCI — mind ennek leszármazottja.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">♻️</div>
+        <div><strong>Refactoring — kötelező</strong>
+        <span>"Refactor a kódot" XP-ből származik. Martin Fowler "Refactoring" könyve (1999) az XP korának egyik fő terméke.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">👥</div>
+        <div><strong>Pair programming + Code review</strong>
+        <span>Tiszta pair programming kevés helyen — DE a "code review" minden cégnél van. Az alapok ott — XP-ből.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">📅</div>
+        <div><strong>Small releases — Continuous Deployment</strong>
+        <span>Az XP "small releases" gondolata vezet a mai napi/heti deployment-hez. Netflix napi 100+ deployt csinál — az XP-t használja gyökereiben.</span></div>
+      </div>
+    </div>
+    <div class="ibox good"><strong>Mit jelent ez gyakorlatban?</strong> Aki ma fejleszt, naponta használ XP-eszközöket — anélkül, hogy tudná. Git, CI/CD pipeline, code review, refactor, unit teszt — mind az XP gyökereiből nőtt ki.</div>
+  `},
+
+  // 11. PLANNING GAME
+  {t:6,vals:[0],render:()=>`
+    <div class="shdr"><div class="sico">🎲</div>
+      <div><div class="stitle">Planning Game — XP tervezés</div>
+      <div class="ssub">// story kártyák, becslés, prioritás</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--xp)">Oktató</div>
+        Az XP-ben a tervezés NEM gantt chart vagy spreadsheet. <strong>STORY KÁRTYÁK</strong> vannak — fizikai (vagy virtuális) papírlapok. Az ügyfél írja le, mit szeretne. A csapat megbecsüli mennyi idő.
+      </div></div>
+    </div>
+    <div style="background:var(--card);border:1.5px solid var(--brd2);border-radius:10px;padding:.75rem;margin:.45rem 0">
+      <div style="font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem">// Story Card példa</div>
+      <div style="background:#fef3c7;color:#1f2937;border-radius:8px;padding:.7rem;font-family:Georgia,serif;font-size:.7rem;line-height:1.5;border:1px dashed #92400e">
+        <div style="font-weight:700;font-size:.78rem;margin-bottom:.3rem">🛒 Bejelentkezés Google-lel</div>
+        <div style="font-style:italic;margin-bottom:.4rem">"Felhasználóként szeretnék Google fiókkal bejelentkezni, hogy ne kelljen új jelszót megjegyeznem."</div>
+        <div style="display:flex;justify-content:space-between;font-size:.6rem;color:#92400e;font-weight:700;border-top:1px dashed #92400e;padding-top:.3rem">
+          <span>👤 Anna</span>
+          <span>📊 3 nap</span>
+          <span>🎯 Priorit: HIGH</span>
+        </div>
+      </div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--xp)">
+        <div class="cli-i">📝</div>
+        <div><strong>Story kártya = követelmény</strong>
+        <span>Egy mondat formátum: "Felhasználóként szeretnék XY-t, hogy Z." Rövid, érthető, ELLENŐRIZHETŐ.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--xp)">
+        <div class="cli-i">🎯</div>
+        <div><strong>Planning meeting</strong>
+        <span>Az ügyfél, a fejlesztők és a coach EGYÜTT ülnek. Az ügyfél elmondja a story-kat. A fejlesztők megbecsülik az időt. Az ügyfél priorizál.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--xp)">
+        <div class="cli-i">🔄</div>
+        <div><strong>Iteration planning (hetente)</strong>
+        <span>Heti tervezés — melyik story-k kerülnek ebbe a hétbe. Ha új info — az ügyfél átrendezheti a kártyákat.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">📈</div>
+        <div><strong>Velocity</strong>
+        <span>A csapat mérete: "hány story pont/hét" — empirikus mérés. Idővel pontosabbá válik a becslés. Megegyezik a Scrum velocity-jével.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 12. ÖSSZEFOGLALÁS
+  {t:8,vals:[0,1,2,3,4],render:()=>`
+    <div class="shdr"><div class="sico">∑</div>
+      <div><div class="stitle">Összefoglalás — Extreme Programming</div>
+      <div class="ssub">// Kent Beck öröksége</div></div>
+    </div>
+    <div class="sumgrid">
+      <div class="sbox" style="border-top:2px solid var(--xp)"><span class="ico">📅</span><div class="val">1999</div><div class="lbl">Kent Beck könyve</div></div>
+      <div class="sbox" style="border-top:2px solid var(--val)"><span class="ico">⭐</span><div class="val">5 érték</div><div class="lbl">Comm·Simp·Feed·Cour·Resp</div></div>
+      <div class="sbox" style="border-top:2px solid var(--tdd)"><span class="ico">🧪</span><div class="val">TDD</div><div class="lbl">Red→Green→Refactor</div></div>
+      <div class="sbox" style="border-top:2px solid var(--pair)"><span class="ico">👥</span><div class="val">Pair Prog</div><div class="lbl">Driver + Navigator</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--xp)">
+        <div class="cli-i">🎯</div>
+        <div><strong>Mi az XP</strong>
+        <span>Kent Beck 1999-ben publikálta. Az "extreme" = hasznos gyakorlatokat EXTRÉM SZINTEN. Kis csapatra (2-12 fő), co-located, motivált, magas minőséget igénylő projekt.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--val)">
+        <div class="cli-i">⭐</div>
+        <div><strong>5 érték</strong>
+        <span>Communication · Simplicity · Feedback · Courage · Respect (2004-ben adta hozzá Beck).</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--pair)">
+        <div class="cli-i">👥</div>
+        <div><strong>Engineering gyakorlatok</strong>
+        <span>Pair Programming (Driver/Navigator, ~25p csere) · TDD (Red-Green-Refactor) · Refactoring · Coding Standards · Collective Code Ownership.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--ci)">
+        <div class="cli-i">🔄</div>
+        <div><strong>Folyamat gyakorlatok</strong>
+        <span>Continuous Integration (CI!) · Small Releases · Planning Game · Sustainable Pace (heti 40h) · On-site Customer · System Metaphor.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">🌟</div>
+        <div><strong>Mai hatás</strong>
+        <span>TDD, CI/CD, Code Review, Refactoring, Small Releases — MIND XP-ből származik. Pure XP ritka, de a gyakorlatok mindenhol élnek.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--refac)">
+        <div class="cli-i">⚖️</div>
+        <div><strong>XP + Scrum kombináció</strong>
+        <span>"Scrum + XP" gyakorlatok — sok modern csapat ezt használja. Scrum adja a keretet, XP adja a technikai gyakorlatokat.</span></div>
+      </div>
+    </div>
+  `},
+];
+
+function renderBoard(tIdx,valIdxs){
+  document.getElementById('steps').innerHTML=TOPICS.map((t,i)=>{
+    const on=i===tIdx,done=i<tIdx;
+    const c=on?t.color:done?t.color:'var(--muted)';
+    return `<div class="st ${on?'active':done?'done':''}">
+      <div class="sd" style="border-color:${c};color:${c}">${t.icon}</div>
+      <div class="sl" style="color:${on?t.color:'var(--muted)'}">${t.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('valRow').innerHTML=VALUES.map((v,i)=>{
+    const on=valIdxs.includes(i);
+    return `<div class="vc ${on?'on':''}" style="border-color:${v.color};color:${v.color}">${v.label}</div>`;
+  }).join('');
+}
+
+let cur=0;
+function render(){
+  const s=STEPS[cur];
+  renderBoard(s.t,s.vals);
+  const el=document.getElementById('content');
+  el.innerHTML=s.render();
+  setTimeout(()=>{el.querySelectorAll('.msg:not(.show)').forEach((m,i)=>setTimeout(()=>m.classList.add('show'),i*160));},60);
+  document.getElementById('bprev').disabled=cur===0;
+  document.getElementById('bnext').textContent=cur===STEPS.length-1?'↺ Újra':'Következő →';
+  document.getElementById('ctr').textContent=`${cur+1} / ${STEPS.length}`;
+}
+function next(){cur=cur===STEPS.length-1?0:cur+1;render();}
+function prev(){if(cur>0){cur--;render();}}
+render();
+</script>
+</body>
+</html>

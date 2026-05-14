@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teszt típusok — Funkcionális · NFR · Security · Automatizálás</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+:root {
+  --bg:#0a0f1e; --surf:#0f1628; --card:#141d35; --brd:#1e2d50; --brd2:#263a68;
+  --text:#d8e4ff; --muted:#4a5f8a;
+  --func:#3b82f6; --perf:#f59e0b; --rel:#10b981; --comp:#22d3ee; --sec:#ef4444;
+  --auto:#a855f7; --good:#10b981; --bad:#ef4444; --warn:#f59e0b;
+  --acc:#3b82f6;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(59,130,246,.06) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(239,68,68,.04) 0%,transparent 50%);pointer-events:none;z-index:0;}
+header{position:relative;z-index:1;padding:1.2rem 1.3rem .85rem;border-bottom:1px solid var(--brd2);background:linear-gradient(180deg,rgba(59,130,246,.06) 0%,transparent 100%);}
+.hdr-row{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;}
+h1{font-size:1.4rem;font-weight:800;line-height:1.07;letter-spacing:-.02em;}
+h1 span{color:var(--func);}h1 em{font-style:normal;color:var(--auto);}
+.tag{font-family:'Inconsolata',monospace;font-size:.56rem;padding:.25rem .55rem;border-radius:4px;background:rgba(59,130,246,.12);color:var(--func);border:1px solid rgba(59,130,246,.28);white-space:nowrap;margin-top:.2rem;}
+header p{font-size:.7rem;color:var(--muted);margin-top:.25rem;font-family:'Inconsolata',monospace;}
+.topbar{position:relative;z-index:1;background:var(--surf);border-bottom:1px solid var(--brd2);padding:.75rem 1.3rem .65rem;}
+.tb-t{font-family:'Inconsolata',monospace;font-size:.54rem;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin-bottom:.5rem;}
+.steps{display:flex;align-items:center;gap:0;margin-bottom:.45rem;}
+.st{flex:1;display:flex;flex-direction:column;align-items:center;gap:.18rem;position:relative;}
+.st:not(:last-child)::after{content:'';position:absolute;right:0;top:12px;width:50%;height:2px;background:var(--brd);z-index:0;}
+.st:not(:first-child)::before{content:'';position:absolute;left:0;top:12px;width:50%;height:2px;background:var(--brd);z-index:0;}
+.sd{width:24px;height:24px;border-radius:50%;border:2px solid var(--brd2);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:.6rem;z-index:1;transition:all .35s;position:relative;}
+.sl{font-family:'Inconsolata',monospace;font-size:.44rem;color:var(--muted);text-align:center;line-height:1.2;}
+.st.active .sd{transform:scale(1.25);box-shadow:0 0 10px currentColor;}
+.st.done .sd{opacity:.55;}
+.st.active .sl{font-weight:700;}
+.tag-row{display:flex;gap:4px;flex-wrap:wrap;}
+.tg{font-family:'Inconsolata',monospace;font-size:.53rem;font-weight:600;padding:.14rem .4rem;border-radius:3px;border:1px solid;opacity:.25;transition:opacity .3s;}
+.tg.on{opacity:1;}
+.content{position:relative;z-index:1;padding:.9rem 1.3rem;min-height:275px;}
+.shdr{display:flex;align-items:center;gap:.6rem;margin-bottom:.85rem;}
+.sico{width:36px;height:36px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;border:1.5px solid var(--brd2);background:var(--card);}
+.stitle{font-size:.95rem;font-weight:800;letter-spacing:-.02em;}
+.ssub{font-family:'Inconsolata',monospace;font-size:.56rem;color:var(--muted);margin-top:.03rem;}
+.chat{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.7rem;}
+.msg{display:flex;gap:.4rem;align-items:flex-start;opacity:0;transform:translateY(6px);transition:opacity .3s,transform .3s;}
+.msg.show{opacity:1;transform:translateY(0);}
+.msg.r{flex-direction:row-reverse;}
+.av{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;border:1px solid var(--brd2);background:var(--card);}
+.bub{max-width:82%;padding:.48rem .68rem;border-radius:9px;font-size:.77rem;line-height:1.55;border:1px solid var(--brd2);background:var(--card);}
+.bub.l{border-bottom-left-radius:2px;}.bub.r2{border-bottom-right-radius:2px;text-align:right;}
+.who{font-family:'Inconsolata',monospace;font-size:.55rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.1rem;}
+.ibox{border-radius:8px;padding:.55rem .75rem;font-size:.74rem;line-height:1.55;margin:.45rem 0;border:1px solid var(--brd2);background:var(--card);border-left:3px solid var(--func);}
+.ibox strong{font-weight:700;}
+.ibox.warn{border-left-color:var(--warn);}.ibox.warn strong{color:var(--warn);}
+.ibox.good{border-left-color:var(--good);}.ibox.good strong{color:var(--good);}
+.cklist{display:flex;flex-direction:column;gap:.35rem;margin:.45rem 0;}
+.cli{display:flex;align-items:flex-start;gap:.5rem;padding:.42rem .65rem;background:var(--card);border:1px solid var(--brd2);border-radius:8px;font-size:.75rem;line-height:1.45;}
+.cli-i{flex-shrink:0;font-size:.88rem;}
+.cli strong{display:block;font-weight:700;font-size:.76rem;margin-bottom:.03rem;}
+.cli span{color:var(--muted);font-size:.68rem;font-family:'Inconsolata',monospace;}
+
+/* TEST TYPE CARD */
+.test-card{border-radius:10px;padding:.7rem .8rem;margin:.35rem 0;border:1.5px solid;}
+.tc-hdr{display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;}
+.tc-num{font-family:'Inconsolata',monospace;font-size:.62rem;font-weight:800;padding:.15rem .4rem;border-radius:4px;border:1px solid;flex-shrink:0;}
+.tc-name{font-size:.85rem;font-weight:800;}
+.tc-desc{font-size:.71rem;line-height:1.55;color:rgba(216,228,255,.85);margin-bottom:.25rem;}
+.tc-ex{font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--muted);line-height:1.5;background:var(--surf);padding:.35rem .55rem;border-radius:6px;border-left:2px solid currentColor;}
+
+/* COMPARE */
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+.cmp-card{padding:.7rem .75rem;border-radius:10px;border:1.5px solid;}
+
+/* CODE BLOCK */
+.code{background:#0d1117;border:1px solid var(--brd2);border-radius:8px;padding:.6rem .75rem;margin:.35rem 0;font-family:'Inconsolata',monospace;font-size:.7rem;line-height:1.7;}
+.cb-label{font-size:.5rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem;}
+.c-kw{color:#ff7b72;}.c-fn{color:#d2a8ff;}.c-str{color:#a5d6ff;}.c-var{color:#ffa657;}.c-cmt{color:#8b949e;font-style:italic;}
+
+/* SUMGRID */
+.sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+.sbox{background:var(--card);border:1px solid var(--brd2);border-radius:8px;padding:.6rem;text-align:center;}
+.sbox .ico{font-size:1.2rem;display:block;margin-bottom:.15rem;}
+.sbox .val{font-size:.88rem;font-weight:800;}
+.sbox .lbl{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);margin-top:.04rem;}
+
+/* AI BOX */
+.ai-box{background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(59,130,246,.08));border:1.5px solid rgba(168,85,247,.35);border-radius:10px;padding:.75rem;margin:.45rem 0;}
+
+.nav{position:sticky;bottom:0;z-index:10;background:var(--bg);border-top:1px solid var(--brd2);padding:.7rem 1.3rem;display:flex;align-items:center;gap:.5rem;}
+.btn{font-family:'Inconsolata',monospace;font-size:.63rem;font-weight:600;padding:.52rem 1rem;border-radius:7px;cursor:pointer;transition:all .18s;text-transform:uppercase;letter-spacing:.04em;}
+.btnp{background:transparent;color:var(--muted);border:1px solid var(--brd2);}
+.btnp:hover{color:var(--text);}
+.btnp:disabled{opacity:.2;cursor:not-allowed;}
+.btnn{flex:1;background:rgba(59,130,246,.12);color:var(--func);border:1px solid rgba(59,130,246,.3);}
+.btnn:hover{background:rgba(59,130,246,.22);}
+.ctr{font-family:'Inconsolata',monospace;font-size:.57rem;color:var(--muted);white-space:nowrap;}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-row">
+    <h1><span>Teszt</span><br>típusok<br><em>&amp; Automatizálás</em></h1>
+    <div class="tag">Funkcionális · NFR · Security</div>
+  </div>
+  <p>// Funkcionális · NFR (perf, terhelés, megbízh.) · Security 7 típus · Automatizálás · AI</p>
+</header>
+<div class="topbar">
+  <div class="tb-t">// témakörök</div>
+  <div class="steps" id="steps"></div>
+  <div class="tag-row" id="tagRow"></div>
+</div>
+<div class="content" id="content"></div>
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 12</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+<script>
+const TOPICS=[
+  {label:'Funk\nvs NFR',color:'var(--func)',icon:'⚖️'},
+  {label:'Funkc.\nteszt',color:'var(--func)',icon:'⚙️'},
+  {label:'NFR\ntípusok',color:'var(--perf)',icon:'⚡'},
+  {label:'Security\nteszt 7',color:'var(--sec)',icon:'🔒'},
+  {label:'Regr.\n+ Auto',color:'var(--auto)',icon:'🤖'},
+  {label:'Scrum\n+ AI',color:'var(--rel)',icon:'🎯'},
+  {label:'Össze.',color:'var(--func)',icon:'∑'},
+];
+const TAGS=[
+  {label:'Functional',color:'var(--func)'},
+  {label:'Performance',color:'var(--perf)'},
+  {label:'Reliability',color:'var(--rel)'},
+  {label:'Security',color:'var(--sec)'},
+  {label:'Compatibility',color:'var(--comp)'},
+  {label:'Automation',color:'var(--auto)'},
+];
+
+const STEPS=[
+  // 0. FUNKCIONÁLIS VS NFR
+  {t:0,tags:[0,1],render:()=>`
+    <div class="shdr"><div class="sico">⚖️</div>
+      <div><div class="stitle">Funkcionális vs Nem-funkcionális tesztelés</div>
+      <div class="ssub">// MIT csinál vs HOGYAN csinálja</div></div>
+    </div>
+    <div class="cmp">
+      <div class="cmp-card" style="background:rgba(59,130,246,.06);border-color:rgba(59,130,246,.35)">
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--func);font-weight:700;margin-bottom:.3rem">⚙️ FUNKCIONÁLIS</div>
+        <div style="font-size:.72rem;line-height:1.5;margin-bottom:.3rem"><strong>MIT csinál a rendszer?</strong></div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--muted);line-height:1.6">
+          ▸ "Bejelentkezés működik?"<br>
+          ▸ "Kosár tartalmaz termékeket?"<br>
+          ▸ "Fizetés végrehajtódott?"<br>
+          ▸ Specifikációnak megfelel-e
+        </div>
+      </div>
+      <div class="cmp-card" style="background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.35)">
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--perf);font-weight:700;margin-bottom:.3rem">⚡ NEM-FUNKCIONÁLIS</div>
+        <div style="font-size:.72rem;line-height:1.5;margin-bottom:.3rem"><strong>HOGYAN csinálja?</strong></div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--muted);line-height:1.6">
+          ▸ Teljesítmény (gyors?)<br>
+          ▸ Biztonság (védett?)<br>
+          ▸ Megbízhatóság (stabil?)<br>
+          ▸ Kompatibilitás (más rendszerekkel?)
+        </div>
+      </div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--func)">Oktató</div>
+        Egyszerű példa: a fékpedál szoftvere autóban. <strong>Funkcionális:</strong> ha megnyomjuk → az autó lassul. <strong>Nem-funkcionális:</strong> a reakcióidő MAX 50ms — különben életveszély.
+      </div></div>
+    </div>
+    <div class="ibox"><strong>Egy korai példa:</strong> "Ha megnyomjuk a fékpedált → az autó lassulni kezd. Ha teljesen lenyomjuk → kerekek állóra fékeződnek (kivéve ABS rendszerrel)." Ez funkcionális teszt. <em>"De mennyi idő alatt? Milyen hőmérsékleten?"</em> — ez már NFR!</div>
+  `},
+
+  // 1. FUNKCIONÁLIS TESZT TÍPUSOK
+  {t:1,tags:[0],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,.5)">⚙️</div>
+      <div><div class="stitle">Funkcionális teszt típusok</div>
+      <div class="ssub">// fékpedál példák</div></div>
+    </div>
+    <div class="test-card" style="background:rgba(59,130,246,.05);border-color:rgba(59,130,246,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(59,130,246,.15);color:var(--func);border-color:rgba(59,130,246,.4)">FUNC #1</div>
+        <div class="tc-name" style="color:var(--func)">Happy path</div>
+      </div>
+      <div class="tc-desc">Normál működés tesztelése — ahogy a felhasználó használná.</div>
+      <div class="tc-ex" style="color:var(--func)">▸ Megnyomom a fékpedált → az autó lassulni kezd ✓<br>▸ Teljesen lenyomom → kerekek állóra fékeződnek ✓</div>
+    </div>
+    <div class="test-card" style="background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(245,158,11,.15);color:var(--warn);border-color:rgba(245,158,11,.4)">FUNC #2</div>
+        <div class="tc-name" style="color:var(--warn)">Edge case</div>
+      </div>
+      <div class="tc-desc">Szélsőséges helyzetek tesztelése — ami ritkán fordul elő.</div>
+      <div class="tc-ex" style="color:var(--warn)">▸ Pedált 0.001mm nyomom → reagál-e?<br>▸ Pedál nyomva van 24 órán át → mi történik?</div>
+    </div>
+    <div class="test-card" style="background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(239,68,68,.15);color:var(--bad);border-color:rgba(239,68,68,.4)">FUNC #3</div>
+        <div class="tc-name" style="color:var(--bad)">Negative path</div>
+      </div>
+      <div class="tc-desc">Mi történik HIBÁS bemenettel? A rendszer GRACEFULLY kezeli?</div>
+      <div class="tc-ex" style="color:var(--bad)">▸ Fékkábel elszakad → meg kell jeleníteni hibát<br>▸ ABS rendszer lefagy → tartalék mechanizmus</div>
+    </div>
+    <div class="test-card" style="background:rgba(16,185,129,.05);border-color:rgba(16,185,129,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(16,185,129,.15);color:var(--good);border-color:rgba(16,185,129,.4)">FUNC #4</div>
+        <div class="tc-name" style="color:var(--good)">Boundary value</div>
+      </div>
+      <div class="tc-desc">A határértékek tesztelése — pont ott szoktak a hibák lenni.</div>
+      <div class="tc-ex" style="color:var(--good)">▸ Pedál 0% → 1% → 100% (átmeneti értékek)<br>▸ Sebesség 0 km/h, 1 km/h, 130 km/h, 200 km/h, 250 km/h</div>
+    </div>
+    <div class="ibox good"><strong>Kombináció kell:</strong> Egy jó funkcionális tesztcsomag mind a 4-et tartalmazza. A fejlesztők hajlamosak csak a happy path-ra fókuszálni — a tesztelő munkája a többi felfedezése.</div>
+  `},
+
+  // 2. NFR — TELJESÍTMÉNY
+  {t:2,tags:[1],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,.5)">⚡</div>
+      <div><div class="stitle">NFR — Teljesítmény és Terhelés</div>
+      <div class="ssub">// videójáték · SMS műsor</div></div>
+    </div>
+    <div class="test-card" style="background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(245,158,11,.15);color:var(--perf);border-color:rgba(245,158,11,.4)">PERF</div>
+        <div class="tc-name" style="color:var(--perf)">Teljesítmény teszt</div>
+      </div>
+      <div class="tc-desc">Mennyi erőforrásból milyen teljesítmény? Hány FPS, mennyi memória, milyen válaszidő.</div>
+      <div class="tc-ex" style="color:var(--perf)">📌 <strong>Játékszoftver:</strong> RTX 4080 videókártyán 144 FPS 4K-ban. RTX 3050-en 60 FPS Full HD-ben. Specifikálni kell a minimumot!</div>
+    </div>
+    <div class="test-card" style="background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(245,158,11,.15);color:var(--perf);border-color:rgba(245,158,11,.4)">LOAD</div>
+        <div class="tc-name" style="color:var(--perf)">Terhelés teszt</div>
+      </div>
+      <div class="tc-desc">Mi történik nagy egyidejű terhelésnél? Hány felhasználó/másodperc?</div>
+      <div class="tc-ex" style="color:var(--perf)">📌 <strong>SMS műsorok:</strong> Sokszor leállt a rendszer a túlterhelés miatt. 1 millió szavazat 1 perc alatt → szerver meghal. Tesztelni kell ELŐRE!</div>
+    </div>
+    <div class="test-card" style="background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(245,158,11,.15);color:var(--perf);border-color:rgba(245,158,11,.4)">STRESS</div>
+        <div class="tc-name" style="color:var(--perf)">Stressz teszt</div>
+      </div>
+      <div class="tc-desc">Hol a TÖRÉSPONT? Mikor omlik össze a rendszer? Hogyan reagál a határon túl?</div>
+      <div class="tc-ex" style="color:var(--perf)">📌 <strong>Webshop Black Friday:</strong> normál 1000 user/perc → terhelést toljuk 100 000-ig. Mikor lassul? Mikor időtúllépés? Mikor 500-as hiba?</div>
+    </div>
+    <div class="ibox"><strong>Performance ≠ Load ≠ Stress:</strong> Mindhárom NFR teszt, de más célt szolgál. Performance: <em>"elég gyors?"</em> Load: <em>"sok felhasználóval is megy?"</em> Stress: <em>"hol esik szét?"</em></div>
+  `},
+
+  // 3. NFR — MEGBÍZHATÓSÁG, KOMPATIBILITÁS
+  {t:2,tags:[2,4],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,.5)">🛡️</div>
+      <div><div class="stitle">NFR — Megbízhatóság és Kompatibilitás</div>
+      <div class="ssub">// orvosi · autóipari · MS Excel</div></div>
+    </div>
+    <div class="test-card" style="background:rgba(16,185,129,.05);border-color:rgba(16,185,129,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(16,185,129,.15);color:var(--rel);border-color:rgba(16,185,129,.4)">RELI</div>
+        <div class="tc-name" style="color:var(--rel)">Megbízhatóság (Reliability)</div>
+      </div>
+      <div class="tc-desc">Mennyire stabilan működik hosszú időn át? Mennyi ideig hibamentes? Mit csinál hibakor?</div>
+      <div class="tc-ex" style="color:var(--rel)">📌 <strong>Lélegeztető gép:</strong> 24/7 működés 1 évig hiba nélkül. EGY másodperc kiesés = beteg meghal.<br>📌 <strong>Autóipari szoftverek:</strong> 200 000 km vezetés alatt sem hibázhat el a féktechnika.<br>📌 <strong>Negatív példa:</strong> állami szervek szoftverei — gyakran hibásak, mégis használjuk.</div>
+    </div>
+    <div class="test-card" style="background:rgba(34,211,238,.05);border-color:rgba(34,211,238,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(34,211,238,.15);color:var(--comp);border-color:rgba(34,211,238,.4)">COMP</div>
+        <div class="tc-name" style="color:var(--comp)">Kompatibilitás (Compatibility)</div>
+      </div>
+      <div class="tc-desc">Más gyártók termékeivel működik-e együtt? Régi/új verziók közti kompatibilitás?</div>
+      <div class="tc-ex" style="color:var(--comp)">📌 <strong>Asszisztensek:</strong> Siri, Google Assistant, Alexa — egy okos otthon mindenkivel működjön együtt!<br>📌 <strong>MS Excel:</strong> régi .xls fájl új Excelben — ne romoljon el a tartalom.<br>📌 <strong>Backwards compatibility:</strong> új verzió kezeli a régi fájlt</div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--rel)">
+        <div class="cli-i">⏱️</div>
+        <div><strong>MTBF — Mean Time Between Failures</strong>
+        <span>Átlagos hibamentes idő. Üzleti SLA-ban gyakran szerepel: "MTBF min 8760 óra" (1 év). Megbízhatósági teszt méri.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--comp)">
+        <div class="cli-i">🔄</div>
+        <div><strong>Kompatibilitási mátrix</strong>
+        <span>Egy táblázat: melyik verzió melyikkel működik. Pl. Excel 2010 mentse .xls formátumban → Excel 2024 nyissa meg hiba nélkül.</span></div>
+      </div>
+    </div>
+    <div class="ibox warn"><strong>Iparági kötelezettség:</strong> Autóipar, orvosi, repülő — itt a megbízhatósági teszt KÖTELEZŐ szabvány. ISO 26262 (autó), IEC 62304 (orvosi), DO-178C (repülő). Tesztlefedettség MINIMUM követelmények írják elő.</div>
+  `},
+
+  // 4. SECURITY TESZT 1-3
+  {t:3,tags:[3],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,.5)">🔒</div>
+      <div><div class="stitle">Security tesztelés — 7 típus (1-3)</div>
+      <div class="ssub">// Vulnerability · Security Scan · Pen Test</div></div>
+    </div>
+    <div class="test-card" style="background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(239,68,68,.15);color:var(--sec);border-color:rgba(239,68,68,.4)">1</div>
+        <div class="tc-name" style="color:var(--sec)">Sebezhetőség vizsgálat</div>
+      </div>
+      <div class="tc-desc">AUTOMATIKUS szoftverrel vizsgálják a rendszert ismert biztonsági rések ALÁÍRÁSAI alapján.</div>
+      <div class="tc-ex" style="color:var(--sec)">▸ Eszközök: Nessus, OpenVAS, Qualys<br>▸ CVE adatbázis alapján keresnek<br>▸ Gyorsan futtatható → CI-be integrálható</div>
+    </div>
+    <div class="test-card" style="background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(239,68,68,.15);color:var(--sec);border-color:rgba(239,68,68,.4)">2</div>
+        <div class="tc-name" style="color:var(--sec)">Biztonsági szkennelés</div>
+      </div>
+      <div class="tc-desc">A hálózat és rendszer GYENGESÉGEINEK azonosítása + ALTERNATÍVÁK az enyhítésre. Kézi vagy automatikus.</div>
+      <div class="tc-ex" style="color:var(--sec)">▸ Port szkennelés (Nmap)<br>▸ Web app szkennelés (OWASP ZAP, Burp Suite)<br>▸ Konfiguráció audit</div>
+    </div>
+    <div class="test-card" style="background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(239,68,68,.15);color:var(--sec);border-color:rgba(239,68,68,.4)">3</div>
+        <div class="tc-name" style="color:var(--sec)">Behatolásteszt (Pentest)</div>
+      </div>
+      <div class="tc-desc">Egy rosszindulatú hacker támadását SZIMULÁLJA. ETIKUS hackerek megpróbálják betörni a rendszert.</div>
+      <div class="tc-ex" style="color:var(--sec)">▸ Belső és külső pentest<br>▸ HackerOne, Bugcrowd platformok<br>▸ Részletes jelentés a feltárt sebezhetőségekről<br>▸ Drága, de a leghatékonyabb</div>
+    </div>
+  `},
+
+  // 5. SECURITY TESZT 4-7
+  {t:3,tags:[3],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,.5)">🔒</div>
+      <div><div class="stitle">Security tesztelés — 7 típus (4-7)</div>
+      <div class="ssub">// Kockázat · Audit · Ethical Hacking · Posture</div></div>
+    </div>
+    <div class="test-card" style="background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(239,68,68,.15);color:var(--sec);border-color:rgba(239,68,68,.4)">4</div>
+        <div class="tc-name" style="color:var(--sec)">Kockázatértékelés</div>
+      </div>
+      <div class="tc-desc">A megfigyelt biztonsági VESZÉLYEK elemzése. Kockázatok kategorizálása.</div>
+      <div class="tc-ex" style="color:var(--sec)">▸ Alacsony / Közepes / Magas kockázat<br>▸ Kockázatcsökkentési ellenőrzések<br>▸ Mitigációs intézkedések javaslata</div>
+    </div>
+    <div class="test-card" style="background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(239,68,68,.15);color:var(--sec);border-color:rgba(239,68,68,.4)">5</div>
+        <div class="tc-name" style="color:var(--sec)">Biztonsági ellenőrzés (Audit)</div>
+      </div>
+      <div class="tc-desc">Online vizsgálat KÓDELLENŐRZÉSEKKEL és az OS biztonsági hibáival együtt.</div>
+      <div class="tc-ex" style="color:var(--sec)">▸ Kód audit (SAST tools)<br>▸ OS frissítettség ellenőrzése<br>▸ Konfiguráció review</div>
+    </div>
+    <div class="test-card" style="background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(239,68,68,.15);color:var(--sec);border-color:rgba(239,68,68,.4)">6</div>
+        <div class="tc-name" style="color:var(--sec)">Etikus hackelés</div>
+      </div>
+      <div class="tc-desc">NEM ugyanaz mint a rosszindulatú hackelés. Cél: szervezeti felépítés biztonsági hiányosságainak azonosítása.</div>
+      <div class="tc-ex" style="color:var(--sec)">▸ Legális, engedélyezett<br>▸ Cél: ŰRJ a támadó képességeit, hogy a HACKER előtt találd meg a rést<br>▸ Részletes report</div>
+    </div>
+    <div class="test-card" style="background:rgba(127,29,29,.15);border-color:rgba(239,68,68,.5)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(239,68,68,.2);color:var(--sec);border-color:rgba(239,68,68,.5)">7</div>
+        <div class="tc-name" style="color:var(--sec)">Testtartás-értékelés (Posture)</div>
+      </div>
+      <div class="tc-desc"><strong>Egyesíti</strong> az 1-6 típusokat: szkennelés + kockázatértékelés + etikus hackelés.</div>
+      <div class="tc-ex" style="color:var(--sec)">▸ A szervezet ÁLTALÁNOS biztonsági helyzetét mutatja<br>▸ Stratégiai szint — vezetőknek<br>▸ Pl. évente egyszer, kompenzáló évek között</div>
+    </div>
+    <div class="ibox"><strong>7 fokozatos megközelítés:</strong> Egyik sem helyettesíti a másikat. Egy érett szervezet MINDET használja — automatikus szkenneléstől a kvartalonkénti pentest-ig és éves posture review-ig.</div>
+  `},
+
+  // 6. REGRESSZIÓS TESZT
+  {t:4,tags:[5],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,.5)">🔁</div>
+      <div><div class="stitle">Regressziós tesztelés</div>
+      <div class="ssub">// "ami régen ment, most is menjen"</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--auto)">Oktató</div>
+        Új feature fejlesztünk. Kész — működik. <strong>De a régi funkciók még működnek-e?</strong> Lehet hogy az új kód MELLÉKHATÁSKÉNT eltört valamit. Ezt nézi a regressziós teszt.
+      </div></div>
+    </div>
+    <div class="test-card" style="background:rgba(168,85,247,.05);border-color:rgba(168,85,247,.35)">
+      <div class="tc-hdr">
+        <div class="tc-num" style="background:rgba(168,85,247,.15);color:var(--auto);border-color:rgba(168,85,247,.4)">REGR</div>
+        <div class="tc-name" style="color:var(--auto)">Regressziós teszt</div>
+      </div>
+      <div class="tc-desc">A korábban működő funkciók újra-tesztelése MINDEN változás után. Ugyanazok a tesztek, ugyanazokat az eredményeket várjuk.</div>
+      <div class="tc-ex" style="color:var(--auto)">▸ Új feature → futtatjuk a teljes régi teszt csomagot<br>▸ Ha valami HIBÁZ → regresszió, eltört valamit a változás<br>▸ AUTOMATIZÁLHATÓ — ezért elérhető a "minőség optimum eltolása"</div>
+    </div>
+    <div class="ibox good"><strong>Optimum eltolás:</strong> Ha valamit többször, ugyanolyan formában kell végrehajtani — érdemes AUTOMATIZÁLNI. Az automatikus regressziós teszt csökkenti a tesztelés költségét, így nagyobb minőséget kapunk UGYANANNYI pénzből.</div>
+  `},
+
+  // 7. AUTOMATIZÁLÁS
+  {t:4,tags:[5],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,.5)">🤖</div>
+      <div><div class="stitle">Tesztautomatizálás</div>
+      <div class="ssub">// 24/7 fut · nem hibázik · gazdaságos</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">🕐</div>
+        <div><strong>24/7 fut</strong>
+        <span>A nap 24 órájában tudnak futni a tesztpiramis különböző szintjein. Éjszaka is dolgozik!</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">✅</div>
+        <div><strong>Nem hibázik</strong>
+        <span>Egy jól megírt teszt program: ugyanarra az inputra MINDIG ugyanazt az eredményt adja (ha a környezet stabil).</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">📊</div>
+        <div><strong>Folyamatosan dokumentálható</strong>
+        <span>A tesztfutás állapota, eredményei automatikusan rögzítve. Hiba esetén HAMAR visszakereshető.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">💰</div>
+        <div><strong>Gazdaságosabb</strong>
+        <span>Hosszú távon olcsóbb mint manuálisan. DE: be kell ruházni egy rendszer kiépítésébe és karbantartásába.</span></div>
+      </div>
+    </div>
+    <div class="ibox warn"><strong>Bevezetés előtt vizsgáld meg:</strong><br>▸ Milyen szoftvert fogunk vele tesztelni?<br>▸ Tesztpiramis melyik szintjén?<br>▸ Hányan fogják használni?<br>▸ Milyen távon szeretnénk használni?<br>▸ Van-e megfelelő támogatottság (külső cég)?<br>▸ Van-e elegendő szakemberünk?</div>
+    <div class="code">
+      <div class="cb-label">// Tipikus automatizált teszt példa (Cypress)</div>
+      <span class="c-fn">describe</span>(<span class="c-str">'Login flow'</span>, () => {<br>
+      &nbsp;&nbsp;<span class="c-fn">it</span>(<span class="c-str">'sikeres bejelentkezés'</span>, () => {<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;cy.<span class="c-fn">visit</span>(<span class="c-str">'/login'</span>);<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;cy.<span class="c-fn">get</span>(<span class="c-str">'#email'</span>).<span class="c-fn">type</span>(<span class="c-str">'user@test.com'</span>);<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;cy.<span class="c-fn">get</span>(<span class="c-str">'#password'</span>).<span class="c-fn">type</span>(<span class="c-str">'Pass123!'</span>);<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;cy.<span class="c-fn">get</span>(<span class="c-str">'button[type=submit]'</span>).<span class="c-fn">click</span>();<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;cy.<span class="c-fn">url</span>().<span class="c-fn">should</span>(<span class="c-str">'include'</span>, <span class="c-str">'/dashboard'</span>);<br>
+      &nbsp;&nbsp;});<br>
+      });
+    </div>
+  `},
+
+  // 8. TESZTLEFEDETTSÉG
+  {t:4,tags:[],render:()=>`
+    <div class="shdr"><div class="sico">📊</div>
+      <div><div class="stitle">Tesztlefedettség (Test Coverage)</div>
+      <div class="ssub">// hány %-ot tesztelünk?</div></div>
+    </div>
+    <div class="cmp">
+      <div class="cmp-card" style="background:rgba(59,130,246,.06);border-color:rgba(59,130,246,.35)">
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--func);font-weight:700;margin-bottom:.3rem">📋 Specifikáció alapú</div>
+        <div style="font-size:.7rem;line-height:1.5;margin-bottom:.25rem">A követelményeket fedjük le tesztekkel.</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--muted);line-height:1.55">
+          ▸ Nehéz meghatározni az ÖSSZES esetszámot<br>
+          ▸ Hozzávetőleges érték<br>
+          ▸ "X user story-ból Y van tesztelve"
+        </div>
+      </div>
+      <div class="cmp-card" style="background:rgba(168,85,247,.06);border-color:rgba(168,85,247,.35)">
+        <div style="font-family:'Inconsolata',monospace;font-size:.62rem;color:var(--auto);font-weight:700;margin-bottom:.3rem">💻 Struktúra alapú</div>
+        <div style="font-size:.7rem;line-height:1.5;margin-bottom:.25rem">A KÓDOT fedjük le tesztekkel.</div>
+        <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--muted);line-height:1.55">
+          ▸ Statement coverage (utasítás)<br>
+          ▸ Branch coverage (döntési ág)<br>
+          ▸ Path coverage (bejárt út)<br>
+          ▸ Egyszerű mérni → 80% standard
+        </div>
+      </div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--auto)">Oktató</div>
+        Vannak iparágak, ahol SZABVÁNY írja elő a tesztlefedettséget. Például az autóipari szoftvereknek (ISO 26262) bizonyos szintet kell elérniük, hogy piacra kerüljenek.
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--func)">
+        <div class="cli-i">📈</div>
+        <div><strong>Tesztlefedettség = minőség indikátor</strong>
+        <span>Magas lefedettség → nagyobb valószínűséggel megbízható kód. De NEM garancia! 100% lefedettség sem jelent hibamentességet.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--warn)">
+        <div class="cli-i">⚖️</div>
+        <div><strong>Iparági követelmények</strong>
+        <span>Autóipar (ISO 26262): MC/DC coverage 100% magas ASIL szinten. Orvosi (IEC 62304): minden bizt. kritikus kódhoz tesztek. Repülő (DO-178C): hasonló.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">🎯</div>
+        <div><strong>80% jó gyakorlat</strong>
+        <span>Általános szoftverben 80% statement coverage jó cél. 95% felett: diminishing returns. Az utolsó 5% nagyon költséges.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 9. TESZTELŐ SCRUMBAN
+  {t:5,tags:[],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,.5)">🎯</div>
+      <div><div class="stitle">Tesztelő a Scrum csapatban</div>
+      <div class="ssub">// szerves része — nem külön osztály</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">🧪</div><div class="bub l"><div class="who" style="color:var(--func)">Tesztelő</div>
+        A Scrum csapatok régi modelljében a tesztelést a fejlesztés UTÁN végeztük — "átadva" a tesztelő osztálynak. Az AGILE-ben más a megközelítés.
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">👨‍🏫</div><div class="bub r2"><div class="who" style="color:var(--good);text-align:right">Oktató</div>
+        Igen — ma a tesztelő SZERVES része a Scrum csapatnak. Már a grooming/refinement fázisban segít.
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">📋</div>
+        <div><strong>Refinement (Grooming) fázis</strong>
+        <span>A tesztelő a tervezésnél is részt vesz. Hasznos info a termék használatáról — már a követelményspecifikációkor megjelenik a tesztelési szemlélet.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">🏃</div>
+        <div><strong>Sprint közben</strong>
+        <span>Folyamatos tesztelés a sprint során. Különböző teszt szinteken biztosítja a minőséget. A fejlesztővel PÁRBAN dolgozik gyakran.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">📦</div>
+        <div><strong>Sprint végi szállítás</strong>
+        <span>A "Definition of Done" tartalmazza a tesztelést — sprint végén potenciálisan szállítható, TESZTELT termék.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--func)">
+        <div class="cli-i">🤝</div>
+        <div><strong>Tesztelő képességei</strong>
+        <span>NEM csak technikai (test framework-ök) — kommunikáció, üzleti megértés, kritikai gondolkodás, türelem. Egy jó tesztelő máshogy gondolkodik mint a fejlesztő.</span></div>
+      </div>
+    </div>
+    <div class="ibox good"><strong>"Shift Left a Scrumban":</strong> Régen a tesztelés a Sprint VÉGE volt. Ma a tesztelő ott van a tervezéskor, a fejlesztés közben, és a Sprint végén. Korai bevonás = kevesebb hiba a Sprint végén.</div>
+  `},
+
+  // 10. AI A TESZTELÉSBEN
+  {t:5,tags:[5],render:()=>`
+    <div class="shdr"><div class="sico">🤖</div>
+      <div><div class="stitle">AI a tesztelésben</div>
+      <div class="ssub">// ChatGPT, Copilot, és más AI-eszközök</div></div>
+    </div>
+    <div class="ai-box">
+      <div style="font-family:'Inconsolata',monospace;font-size:.6rem;color:#a855f7;font-weight:700;margin-bottom:.3rem">🤖 ÁLTALÁNOS CÉLÚ AI TÁMOGATÁSA</div>
+      <div style="font-size:.72rem;line-height:1.55">Az AI-ok elterjedése a tesztelési tevékenységet is támogatja. Képes:</div>
+      <div style="font-family:'Inconsolata',monospace;font-size:.65rem;color:var(--muted);line-height:1.7;margin-top:.35rem">
+        ▸ <strong style="color:var(--text)">Teszt esetek generálására</strong> — adott funkcionalitásra<br>
+        ▸ <strong style="color:var(--text)">Automatizált teszt kódjának megírására</strong><br>
+        ▸ <strong style="color:var(--text)">Adott tesztfuttató környezetben működő kódot</strong> (Selenium, Cypress, Playwright)<br>
+        ▸ <strong style="color:var(--text)">Edge case-ek azonosítására</strong> — amire nem gondoltunk
+      </div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">🤖</div><div class="bub l"><div class="who" style="color:#a855f7">ChatGPT</div>
+        "Generálj 10 teszt esetet egy webshop kosár funkciójához, Cypress kóddal..."
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">⚠️</div><div class="bub r2"><div class="who" style="color:var(--warn);text-align:right">Fontos!</div>
+        AZ AI EREDMÉNYÉT MINDIG ELLENŐRIZNI KELL! A megoldás csak annyira jó, amennyire a problémakörnyezet jól körülhatárolt és az infók a rendelkezésre állnak.
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">✅</div>
+        <div><strong>Hol jó az AI?</strong>
+        <span>Boilerplate kód, repetitív tesztek, edge case ötletek, dokumentáció írás. Gyorsít.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--warn)">
+        <div class="cli-i">⚠️</div>
+        <div><strong>Hol kell óvatosság?</strong>
+        <span>Üzleti logika tesztelése (csak akkor jó, ha pontosan tudja), security tesztek (érzékeny terület), komplex függőségek.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">❌</div>
+        <div><strong>Hol NEM helyettesít embert?</strong>
+        <span>Domain szakértelem, kreatív gondolkodás, üzleti döntések, etikai megfontolások. Az AI eszköz — a tesztelő SZAKEMBER.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 11. ÖSSZEFOGLALÁS
+  {t:6,tags:[0,1,2,3,4,5],render:()=>`
+    <div class="shdr"><div class="sico">∑</div>
+      <div><div class="stitle">Összefoglalás — Teszt típusok</div>
+      <div class="ssub">// minden tesztelési terület egyben</div></div>
+    </div>
+    <div class="sumgrid">
+      <div class="sbox" style="border-top:2px solid var(--func)"><span class="ico">⚙️</span><div class="val">Funkcionális</div><div class="lbl">MIT csinál</div></div>
+      <div class="sbox" style="border-top:2px solid var(--perf)"><span class="ico">⚡</span><div class="val">NFR</div><div class="lbl">HOGYAN csinálja</div></div>
+      <div class="sbox" style="border-top:2px solid var(--sec)"><span class="ico">🔒</span><div class="val">7 Security</div><div class="lbl">Vuln/Scan/Pentest...</div></div>
+      <div class="sbox" style="border-top:2px solid var(--auto)"><span class="ico">🤖</span><div class="val">Automatizálás</div><div class="lbl">Regresszió 24/7</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--func)">
+        <div class="cli-i">⚙️</div>
+        <div><strong>Funkcionális típusok</strong>
+        <span>Happy path · Edge case · Negative path · Boundary value. Mind a 4 kell egy érett teszt csomagba.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--perf)">
+        <div class="cli-i">⚡</div>
+        <div><strong>NFR fajtái</strong>
+        <span>Teljesítmény (FPS, válaszidő) · Terhelés (sok user) · Stressz (töréspont) · Megbízhatóság (MTBF) · Kompatibilitás (más rendszerekkel).</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--sec)">
+        <div class="cli-i">🔒</div>
+        <div><strong>Security 7 típus</strong>
+        <span>1) Vulnerability scan · 2) Security scan · 3) Pentest · 4) Risk assessment · 5) Audit · 6) Ethical hacking · 7) Posture assessment.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--auto)">
+        <div class="cli-i">🤖</div>
+        <div><strong>Regressziós + Automatizálás</strong>
+        <span>"Ami régen ment, ma is menjen." Automatizálás → 24/7 fut, nem hibázik, dokumentálva, gazdaságos. Eltolja a költség-optimum pontot.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">📊</div>
+        <div><strong>Tesztlefedettség</strong>
+        <span>Specifikáció alapú (követelmények) vs Struktúra alapú (kód). 80% standard. Autóipar: szabvány írja elő (ISO 26262).</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--rel)">
+        <div class="cli-i">🎯</div>
+        <div><strong>Tesztelő a Scrumban</strong>
+        <span>Refinement-től Sprint végéig — szerves rész. AI eszköz, NEM helyettesít. Az embert mindig ellenőrizni kell.</span></div>
+      </div>
+    </div>
+  `},
+];
+
+function renderBoard(tIdx,tagIdxs){
+  document.getElementById('steps').innerHTML=TOPICS.map((t,i)=>{
+    const on=i===tIdx,done=i<tIdx;
+    const c=on?t.color:done?t.color:'var(--muted)';
+    return `<div class="st ${on?'active':done?'done':''}">
+      <div class="sd" style="border-color:${c};color:${c}">${t.icon}</div>
+      <div class="sl" style="color:${on?t.color:'var(--muted)'}">${t.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('tagRow').innerHTML=TAGS.map((tg,i)=>{
+    const on=tagIdxs.includes(i);
+    return `<div class="tg ${on?'on':''}" style="border-color:${tg.color};color:${tg.color}">${tg.label}</div>`;
+  }).join('');
+}
+
+let cur=0;
+function render(){
+  const s=STEPS[cur];
+  renderBoard(s.t,s.tags);
+  const el=document.getElementById('content');
+  el.innerHTML=s.render();
+  setTimeout(()=>{el.querySelectorAll('.msg:not(.show)').forEach((m,i)=>setTimeout(()=>m.classList.add('show'),i*160));},60);
+  document.getElementById('bprev').disabled=cur===0;
+  document.getElementById('bnext').textContent=cur===STEPS.length-1?'↺ Újra':'Következő →';
+  document.getElementById('ctr').textContent=`${cur+1} / ${STEPS.length}`;
+}
+function next(){cur=cur===STEPS.length-1?0:cur+1;render();}
+function prev(){if(cur>0){cur--;render();}}
+render();
+</script>
+</body>
+</html>

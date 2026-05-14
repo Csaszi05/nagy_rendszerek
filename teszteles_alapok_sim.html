@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tesztelés Alapok — Ipari Gyakorlat</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inconsolata:wght@400;500;600&display=swap');
+:root {
+  --bg:#0a0f1e; --surf:#0f1628; --card:#141d35; --brd:#1e2d50; --brd2:#263a68;
+  --text:#d8e4ff; --muted:#4a5f8a;
+  --test:#a855f7; --bad:#ef4444; --warn:#f59e0b; --good:#10b981;
+  --unit:#3b82f6; --integ:#a855f7; --sys:#f59e0b; --acc:#ef4444;
+  --acc2:#a855f7;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(168,85,247,.06) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(239,68,68,.04) 0%,transparent 50%);pointer-events:none;z-index:0;}
+header{position:relative;z-index:1;padding:1.2rem 1.3rem .85rem;border-bottom:1px solid var(--brd2);background:linear-gradient(180deg,rgba(168,85,247,.06) 0%,transparent 100%);}
+.hdr-row{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;}
+h1{font-size:1.4rem;font-weight:800;line-height:1.07;letter-spacing:-.02em;}
+h1 span{color:var(--test);}h1 em{font-style:normal;color:var(--bad);}
+.tag{font-family:'Inconsolata',monospace;font-size:.56rem;padding:.25rem .55rem;border-radius:4px;background:rgba(168,85,247,.12);color:var(--test);border:1px solid rgba(168,85,247,.28);white-space:nowrap;margin-top:.2rem;}
+header p{font-size:.7rem;color:var(--muted);margin-top:.25rem;font-family:'Inconsolata',monospace;}
+.topbar{position:relative;z-index:1;background:var(--surf);border-bottom:1px solid var(--brd2);padding:.75rem 1.3rem .65rem;}
+.tb-t{font-family:'Inconsolata',monospace;font-size:.54rem;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin-bottom:.5rem;}
+.steps{display:flex;align-items:center;gap:0;margin-bottom:.45rem;}
+.st{flex:1;display:flex;flex-direction:column;align-items:center;gap:.18rem;position:relative;}
+.st:not(:last-child)::after{content:'';position:absolute;right:0;top:12px;width:50%;height:2px;background:var(--brd);z-index:0;}
+.st:not(:first-child)::before{content:'';position:absolute;left:0;top:12px;width:50%;height:2px;background:var(--brd);z-index:0;}
+.sd{width:24px;height:24px;border-radius:50%;border:2px solid var(--brd2);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:.6rem;z-index:1;transition:all .35s;position:relative;}
+.sl{font-family:'Inconsolata',monospace;font-size:.44rem;color:var(--muted);text-align:center;line-height:1.2;}
+.st.active .sd{transform:scale(1.25);box-shadow:0 0 10px currentColor;}
+.st.done .sd{opacity:.55;}
+.st.active .sl{font-weight:700;}
+.tag-row{display:flex;gap:4px;flex-wrap:wrap;}
+.tg{font-family:'Inconsolata',monospace;font-size:.53rem;font-weight:600;padding:.14rem .4rem;border-radius:3px;border:1px solid;opacity:.25;transition:opacity .3s;}
+.tg.on{opacity:1;}
+.content{position:relative;z-index:1;padding:.9rem 1.3rem;min-height:275px;}
+.shdr{display:flex;align-items:center;gap:.6rem;margin-bottom:.85rem;}
+.sico{width:36px;height:36px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;border:1.5px solid var(--brd2);background:var(--card);}
+.stitle{font-size:.95rem;font-weight:800;letter-spacing:-.02em;}
+.ssub{font-family:'Inconsolata',monospace;font-size:.56rem;color:var(--muted);margin-top:.03rem;}
+.chat{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.7rem;}
+.msg{display:flex;gap:.4rem;align-items:flex-start;opacity:0;transform:translateY(6px);transition:opacity .3s,transform .3s;}
+.msg.show{opacity:1;transform:translateY(0);}
+.msg.r{flex-direction:row-reverse;}
+.av{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;border:1px solid var(--brd2);background:var(--card);}
+.bub{max-width:82%;padding:.48rem .68rem;border-radius:9px;font-size:.77rem;line-height:1.55;border:1px solid var(--brd2);background:var(--card);}
+.bub.l{border-bottom-left-radius:2px;}.bub.r2{border-bottom-right-radius:2px;text-align:right;}
+.who{font-family:'Inconsolata',monospace;font-size:.55rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.1rem;}
+.ibox{border-radius:8px;padding:.55rem .75rem;font-size:.74rem;line-height:1.55;margin:.45rem 0;border:1px solid var(--brd2);background:var(--card);border-left:3px solid var(--test);}
+.ibox strong{font-weight:700;}
+.ibox.bad{border-left-color:var(--bad);}.ibox.bad strong{color:var(--bad);}
+.ibox.good{border-left-color:var(--good);}.ibox.good strong{color:var(--good);}
+.ibox.warn{border-left-color:var(--warn);}.ibox.warn strong{color:var(--warn);}
+.cklist{display:flex;flex-direction:column;gap:.35rem;margin:.45rem 0;}
+.cli{display:flex;align-items:flex-start;gap:.5rem;padding:.42rem .65rem;background:var(--card);border:1px solid var(--brd2);border-radius:8px;font-size:.75rem;line-height:1.45;}
+.cli-i{flex-shrink:0;font-size:.88rem;}
+.cli strong{display:block;font-weight:700;font-size:.76rem;margin-bottom:.03rem;}
+.cli span{color:var(--muted);font-size:.68rem;font-family:'Inconsolata',monospace;}
+
+/* INCIDENT CARD */
+.incident{border-radius:11px;padding:.75rem .85rem;margin:.4rem 0;border:1.5px solid;}
+.inc-hdr{display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;}
+.inc-ico{font-size:1.6rem;}
+.inc-info{flex:1;}
+.inc-name{font-size:.88rem;font-weight:800;line-height:1.2;}
+.inc-date{font-family:'Inconsolata',monospace;font-size:.55rem;color:var(--muted);margin-top:.05rem;}
+.inc-cost{font-family:'Inconsolata',monospace;font-size:.62rem;font-weight:800;padding:.18rem .45rem;border-radius:4px;background:rgba(239,68,68,.15);color:var(--bad);border:1px solid rgba(239,68,68,.35);flex-shrink:0;}
+.inc-desc{font-size:.72rem;line-height:1.55;color:rgba(216,228,255,.85);}
+.inc-lesson{font-size:.66rem;color:var(--warn);font-family:'Inconsolata',monospace;margin-top:.3rem;padding-top:.3rem;border-top:1px solid var(--brd);}
+
+/* PIRAMIS */
+.pyramid{display:flex;flex-direction:column;align-items:center;gap:0;margin:.5rem 0;background:var(--card);border:1.5px solid var(--brd2);border-radius:11px;padding:1rem .5rem;}
+.py-title{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem;text-align:center;}
+.py-layer{padding:.4rem 1rem;border:1.5px solid;border-bottom-width:0;text-align:center;font-family:'Inconsolata',monospace;font-weight:700;display:flex;align-items:center;justify-content:center;gap:.4rem;}
+.py-layer:last-of-type{border-bottom-width:1.5px;border-radius:0 0 8px 8px;}
+.py-layer:first-of-type{border-radius:8px 8px 0 0;}
+.py-label{font-size:.68rem;}
+.py-desc{font-size:.55rem;color:var(--muted);font-weight:400;}
+
+/* V&V */
+.vv-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+.vv-card{padding:.7rem .8rem;border-radius:10px;border:1.5px solid;}
+.vv-letter{font-family:'Inconsolata',monospace;font-size:1.5rem;font-weight:800;line-height:1;margin-bottom:.2rem;}
+.vv-name{font-size:.85rem;font-weight:800;margin-bottom:.2rem;}
+.vv-q{font-style:italic;font-size:.72rem;color:rgba(216,228,255,.85);margin-bottom:.2rem;}
+.vv-ex{font-family:'Inconsolata',monospace;font-size:.6rem;color:var(--muted);line-height:1.5;}
+
+/* SHIFT LEFT VISUAL */
+.shift-vis{background:var(--card);border:1.5px solid var(--brd2);border-radius:10px;padding:.75rem;margin:.45rem 0;}
+.sv-title{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem;text-align:center;}
+.cost-bar{display:flex;align-items:flex-end;height:80px;gap:5px;margin:.3rem 0;}
+.cost-item{flex:1;display:flex;flex-direction:column;align-items:center;}
+.cost-block{width:100%;border-radius:4px 4px 0 0;border:1px solid;}
+.cost-label{font-family:'Inconsolata',monospace;font-size:.5rem;text-align:center;line-height:1.3;margin-top:.15rem;}
+
+/* OPTIMUM */
+.optim-vis{background:var(--card);border:1.5px solid var(--brd2);border-radius:10px;padding:.75rem;margin:.45rem 0;}
+.ov-title{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.5rem;text-align:center;}
+.ov-graph{display:flex;align-items:flex-end;height:90px;gap:3px;justify-content:space-between;padding:0 .3rem;border-bottom:1px solid var(--brd2);border-left:1px solid var(--brd2);position:relative;}
+.ov-col{flex:1;height:100%;position:relative;display:flex;align-items:flex-end;justify-content:center;}
+.ov-leg{display:flex;justify-content:center;gap:1rem;margin-top:.4rem;font-family:'Inconsolata',monospace;font-size:.58rem;}
+.ov-leg-item{display:flex;align-items:center;gap:.3rem;color:var(--muted);}
+.ov-leg-dot{width:8px;height:8px;border-radius:50%;}
+
+/* STATE GRAPH */
+.state-graph{background:var(--card);border:1.5px solid var(--brd2);border-radius:10px;padding:.75rem;margin:.45rem 0;font-family:'Inconsolata',monospace;font-size:.7rem;line-height:1.85;}
+.sg-title{font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;}
+.sg-flow{display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;font-size:.62rem;margin:.2rem 0;}
+.sg-state{padding:.2rem .45rem;border:1px solid;border-radius:4px;font-weight:700;}
+.sg-arr{color:var(--muted);}
+
+/* SUMGRID */
+.sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.45rem 0;}
+.sbox{background:var(--card);border:1px solid var(--brd2);border-radius:8px;padding:.6rem;text-align:center;}
+.sbox .ico{font-size:1.2rem;display:block;margin-bottom:.15rem;}
+.sbox .val{font-size:.88rem;font-weight:800;}
+.sbox .lbl{font-family:'Inconsolata',monospace;font-size:.52rem;color:var(--muted);margin-top:.04rem;}
+
+.nav{position:sticky;bottom:0;z-index:10;background:var(--bg);border-top:1px solid var(--brd2);padding:.7rem 1.3rem;display:flex;align-items:center;gap:.5rem;}
+.btn{font-family:'Inconsolata',monospace;font-size:.63rem;font-weight:600;padding:.52rem 1rem;border-radius:7px;cursor:pointer;transition:all .18s;text-transform:uppercase;letter-spacing:.04em;}
+.btnp{background:transparent;color:var(--muted);border:1px solid var(--brd2);}
+.btnp:hover{color:var(--text);}
+.btnp:disabled{opacity:.2;cursor:not-allowed;}
+.btnn{flex:1;background:rgba(168,85,247,.12);color:var(--test);border:1px solid rgba(168,85,247,.3);}
+.btnn:hover{background:rgba(168,85,247,.22);}
+.ctr{font-family:'Inconsolata',monospace;font-size:.57rem;color:var(--muted);white-space:nowrap;}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-row">
+    <h1><span>Tesztelés</span><br>Alapok<br><em>Ipari Gyakorlat</em></h1>
+    <div class="tag">V&amp;V · Pyramid · Shift Left</div>
+  </div>
+  <p>// Miért kell tesztelni? · Valós esetek · Tesztpiramis · Shift Left · Alapelvek</p>
+</header>
+<div class="topbar">
+  <div class="tb-t">// témakörök</div>
+  <div class="steps" id="steps"></div>
+  <div class="tag-row" id="tagRow"></div>
+</div>
+<div class="content" id="content"></div>
+<div class="nav">
+  <button class="btn btnp" id="bprev" onclick="prev()" disabled>← Vissza</button>
+  <span class="ctr" id="ctr">1 / 13</span>
+  <button class="btn btnn" id="bnext" onclick="next()">Következő →</button>
+</div>
+<script>
+const TOPICS=[
+  {label:'Miért\ntesztelünk?',color:'var(--test)',icon:'🛡️'},
+  {label:'Tech\nesetek',color:'var(--warn)',icon:'💸'},
+  {label:'Életet\nérint',color:'var(--bad)',icon:'☠️'},
+  {label:'V&V\nfogalmak',color:'var(--unit)',icon:'✅'},
+  {label:'Teszt\npiramis',color:'var(--integ)',icon:'△'},
+  {label:'Shift\nLeft',color:'var(--good)',icon:'⬅️'},
+  {label:'7\nalapelv',color:'var(--test)',icon:'📐'},
+  {label:'Össze.',color:'var(--test)',icon:'∑'},
+];
+const TAGS=[
+  {label:'Verifikáció',color:'var(--unit)'},
+  {label:'Validáció',color:'var(--good)'},
+  {label:'Unit',color:'var(--unit)'},
+  {label:'Integration',color:'var(--integ)'},
+  {label:'System',color:'var(--sys)'},
+  {label:'Acceptance',color:'var(--acc)'},
+];
+
+const STEPS=[
+  // 0. MIÉRT TESZTELÜNK?
+  {t:0,tags:[],render:()=>`
+    <div class="shdr"><div class="sico">🛡️</div>
+      <div><div class="stitle">Miért tesztelünk?</div>
+      <div class="ssub">// preventív tevékenység — megelőzés jelleggel</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--test)">Oktató</div>
+        Tekintsd egy modern autót: legalább <strong>8 légzsák</strong>. Ezek pénzt jelentenek — emelik az autó árát. Sokszor SOHA nem nyílnak ki. Mégis bennük van. Miért?
+      </div></div>
+      <div class="msg show r" style="transition-delay:.15s"><div class="av">🙋</div><div class="bub r2"><div class="who" style="color:var(--good);text-align:right">Tanuló</div>
+        Mert ha kell — életet menthet!
+      </div></div>
+      <div class="msg show" style="transition-delay:.3s"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--test)">Oktató</div>
+        Pontosan! A tesztelés ugyanilyen. Komoly költségei vannak, de elkerüli a nagyobb katasztrófákat. A kisebb költségvetésű cégek lemondanak róla — és súlyos károkat szenvednek el.
+      </div></div>
+    </div>
+    <div class="ibox warn"><strong>Kettős hatás:</strong> A tesztelés egyszerre megelőzi (1) a <em>felhasználónak okozott kárt</em> (pl. Tesla Autopilot lefagyás) és (2) a <em>cégnek okozott kárt</em> (Boeing katasztrófák után típus letiltása világszerte = milliárdos veszteség).</div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">💰</div>
+        <div><strong>Költség vs Védelem trade-off</strong>
+        <span>Tesztelni drága — de nem tesztelni MÉG drágább. A kérdés: mekkora védelmet engedhetünk meg magunknak?</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">⚠️</div>
+        <div><strong>"Csak korlátozott formában"</strong>
+        <span>Sok startup spórol a tesztelésen. Aztán: production-ban derül ki, hogy nem működik. A felhasználók elmennek. A cég bezár.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 1. TECH ESETEK
+  {t:1,tags:[],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(245,158,11,.5)">💸</div>
+      <div><div class="stitle">Valós tech katasztrófák</div>
+      <div class="ssub">// rakéta · közösségi média · kiberbiztonság</div></div>
+    </div>
+    <div class="incident" style="background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.35)">
+      <div class="inc-hdr">
+        <div class="inc-ico">🚀</div>
+        <div class="inc-info">
+          <div class="inc-name" style="color:var(--warn)">SpaceX Starship robbanások</div>
+          <div class="inc-date">2020-2024 · Folyamatos tesztelés</div>
+        </div>
+        <div class="inc-cost">$$$ milliók</div>
+      </div>
+      <div class="inc-desc">Több alkalommal tesztelték a rakéta visszatérését. Sok teszt robbanással végződött — szó szerint látható, hogyan válnak dollármilliók hamuvá. DE: így biztosították, hogy jövőbeli emberes missziókon SENKIT ne érjen baj.</div>
+      <div class="inc-lesson">📚 Tanulság: Kontrollált teszt környezetben "elveszíteni" pénzt OLCSÓBB, mint valódi misszióban embereket.</div>
+    </div>
+    <div class="incident" style="background:rgba(59,130,246,.05);border-color:rgba(59,130,246,.35)">
+      <div class="inc-hdr">
+        <div class="inc-ico">📱</div>
+        <div class="inc-info">
+          <div class="inc-name" style="color:var(--unit)">Facebook globális leállás</div>
+          <div class="inc-date">2024. március 5 · Meta</div>
+        </div>
+        <div class="inc-cost">milliók</div>
+      </div>
+      <div class="inc-desc">Globális Facebook szolgáltatás leállt. A Meta a mai napig nem nyilatkozott a hibáról. Több millió felhasználó nem fért hozzá — folyamatos frissítések egy hibája gyorsan eljutott mindenkihez.</div>
+      <div class="inc-lesson">📚 Tanulság: A "rolling update" gyorsan terjed — egy hibás teszt nélküli frissítés MILLIÓKAT érinthet pár perc alatt.</div>
+    </div>
+    <div class="incident" style="background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.35)">
+      <div class="inc-hdr">
+        <div class="inc-ico">💀</div>
+        <div class="inc-info">
+          <div class="inc-name" style="color:var(--bad)">CrowdStrike — Kék halál világszerte</div>
+          <div class="inc-date">2024. július · Kiberbiztonsági szoftver</div>
+        </div>
+        <div class="inc-cost">milliárdok</div>
+      </div>
+      <div class="inc-desc">A világ egyik legnagyobb kiberbiztonsági cégének <strong>hibás frissítése</strong> világméretű leállásokkal járt. Bankok, repterek, kórházak, biztosítók, vasúti rendszerek, futballklubok IT rendszerei ELESTEK. Kék halál képernyő tömegesen.</div>
+      <div class="inc-lesson">📚 Tanulság: CrowdStrike azóta MEGVÁLTOZTATTA a frissítési stratégiát — az ügyfelekre bízzák, NEM automatikusan terjednek.</div>
+    </div>
+  `},
+
+  // 2. ÉLETET ÉRINT
+  {t:2,tags:[],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,.5)">☠️</div>
+      <div><div class="stitle">Életet érintő esetek</div>
+      <div class="ssub">// Volkswagen · Tesla · Boeing</div></div>
+    </div>
+    <div class="incident" style="background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.35)">
+      <div class="inc-hdr">
+        <div class="inc-ico">🚗</div>
+        <div class="inc-info">
+          <div class="inc-name" style="color:var(--warn)">Volkswagen vészhívó gomb</div>
+          <div class="inc-date">2020 tavasza · Golf, Skoda Octavia</div>
+        </div>
+        <div class="inc-cost">termelés-leállás</div>
+      </div>
+      <div class="inc-desc">Szoftveres hibát észleltek a <strong>vészhívó gombok</strong> működtetésében. A teljes gyártósort le KELLETT állítani — emberéleteket veszélyeztető funkcionalitás. Egy ilyen eset hatalmas anyagi VESZTESÉG egy autógyártónak.</div>
+      <div class="inc-lesson">📚 Tanulság: Biztonsági kritikus szoftvert többször tesztelni mint kétszer. A vészhívó gomb NEM lehet "néha működő".</div>
+    </div>
+    <div class="incident" style="background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.35)">
+      <div class="inc-hdr">
+        <div class="inc-ico">⚡</div>
+        <div class="inc-info">
+          <div class="inc-name" style="color:var(--bad)">Tesla 3 Autopilot lefagyás</div>
+          <div class="inc-date">2022 tavasza · 130 km/h</div>
+        </div>
+        <div class="inc-cost">életveszély</div>
+      </div>
+      <div class="inc-desc">A Tesla 3 szoftverrendszere 130 km/h-án az autópályán <strong>LEFAGYOTT</strong>. Az autó elektronikai eszközei nem reagáltak. Autopilot módban volt → a gázpedál vezérlést se lehetett visszavenni. Szerencsére a fékrendszer FÜGGETLEN rendszeren működött — sikerült megállítani.</div>
+      <div class="inc-lesson">📚 Tanulság: Kritikus rendszereket REDUNDÁNS megoldásokkal kell ellátni. Fékrendszer független attól, hogy az autopilot lefagyott-e.</div>
+    </div>
+    <div class="incident" style="background:rgba(127,29,29,.15);border-color:rgba(239,68,68,.5)">
+      <div class="inc-hdr">
+        <div class="inc-ico">✈️</div>
+        <div class="inc-info">
+          <div class="inc-name" style="color:var(--bad)">Boeing 737 MAX katasztrófák</div>
+          <div class="inc-date">2018-2019 · 346 halálos áldozat</div>
+        </div>
+        <div class="inc-cost">346 élet</div>
+      </div>
+      <div class="inc-desc">Az MCAS rendszer <strong>EGYETLEN állásszög-szenzor</strong> adata alapján döntött az átesésről. Az etióp gépen a szenzor 74°-ot mért (abszurd!) — az MCAS automatikusan trimmelni kezdte a gép orrát lefelé. A pilóták nem ismerték a rendszert, nem tudták kiiktatni. <strong>Redundancia HIÁNYA</strong> okozta a halálesetet.</div>
+      <div class="inc-lesson">📚 Tanulság: Repülőiparban TÖBBSZÖRÖS redundancia kötelező. Pilóta oktatás kötelező. MCAS-szel pont az ELLENKEZŐ történt — épp ezért buktak a Boeing-nek óriásit.</div>
+    </div>
+    <div class="ibox bad"><strong>A nyomás veszélyei:</strong> A Boeing-en NAGY volt a nyomás a légitársaságok felől — ne legyen átképzés. Ez az üzleti nyomás vezetett az automatikus rendszer bevezetéséhez, amit a pilóták sok esetben nem is ismertek. <strong>Üzleti nyomás vs Biztonság — mindig a biztonság nyer kellene.</strong></div>
+  `},
+
+  // 3. STUXNET
+  {t:2,tags:[],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(239,68,68,.5)">☢️</div>
+      <div><div class="stitle">Stuxnet — a tesztelt szabotázs</div>
+      <div class="ssub">// 2010 · iráni urándúsítók</div></div>
+    </div>
+    <div class="incident" style="background:rgba(127,29,29,.15);border-color:rgba(239,68,68,.5)">
+      <div class="inc-hdr">
+        <div class="inc-ico">☢️</div>
+        <div class="inc-info">
+          <div class="inc-name" style="color:var(--bad)">Stuxnet vírus — iráni atomprogram</div>
+          <div class="inc-date">2009-2010 · Symantec felfedezte</div>
+        </div>
+        <div class="inc-cost">cyber-fegyver</div>
+      </div>
+      <div class="inc-desc">100 ezer rendszert megfertőzött, de csak akkor aktivált, ha legalább <strong>33 db iráni Fararo Paya vagy finn Vacon frekvenciaváltót</strong> talált — pont a urándúsító centrifugák motorvezérléséhez használtak. Átállította a forgási sebességet, lerontva az urán minőségét. Natanzban a centrifugák száma 4700-ról 3900-ra csökkent.</div>
+      <div class="inc-lesson">📚 Tanulság: "Anyagi erőforrásokban bővelkedő nemzetállam" által megbízott programozók. Cél: precíz, célzott szabotázs, ami HOSSZÚ ideig REJTŐZIK. Ez maga is komoly TESZTELÉST igényelt — a támadó oldalon!</div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">🔬</div><div class="bub l"><div class="who" style="color:var(--bad)">Symantec kutatók</div>
+        Hogyan tudott egy ilyen pontos, célzott szabotázs ennyi rejtve maradni 2 évig? A támadók nyilván EXTRÉM mértékben tesztelték — anélkül nem működött volna.
+      </div></div>
+    </div>
+    <div class="ibox warn"><strong>Kettős tanulság:</strong> (1) A védekező oldalon a tesztelés HIÁNYA okozza a sebezhetőséget. (2) A TÁMADÓ oldalon a TESZTELÉS LÉTE okozza a sikeres támadást. Mindkét oldalon: aki nem tesztel — veszít.</div>
+  `},
+
+  // 4. V&V
+  {t:3,tags:[0,1],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(59,130,246,.5)">✅</div>
+      <div><div class="stitle">Tesztelés = Verifikáció + Validáció</div>
+      <div class="ssub">// két különböző kérdés!</div></div>
+    </div>
+    <div class="vv-grid">
+      <div class="vv-card" style="background:rgba(59,130,246,.06);border-color:rgba(59,130,246,.35)">
+        <div class="vv-letter" style="color:var(--unit)">V</div>
+        <div class="vv-name" style="color:var(--unit)">Verifikáció</div>
+        <div class="vv-q">"JÓL építettük fel a rendszert?"</div>
+        <div class="vv-ex">▸ Megfelel a specifikációnak?<br>▸ A kódolás a tervezett módon történt?<br>▸ Code review, unit tesztek<br>▸ <em>"Are we building the thing right?"</em></div>
+      </div>
+      <div class="vv-card" style="background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.35)">
+        <div class="vv-letter" style="color:var(--good)">V</div>
+        <div class="vv-name" style="color:var(--good)">Validáció</div>
+        <div class="vv-q">"JÓ rendszert építettük fel?"</div>
+        <div class="vv-ex">▸ A felhasználó IGÉNYÉT teljesíti?<br>▸ A spec maga is helyes volt?<br>▸ Acceptance teszt, UAT<br>▸ <em>"Are we building the right thing?"</em></div>
+      </div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--test)">Oktató</div>
+        Egy klasszikus eset: a spec azt mondja "kék gomb a felhasználói felületen". A fejlesztő megírja → KÉK gomb. Verifikáció: OK. <br>De a felhasználó azt akarta, hogy ZÖLD gomb legyen — csak a PO rosszul írta le. Validáció: FAIL.
+      </div></div>
+    </div>
+    <div class="ibox"><strong>Mindkettő KELL:</strong> Sok cég csak verifikál — "spec szerint működik". De ha a spec rossz volt, hiába a tökéletes implementáció. A VALÓDI ügyfélelégedettség validációból jön.</div>
+  `},
+
+  // 5. TESZTPIRAMIS
+  {t:4,tags:[2,3,4,5],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(168,85,247,.5)">△</div>
+      <div><div class="stitle">Tesztpiramis — 4 szint</div>
+      <div class="ssub">// minél lentebb, annál több teszt</div></div>
+    </div>
+    <div class="pyramid">
+      <div class="py-title">// Tesztpiramis — végrehajtott tesztek száma</div>
+      <div class="py-layer" style="background:rgba(239,68,68,.1);color:var(--acc);border-color:rgba(239,68,68,.4);width:35%">
+        <span class="py-label">👥 Átvételi (UAT)</span>
+      </div>
+      <div class="py-layer" style="background:rgba(245,158,11,.1);color:var(--sys);border-color:rgba(245,158,11,.4);width:50%">
+        <span class="py-label">🔍 Rendszer (fekete doboz)</span>
+      </div>
+      <div class="py-layer" style="background:rgba(168,85,247,.1);color:var(--integ);border-color:rgba(168,85,247,.4);width:70%">
+        <span class="py-label">🔗 Integrációs</span>
+      </div>
+      <div class="py-layer" style="background:rgba(59,130,246,.1);color:var(--unit);border-color:rgba(59,130,246,.4);width:95%">
+        <span class="py-label">🧪 Unit (fehér doboz) — sok!</span>
+      </div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--unit)">
+        <div class="cli-i">🧪</div>
+        <div><strong>Unit teszt — fehér dobozos</strong>
+        <span>A rendszer önálló részeit teszteli a forráskód ISMERETÉBEN. Pl. egy függvény különböző inputokra. JUnit, pytest, Jest. Gyors, sok.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--integ)">
+        <div class="cli-i">🔗</div>
+        <div><strong>Integrációs teszt</strong>
+        <span>Két vagy több komponens EGYÜTTMŰKÖDÉSI tesztje az interface-eken keresztül. Pl. backend API + adatbázis együtt.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--sys)">
+        <div class="cli-i">🔍</div>
+        <div><strong>Rendszer teszt — fekete dobozos</strong>
+        <span>A KÉSZ szoftverterméket teszteli, hogy megfelel-e a követelmény és funkcionális specifikációnak. Selenium, Playwright. Csak a viselkedést nézi.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--acc)">
+        <div class="cli-i">👥</div>
+        <div><strong>Átvételi teszt (UAT)</strong>
+        <span>Az egész rendszert teszteli ÜZLETI szemmel, ezt már a VÉGFELHASZNÁLÓK végzik. Beta program, pilot tesztelés.</span></div>
+      </div>
+    </div>
+    <div class="ibox warn"><strong>Ne fordítsd fejre a piramist!</strong> Ha a tesztpiramisod fejtetőre állt (sok manuális UAT, kevés unit teszt) — a TESZTSTRATÉGIA hibás. Korai (alsó) tesztek olcsóbbak, gyorsabbak, megbízhatóbbak.</div>
+  `},
+
+  // 6. SHIFT LEFT
+  {t:5,tags:[],render:()=>`
+    <div class="shdr"><div class="sico" style="border-color:rgba(16,185,129,.5)">⬅️</div>
+      <div><div class="stitle">Shift Left tesztelés</div>
+      <div class="ssub">// minél korábban, annál olcsóbb a javítás</div></div>
+    </div>
+    <div class="shift-vis">
+      <div class="sv-title">// Hibajavítás relatív költsége (fázisonként)</div>
+      <div class="cost-bar">
+        <div class="cost-item">
+          <div class="cost-block" style="height:8%;background:rgba(16,185,129,.4);border-color:rgba(16,185,129,.6)"></div>
+          <div class="cost-label" style="color:var(--good)">Követelmény<br><strong>1×</strong></div>
+        </div>
+        <div class="cost-item">
+          <div class="cost-block" style="height:18%;background:rgba(34,211,238,.4);border-color:rgba(34,211,238,.6)"></div>
+          <div class="cost-label" style="color:#22d3ee">Tervezés<br><strong>2×</strong></div>
+        </div>
+        <div class="cost-item">
+          <div class="cost-block" style="height:30%;background:rgba(59,130,246,.4);border-color:rgba(59,130,246,.6)"></div>
+          <div class="cost-label" style="color:var(--unit)">Fejlesztés<br><strong>10×</strong></div>
+        </div>
+        <div class="cost-item">
+          <div class="cost-block" style="height:55%;background:rgba(245,158,11,.4);border-color:rgba(245,158,11,.6)"></div>
+          <div class="cost-label" style="color:var(--warn)">Tesztelés<br><strong>50×</strong></div>
+        </div>
+        <div class="cost-item">
+          <div class="cost-block" style="height:95%;background:rgba(239,68,68,.5);border-color:rgba(239,68,68,.7)"></div>
+          <div class="cost-label" style="color:var(--bad)">Production<br><strong>100-1000×</strong></div>
+        </div>
+      </div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">💡</div><div class="bub l"><div class="who" style="color:var(--good)">Shift Left elv</div>
+        Tolni mindent BALRA — a folyamat ELEJÉRE. Ha a követelmény fázisban észreveszed a hibát, 1× költségbe kerül. Ha production-ban — akár 1000×.
+      </div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">📋</div>
+        <div><strong>Követelmény fázisban: review-k</strong>
+        <span>Specifikáció átolvasása több szem előtt. "Ez egyértelmű? Mérhető? Konzisztens?" — 1× költség.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">📐</div>
+        <div><strong>Tervezés: design review</strong>
+        <span>Az architektúrális döntéseket peer review-on átnézik. Hibák itt: 2× költség javítani.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--unit)">
+        <div class="cli-i">🧪</div>
+        <div><strong>Fejlesztés: unit tesztek, TDD</strong>
+        <span>Minden új kódhoz tesztet írunk. Bug a fejlesztés közben: 10× költség.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">🚨</div>
+        <div><strong>Production: katasztrófa</strong>
+        <span>Az ügyfél találja meg. Reputáció, ügyfélvesztés, hotfix sürgősen. 100-1000× költség. <strong>Ezt akarjuk elkerülni.</strong></span></div>
+      </div>
+    </div>
+  `},
+
+  // 7. KÖLTSÉG OPTIMUM
+  {t:5,tags:[],render:()=>`
+    <div class="shdr"><div class="sico">⚖️</div>
+      <div><div class="stitle">Tesztelés költség-optimum pont</div>
+      <div class="ssub">// nem mindent tesztelni — az OPTIMÁLIS mennyiséget</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--test)">Oktató</div>
+        Tesztelni 100%-osan NEM lehetséges. Sőt — ha túl sokat tesztelünk, az is rossz: drága lesz, lassú fejlesztés. Van egy OPTIMÁLIS pont.
+      </div></div>
+    </div>
+    <div class="optim-vis">
+      <div class="ov-title">// Költségek kapcsolata — keressük az optimumot</div>
+      <div style="position:relative;height:120px;border-left:1px solid var(--brd2);border-bottom:1px solid var(--brd2);padding:0 .5rem">
+        <svg viewBox="0 0 200 100" style="width:100%;height:100%" preserveAspectRatio="none">
+          <polyline points="10,90 50,70 90,55 130,45 170,40 190,38" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="3,2"></polyline>
+          <polyline points="10,10 50,25 90,38 130,55 170,75 190,90" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="3,2"></polyline>
+          <polyline points="10,75 50,55 90,42 130,48 170,65 190,85" fill="none" stroke="#10b981" stroke-width="3"></polyline>
+          <circle cx="105" cy="40" r="4" fill="#10b981" stroke="#fff" stroke-width="1"></circle>
+          <text x="115" y="35" fill="#10b981" font-size="8" font-family="Inconsolata">OPTIMUM</text>
+        </svg>
+      </div>
+      <div class="ov-leg">
+        <div class="ov-leg-item"><div class="ov-leg-dot" style="background:#3b82f6"></div>Tesztelés költsége ↗</div>
+        <div class="ov-leg-item"><div class="ov-leg-dot" style="background:#ef4444"></div>Hibák költsége ↘</div>
+        <div class="ov-leg-item"><div class="ov-leg-dot" style="background:#10b981"></div>Összes (cél: minimum)</div>
+      </div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--unit)">
+        <div class="cli-i">📈</div>
+        <div><strong>Tesztelés költsége NŐ ahogy többet tesztelünk</strong>
+        <span>Több teszt = több ember, eszköz, idő. Lineáris/exponenciális növekedés.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">📉</div>
+        <div><strong>Hibák költsége CSÖKKEN ahogy többet tesztelünk</strong>
+        <span>Több teszt = kevesebb production hiba. De vannak diminishing returns — a 99%-os lefedettség nem 2× drágább mint a 95%, hanem 10×.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">🎯</div>
+        <div><strong>Az OPTIMUM a két görbe összegének minimuma</strong>
+        <span>Üzletileg ezt a pontot keressük. Itt a TOTAL költség minimum — de még megfelelő a minőség.</span></div>
+      </div>
+    </div>
+    <div class="ibox good"><strong>Mit változtat a Shift Left + automatizálás?</strong> Eltolja az optimum pontot JOBBRA — vagyis ugyanannyi pénzből jobb minőség elérhető. Ezért éri meg befektetni az AUTOMATIZÁLT teszteléshez.</div>
+  `},
+
+  // 8. ALAPELVEK
+  {t:6,tags:[],render:()=>`
+    <div class="shdr"><div class="sico">📐</div>
+      <div><div class="stitle">Tesztelési alapelvek</div>
+      <div class="ssub">// 7 alapszabály, amit be kell tartani</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--test)">
+        <div class="cli-i">1️⃣</div>
+        <div><strong>Korai tesztelés (Shift Left)</strong>
+        <span>Annál olcsóbb lesz a hibajavítás. Követelmény fázisban kezdődjön.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--test)">
+        <div class="cli-i">2️⃣</div>
+        <div><strong>NEM lehet mindent letesztelni</strong>
+        <span>Még egy egyszerű terméknél sem. Az összes lehetséges szcenárió végtelen. Csak a fontosakat lehet.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--test)">
+        <div class="cli-i">3️⃣</div>
+        <div><strong>Dijkstra tétele</strong>
+        <span>"A tesztelés a hibák JELENLÉTÉT, nem a hibamentességet tudja kimutatni. De legalább tudjuk JAVÍTANI."</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--test)">
+        <div class="cli-i">4️⃣</div>
+        <div><strong>Hibák CSOPORTOSULNAK</strong>
+        <span>Strukturált szoftverben a hibák egy-egy komponens vagy funkcionalitás köré gyűlnek. Keresd a GYÖKÉROKOT a hatékony javításhoz!</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--test)">
+        <div class="cli-i">5️⃣</div>
+        <div><strong>Reális tesztkörnyezet</strong>
+        <span>Ha hamis adatokkal teszteltünk, a release után meglepetések jönnek. Cél: valósághoz HASONLÓ környezet.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--test)">
+        <div class="cli-i">6️⃣</div>
+        <div><strong>"Hibátlan rendszer NINCS"</strong>
+        <span>Még akkor sem, ha a tesztek azt mutatják! Ilyenkor gondolkozz: <em>"a TESZTEKBEN lehet a hiba?"</em></span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--test)">
+        <div class="cli-i">7️⃣</div>
+        <div><strong>Pesticid paradoxon</strong>
+        <span>Ugyanazok a tesztek idővel egyre kevesebb hibát találnak. Frissíteni, bővíteni kell a teszteket — különben "immunissá" válnak a hibák.</span></div>
+      </div>
+    </div>
+    <div class="ibox warn"><strong>"Valamiből engednünk kell":</strong> Idő, költség, minőség — háromból csak kettő. Ezért kell TERVEZNI a tesztelést — nem ad-hoc módon csinálni. Az alapelvek mentén priorizálj!</div>
+  `},
+
+  // 9. TESZTESET ÁLLAPOTGRÁF
+  {t:6,tags:[],render:()=>`
+    <div class="shdr"><div class="sico">📊</div>
+      <div><div class="stitle">Teszteset = állapotátmenet gráf</div>
+      <div class="ssub">// nyuszika és a sapka példa</div></div>
+    </div>
+    <div class="chat">
+      <div class="msg show"><div class="av">👨‍🏫</div><div class="bub l"><div class="who" style="color:var(--test)">Oktató</div>
+        Egy teszteset lefutása leginkább egy <strong>állapotátmenet gráffal</strong> írható le. A kezdő állapotból átlépünk a következő állapotokba. Az állapotok egymásutánja adja ki a teszt esetet.
+      </div></div>
+    </div>
+    <div class="state-graph">
+      <div class="sg-title">// Nyuszika és a sapka — 2 teszteset</div>
+      <div style="margin-top:.4rem;color:var(--good)">Teszteset #1 (sapkás):</div>
+      <div class="sg-flow">
+        <div class="sg-state" style="background:rgba(59,130,246,.15);color:var(--unit);border-color:rgba(59,130,246,.4)">🐰 Jött nyuszika</div>
+        <div class="sg-arr">→</div>
+        <div class="sg-state" style="background:rgba(168,85,247,.15);color:var(--integ);border-color:rgba(168,85,247,.4)">Sapka check?</div>
+        <div class="sg-arr">→</div>
+        <div class="sg-state" style="background:rgba(16,185,129,.15);color:var(--good);border-color:rgba(16,185,129,.4)">VAN</div>
+        <div class="sg-arr">→</div>
+        <div class="sg-state" style="background:rgba(239,68,68,.15);color:var(--bad);border-color:rgba(239,68,68,.4)">Kikapott 😢</div>
+        <div class="sg-arr">→</div>
+        <div class="sg-state" style="background:rgba(245,158,11,.15);color:var(--warn);border-color:rgba(245,158,11,.4)">Hazament</div>
+      </div>
+      <div style="margin-top:.5rem;color:var(--good)">Teszteset #2 (sapka nélkül):</div>
+      <div class="sg-flow">
+        <div class="sg-state" style="background:rgba(59,130,246,.15);color:var(--unit);border-color:rgba(59,130,246,.4)">🐰 Jött nyuszika</div>
+        <div class="sg-arr">→</div>
+        <div class="sg-state" style="background:rgba(168,85,247,.15);color:var(--integ);border-color:rgba(168,85,247,.4)">Sapka check?</div>
+        <div class="sg-arr">→</div>
+        <div class="sg-state" style="background:rgba(239,68,68,.15);color:var(--bad);border-color:rgba(239,68,68,.4)">NINCS</div>
+        <div class="sg-arr">→</div>
+        <div class="sg-state" style="background:rgba(239,68,68,.15);color:var(--bad);border-color:rgba(239,68,68,.4)">Kikapott 😢</div>
+        <div class="sg-arr">→</div>
+        <div class="sg-state" style="background:rgba(245,158,11,.15);color:var(--warn);border-color:rgba(245,158,11,.4)">Hazament</div>
+      </div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">✅</div>
+        <div><strong>Determinisztikus eredmény</strong>
+        <span>Azonos feltételek + azonos lefutás → MINDIG ugyanaz az eredmény. Ha nem — bug a tesztben vagy a rendszerben.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--unit)">
+        <div class="cli-i">🌳</div>
+        <div><strong>Lefedettség = állapotok bejárása</strong>
+        <span>Minden lehetséges állapotot legalább egy teszteset érintsen. A gráfból tudjuk: hány teszteset kell.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">⚠️</div>
+        <div><strong>Hibás futás = teszt FAIL</strong>
+        <span>Ha valamelyik állapotba a rendszer NEM jut el, vagy ROSSZ állapotba kerül → hibásként jelöljük. Ez nyom az újraírásra.</span></div>
+      </div>
+    </div>
+  `},
+
+  // 10. ÖSSZEFOGLALÁS
+  {t:7,tags:[0,1,2,3,4,5],render:()=>`
+    <div class="shdr"><div class="sico">∑</div>
+      <div><div class="stitle">Összefoglalás — Tesztelés alapok</div>
+      <div class="ssub">// a legfontosabbak</div></div>
+    </div>
+    <div class="sumgrid">
+      <div class="sbox" style="border-top:2px solid var(--test)"><span class="ico">🛡️</span><div class="val">Preventív</div><div class="lbl">légzsák analógia</div></div>
+      <div class="sbox" style="border-top:2px solid var(--unit)"><span class="ico">✅</span><div class="val">V&V</div><div class="lbl">Verifikáció + Validáció</div></div>
+      <div class="sbox" style="border-top:2px solid var(--integ)"><span class="ico">△</span><div class="val">4 szint</div><div class="lbl">Unit/Integ/System/UAT</div></div>
+      <div class="sbox" style="border-top:2px solid var(--good)"><span class="ico">⬅️</span><div class="val">Shift Left</div><div class="lbl">1× → 1000× költség</div></div>
+    </div>
+    <div class="cklist">
+      <div class="cli" style="border-left:3px solid var(--bad)">
+        <div class="cli-i">💀</div>
+        <div><strong>Valós esetek tanulsága</strong>
+        <span>Boeing 737 MAX 346 halálos, Tesla Autopilot lefagyás 130 km/h-án, Volkswagen vészhívó gomb leállás, CrowdStrike globális kék halál. NEM tesztelni = katasztrófa.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--unit)">
+        <div class="cli-i">✅</div>
+        <div><strong>V&V különbsége</strong>
+        <span><strong>Verifikáció:</strong> "Jól építettük?" (spec szerint). <strong>Validáció:</strong> "Jót építettünk?" (az ügyfél igényét). Mindkettő KELL!</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--integ)">
+        <div class="cli-i">△</div>
+        <div><strong>Tesztpiramis</strong>
+        <span>Sok unit teszt (fehér doboz, gyors) → integrációs → rendszer (fekete doboz) → kevés átvételi (UAT, üzleti). NE fordítsd fejre!</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--good)">
+        <div class="cli-i">⬅️</div>
+        <div><strong>Shift Left = olcsóbb hibajavítás</strong>
+        <span>Követelmény: 1× · Tervezés: 2× · Fejlesztés: 10× · Tesztelés: 50× · Production: 100-1000× költség.</span></div>
+      </div>
+      <div class="cli" style="border-left:3px solid var(--test)">
+        <div class="cli-i">📐</div>
+        <div><strong>7 alapelv</strong>
+        <span>1) Korai tesztelés · 2) Mindent nem lehet · 3) Dijkstra · 4) Hibák csoportosulnak · 5) Reális környezet · 6) "Hibátlan nincs" · 7) Pesticid paradoxon</span></div>
+      </div>
+    </div>
+  `},
+];
+
+function renderBoard(tIdx,tagIdxs){
+  document.getElementById('steps').innerHTML=TOPICS.map((t,i)=>{
+    const on=i===tIdx,done=i<tIdx;
+    const c=on?t.color:done?t.color:'var(--muted)';
+    return `<div class="st ${on?'active':done?'done':''}">
+      <div class="sd" style="border-color:${c};color:${c}">${t.icon}</div>
+      <div class="sl" style="color:${on?t.color:'var(--muted)'}">${t.label.replace('\n','<br>')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('tagRow').innerHTML=TAGS.map((tg,i)=>{
+    const on=tagIdxs.includes(i);
+    return `<div class="tg ${on?'on':''}" style="border-color:${tg.color};color:${tg.color}">${tg.label}</div>`;
+  }).join('');
+}
+
+let cur=0;
+function render(){
+  const s=STEPS[cur];
+  renderBoard(s.t,s.tags);
+  const el=document.getElementById('content');
+  el.innerHTML=s.render();
+  setTimeout(()=>{el.querySelectorAll('.msg:not(.show)').forEach((m,i)=>setTimeout(()=>m.classList.add('show'),i*160));},60);
+  document.getElementById('bprev').disabled=cur===0;
+  document.getElementById('bnext').textContent=cur===STEPS.length-1?'↺ Újra':'Következő →';
+  document.getElementById('ctr').textContent=`${cur+1} / ${STEPS.length}`;
+}
+function next(){cur=cur===STEPS.length-1?0:cur+1;render();}
+function prev(){if(cur>0){cur--;render();}}
+render();
+</script>
+</body>
+</html>

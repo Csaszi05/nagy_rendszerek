@@ -192,6 +192,18 @@ h1{font-size:clamp(28px,5vw,42px);font-weight:900;letter-spacing:-1px;line-heigh
       <div class="ct-key">Kritikus rendszerekre: űr, repülő, orvosi, atomerőmű. Drága, lassú, de garantáltan helyes.</div>
     </div>
 
+    <div class="cheat" style="--accent:#ec4899">
+      <div class="ct-hdr"><div class="ct-ico">🎯</div><div><div class="ct-ttl">XP — Extreme Programming</div><div class="ct-sub">Kent Beck, 1999</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>5 érték:</strong> Communication, Simplicity, Feedback, Courage, Respect</div>
+        <div class="ct-item"><strong>TDD:</strong> Red → Green → Refactor</div>
+        <div class="ct-item"><strong>Pair Prog:</strong> Driver + Navigator</div>
+        <div class="ct-item">CI, Small Releases, Refactoring</div>
+        <div class="ct-item">40h/hét (sustainable pace)</div>
+      </div>
+      <div class="ct-key"><b>Kombináció:</b> XP gyakorlatok + Scrum keret. Kis csapatra (2-12 fő), co-located.</div>
+    </div>
+
   </div>
 
   <!-- ARCHITEKTÚRA -->
@@ -388,6 +400,52 @@ h1{font-size:clamp(28px,5vw,42px);font-weight:900;letter-spacing:-1px;line-heigh
         <div class="ct-item"><strong>3.</strong> Zárás (tapasztalatok, doku)</div>
       </div>
       <div class="ct-key">V-modell: minden fejlesztési fázishoz tartozik egy teszt szint. Scrumban: folyamatos.</div>
+    </div>
+
+    <div class="cheat" style="--accent:#a855f7">
+      <div class="ct-hdr"><div class="ct-ico">△</div><div><div class="ct-ttl">Tesztpiramis</div><div class="ct-sub">4 szint</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>🧪 Unit</strong> (fehér doboz) — sok</div>
+        <div class="ct-item"><strong>🔗 Integrációs</strong></div>
+        <div class="ct-item"><strong>🔍 Rendszer</strong> (fekete doboz)</div>
+        <div class="ct-item"><strong>👥 Átvételi (UAT)</strong> — kevés</div>
+      </div>
+      <div class="ct-key"><b>V&V:</b> Verifikáció = "jól építjük?" · Validáció = "jót építjük?"</div>
+    </div>
+
+    <div class="cheat" style="--accent:#ef4444">
+      <div class="ct-hdr"><div class="ct-ico">💀</div><div><div class="ct-ttl">Valós tanulságok</div><div class="ct-sub">tesztelés hiánya</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item"><strong>Boeing 737 MAX</strong> 2018-19 — 346 halott (MCAS, 1 szenzor)</div>
+        <div class="ct-item"><strong>Tesla 3</strong> 2022 — Autopilot lefagy 130 km/h</div>
+        <div class="ct-item"><strong>CrowdStrike</strong> 2024 — globális kék halál</div>
+        <div class="ct-item"><strong>Facebook</strong> 2024 — globális leállás</div>
+      </div>
+      <div class="ct-key"><b>Tanulság:</b> Redundancia kötelező, automatikus update veszélyes.</div>
+    </div>
+
+    <div class="cheat" style="--accent:#ef4444">
+      <div class="ct-hdr"><div class="ct-ico">🔒</div><div><div class="ct-ttl">Security teszt 7 típusa</div><div class="ct-sub">Cyber security</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">1. Sebezhetőség vizsgálat (auto)</div>
+        <div class="ct-item">2. Biztonsági szkennelés</div>
+        <div class="ct-item">3. Behatolásteszt (Pen Test)</div>
+        <div class="ct-item">4. Kockázatértékelés</div>
+        <div class="ct-item">5. Biztonsági ellenőrzés (audit)</div>
+        <div class="ct-item">6. Etikus hackelés</div>
+        <div class="ct-item">7. Testtartás-értékelés (átfogó)</div>
+      </div>
+    </div>
+
+    <div class="cheat" style="--accent:#a855f7">
+      <div class="ct-hdr"><div class="ct-ico">🤖</div><div><div class="ct-ttl">Automatizálás</div><div class="ct-sub">Regresszió</div></div></div>
+      <div class="ct-list">
+        <div class="ct-item">24/7 fut, nem hibázik</div>
+        <div class="ct-item">Regressziós teszt automatizálva</div>
+        <div class="ct-item">Eltolja a költség-optimum pontot</div>
+        <div class="ct-item">Tesztlefedettség mérhető</div>
+      </div>
+      <div class="ct-key"><b>Coverage:</b> Specifikáció vs Struktúra alapú. Autóipar (ISO 26262): szabvány írja elő.</div>
     </div>
 
   </div>
