@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tesztek — Nagy Rendszerek</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inconsolata:wght@400;500;600;700&display=swap');
+:root {
+  --bg:#0a0f1e; --surf:#0f1628; --card:#141d35; --brd:#1e2d50; --brd2:#263a68;
+  --text:#d8e4ff; --muted:#7a96b5;
+  --acc:#ec4899; --good:#10b981; --bad:#ef4444; --warn:#f59e0b; --info:#3b82f6;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 0% 0%,rgba(236,72,153,.06) 0%,transparent 50%),radial-gradient(ellipse at 100% 100%,rgba(59,130,246,.06) 0%,transparent 50%);pointer-events:none;z-index:0;}
+
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:18px 16px 60px;}
+
+header{text-align:center;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--brd2);}
+.back{display:inline-flex;align-items:center;gap:5px;font-family:'Inconsolata',monospace;font-size:10px;color:var(--muted);padding:4px 10px;background:var(--card);border:1px solid var(--brd);border-radius:5px;text-decoration:none;margin-bottom:12px;}
+.back:hover{color:var(--text);}
+.eyebrow{display:inline-block;padding:3px 11px;background:var(--card);border:1px solid var(--brd);border-radius:100px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-family:'Inconsolata',monospace;}
+h1{font-size:clamp(26px,5vw,36px);font-weight:900;letter-spacing:-1px;line-height:1.1;margin-bottom:6px;background:linear-gradient(135deg,#ec4899 0%,#a78bfa 50%,#60a5fa 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.subtitle{font-size:13px;color:var(--muted);max-width:520px;margin:0 auto;line-height:1.5;}
+
+/* SETUP SCREEN */
+.setup{background:var(--card);border:1.5px solid var(--brd2);border-radius:12px;padding:18px;margin-bottom:18px;}
+.setup-t{font-family:'Inconsolata',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;font-weight:700;}
+.topic-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px;margin-bottom:14px;}
+.topic-btn{padding:9px 11px;border:1.5px solid var(--brd2);border-radius:8px;background:transparent;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;text-align:left;display:flex;align-items:center;gap:7px;}
+.topic-btn:hover{background:var(--brd);}
+.topic-btn.sel{background:rgba(236,72,153,.15);border-color:var(--acc);color:var(--acc);}
+.topic-btn .ti{font-size:15px;}
+.topic-btn .tc{font-family:'Inconsolata',monospace;font-size:9px;opacity:.7;margin-left:auto;}
+
+.options-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+.opt-btn{padding:7px 13px;border:1.5px solid var(--brd2);border-radius:6px;background:transparent;color:var(--muted);font-family:'Inconsolata',monospace;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.5px;}
+.opt-btn:hover{color:var(--text);}
+.opt-btn.sel{background:rgba(59,130,246,.15);border-color:var(--info);color:var(--info);}
+
+.start-btn{width:100%;padding:13px;background:linear-gradient(135deg,#ec4899,#a78bfa);color:#fff;border:none;border-radius:9px;font-family:'Inconsolata',monospace;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:opacity .2s;}
+.start-btn:hover{opacity:.9;}
+.start-btn:disabled{opacity:.3;cursor:not-allowed;}
+
+/* QUIZ SCREEN */
+.progress-bar{height:5px;background:var(--brd);border-radius:3px;overflow:hidden;margin-bottom:14px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,#ec4899,#a78bfa);transition:width .3s;}
+
+.status-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-family:'Inconsolata',monospace;font-size:11px;color:var(--muted);}
+.status-row .stat{display:flex;gap:14px;}
+.status-row .score{color:var(--good);font-weight:700;}
+.status-row .wrong{color:var(--bad);font-weight:700;}
+
+.q-card{background:var(--card);border:1.5px solid var(--brd2);border-radius:12px;padding:18px;margin-bottom:14px;}
+.q-topic{display:inline-block;font-family:'Inconsolata',monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;border:1px solid;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;}
+.q-text{font-size:16px;font-weight:600;line-height:1.4;margin-bottom:14px;color:var(--text);}
+
+.options{display:flex;flex-direction:column;gap:7px;}
+.opt{padding:11px 13px;border:1.5px solid var(--brd2);border-radius:8px;background:var(--surf);color:var(--text);cursor:pointer;transition:all .2s;font-size:13px;line-height:1.4;font-family:'Sora',sans-serif;font-weight:500;text-align:left;display:flex;align-items:flex-start;gap:9px;}
+.opt:hover:not(.disabled){background:var(--brd);border-color:var(--brd2);}
+.opt-letter{font-family:'Inconsolata',monospace;font-size:12px;font-weight:800;flex-shrink:0;width:18px;color:var(--muted);}
+.opt.correct{background:rgba(16,185,129,.15);border-color:var(--good);color:var(--text);}
+.opt.correct .opt-letter{color:var(--good);}
+.opt.wrong{background:rgba(239,68,68,.15);border-color:var(--bad);color:var(--text);}
+.opt.wrong .opt-letter{color:var(--bad);}
+.opt.disabled{cursor:default;}
+.opt-icon{margin-left:auto;font-size:14px;flex-shrink:0;}
+
+.explanation{padding:11px 13px;border-radius:8px;background:rgba(59,130,246,.08);border-left:3px solid var(--info);font-size:13px;line-height:1.5;margin-top:12px;color:var(--text);display:none;}
+.explanation.show{display:block;}
+.explanation strong{color:var(--info);}
+
+.nav{display:flex;gap:8px;}
+.nav-btn{padding:10px 16px;border:1.5px solid var(--brd2);background:transparent;color:var(--text);font-family:'Inconsolata',monospace;font-size:11px;font-weight:700;border-radius:7px;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.5px;}
+.nav-btn:hover{background:var(--brd);}
+.nav-btn.primary{flex:1;background:rgba(236,72,153,.15);border-color:var(--acc);color:var(--acc);}
+.nav-btn.primary:hover{background:rgba(236,72,153,.25);}
+.nav-btn:disabled{opacity:.3;cursor:not-allowed;}
+
+/* RESULTS SCREEN */
+.results{background:var(--card);border:1.5px solid var(--brd2);border-radius:12px;padding:24px;text-align:center;}
+.r-ico{font-size:48px;margin-bottom:10px;}
+.r-title{font-size:22px;font-weight:800;margin-bottom:6px;}
+.r-score{font-family:'Inconsolata',monospace;font-size:42px;font-weight:900;background:linear-gradient(135deg,#ec4899,#a78bfa);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin:8px 0;}
+.r-pct{font-family:'Inconsolata',monospace;font-size:13px;color:var(--muted);margin-bottom:18px;}
+.r-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;}
+.r-stat{padding:9px;background:var(--surf);border-radius:7px;}
+.r-stat-val{font-family:'Inconsolata',monospace;font-size:18px;font-weight:800;}
+.r-stat-lbl{font-family:'Inconsolata',monospace;font-size:9px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.5px;}
+
+.r-actions{display:flex;gap:8px;}
+
+.r-breakdown{margin-top:14px;text-align:left;}
+.r-bd-title{font-family:'Inconsolata',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.r-bd-row{display:flex;align-items:center;gap:8px;padding:6px 9px;background:var(--surf);border-radius:6px;margin:4px 0;font-size:12px;}
+.r-bd-name{flex:1;}
+.r-bd-bar-wrap{width:80px;height:5px;background:var(--brd);border-radius:3px;overflow:hidden;}
+.r-bd-bar{height:100%;}
+.r-bd-num{font-family:'Inconsolata',monospace;font-size:11px;font-weight:700;width:48px;text-align:right;}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.pulse{animation:pulse 1.5s infinite;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="back" href="index.html">← Vissza</a>
+  <div class="eyebrow">Vizsga felkészülés · Quiz</div>
+  <h1>Tesztek 📝</h1>
+  <p class="subtitle">Tesztek minden témából — vagy mind együtt. Click → válasz → magyarázat.</p>
+</header>
+
+<div id="setup" class="setup">
+  <div class="setup-t">1. Témakör választása</div>
+  <div class="topic-grid" id="topicGrid"></div>
+
+  <div class="setup-t">2. Kérdések száma</div>
+  <div class="options-row" id="countRow">
+    <button class="opt-btn" data-count="10">10 kérdés</button>
+    <button class="opt-btn sel" data-count="20">20 kérdés</button>
+    <button class="opt-btn" data-count="40">40 kérdés</button>
+    <button class="opt-btn" data-count="0">Mind</button>
+  </div>
+
+  <button class="start-btn" id="startBtn">▶ Teszt indítása</button>
+</div>
+
+<div id="quiz" style="display:none;">
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div class="status-row">
+    <div id="qNum">1 / 10</div>
+    <div class="stat">
+      <div class="score">✓ <span id="correctCount">0</span></div>
+      <div class="wrong">✗ <span id="wrongCount">0</span></div>
+    </div>
+  </div>
+  <div class="q-card">
+    <div id="qTopic" class="q-topic"></div>
+    <div id="qText" class="q-text"></div>
+    <div id="options" class="options"></div>
+    <div id="explanation" class="explanation"></div>
+  </div>
+  <div class="nav">
+    <button class="nav-btn" id="quitBtn">⬅ Megszakít</button>
+    <button class="nav-btn primary" id="nextBtn" style="display:none;">Következő →</button>
+  </div>
+</div>
+
+<div id="results" style="display:none;">
+  <div class="results">
+    <div class="r-ico" id="rIco">🎯</div>
+    <div class="r-title" id="rTitle">Kész!</div>
+    <div class="r-score" id="rScore">0/0</div>
+    <div class="r-pct" id="rPct">0%</div>
+    <div class="r-stats">
+      <div class="r-stat">
+        <div class="r-stat-val" style="color:var(--good)" id="rCorr">0</div>
+        <div class="r-stat-lbl">Helyes</div>
+      </div>
+      <div class="r-stat">
+        <div class="r-stat-val" style="color:var(--bad)" id="rWrong">0</div>
+        <div class="r-stat-lbl">Hibás</div>
+      </div>
+      <div class="r-stat">
+        <div class="r-stat-val" style="color:var(--info)" id="rTime">0:00</div>
+        <div class="r-stat-lbl">Idő</div>
+      </div>
+    </div>
+    <div class="r-breakdown" id="rBreakdown"></div>
+    <div class="r-actions">
+      <button class="nav-btn" onclick="restart()">⟲ Új teszt</button>
+      <button class="nav-btn primary" onclick="retry()">🔄 Újra ugyanezt</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const TOPICS = {
+  all: { label:'🎲 Mind együtt', color:'#ec4899' },
+  folyamat: { label:'📊 Folyamatmodellek', color:'#f59e0b' },
+  agile: { label:'🌱 Agilis elvek', color:'#22c55e' },
+  scrum: { label:'🏃 Scrum', color:'#14b8a6' },
+  xp: { label:'🎯 XP — Extreme Prog', color:'#ec4899' },
+  komponens: { label:'🧩 Komponens', color:'#06b6d4' },
+  aop: { label:'🎯 AOP', color:'#ec4899' },
+  formal: { label:'∑ Formális módszerek', color:'#e11d48' },
+  arch: { label:'🏛️ Architektúra', color:'#3b82f6' },
+  domain: { label:'🐘 Domain & DDD', color:'#10b981' },
+  ddd: { label:'🧅 Onion & CQRS', color:'#f97316' },
+  enterprise: { label:'🌍 Nagyvállalati', color:'#6366f1' },
+  safe: { label:'🚂 SAFe', color:'#3b82f6' },
+  rbt: { label:'🎯 Rizikó Alapú Teszt', color:'#a855f7' },
+  teszt: { label:'🧪 Tesztelés általában', color:'#a855f7' },
+  cm: { label:'📐 Konfigurációkezelés', color:'#6366f1' },
+  git: { label:'🌿 Git & Verziókezelés', color:'#f97316' },
+  security: { label:'🔒 Biztonsági sérül.', color:'#ef4444' },
+  sdl: { label:'🛡️ Microsoft SDL', color:'#3b82f6' },
+  minoseg: { label:'⭐ Szoftverminőség', color:'#f59e0b' },
+  iso: { label:'📐 ISO modellek', color:'#3b82f6' },
+  devops: { label:'🔄 DevOps & DevSecOps', color:'#f97316' },
+};
+
+const QUESTIONS = [
+  // ── FOLYAMATMODELLEK ─────────────────────────────────────────────
+  { topic:'folyamat', q:'Ki dolgozta ki a Spirál modellt és mikor?', options:['Barry Boehm, 1986','Winston Royce, 1970','Ken Schwaber, 1995','Kent Beck, 1999'], correct:0, explanation:'A Spirál modellt Barry Boehm dolgozta ki 1986-ban. Iteratív, kockázat-alapú modell.' },
+  { topic:'folyamat', q:'Mi a Spirál modell négy fázisa?', options:['Tervezés-Fejlesztés-Tesztelés-Kiadás','Tervezés-Kockázatelemzés-Fejlesztés-Értékelés','Inception-Elaboration-Construction-Transition','Plan-Code-Build-Deploy'], correct:1, explanation:'A Spirál modell négy fázisa: Tervezés (célok meghatározása), Kockázatelemzés, Fejlesztés/tesztelés, Értékelés/következő iteráció.' },
+  { topic:'folyamat', q:'Mi a RAD legfontosabb jellemzője?', options:['Hosszú tervezési fázis','60-90 napos időboxolt fejlesztés','Formális verifikáció','Cleanroom módszertan'], correct:1, explanation:'A RAD (Rapid Application Development) 60-90 napos időboxolt fejlesztést alkalmaz, gyors prototípusokkal.' },
+  { topic:'folyamat', q:'A RUP melyik fázisa az első?', options:['Elaboration','Construction','Transition','Inception'], correct:3, explanation:'A RUP négy fázisa: Inception → Elaboration → Construction → Transition. Az Inception a kezdeti vízió és üzleti megalapozás.' },
+  { topic:'folyamat', q:'Hány fázisa és hány diszciplínája van a RUP-nak?', options:['3 fázis, 6 diszciplína','4 fázis, 9 diszciplína','5 fázis, 7 diszciplína','4 fázis, 6 diszciplína'], correct:1, explanation:'A RUP 4 fázist (Inception, Elaboration, Construction, Transition) és 9 diszciplínát tartalmaz.' },
+  { topic:'folyamat', q:'Mit jelent a "konkurens" a Konkurens folyamat modellben?', options:['Versenyzés a piacon','Párhuzamosan futó tevékenységek és állapotaik','Egyidejű programozás','Versenyhelyzet (race condition)'], correct:1, explanation:'A konkurens modell több tevékenységet ÁLLAPOTGÉPEKKEL kezel — párhuzamosan futnak, mindegyiknek saját állapota.' },
+  { topic:'folyamat', q:'A RUP melyik fázisában készül a futtatható architektúra?', options:['Inception','Elaboration','Construction','Transition'], correct:1, explanation:'Az Elaboration fázisban készül az architektúra alapja és a futtatható architektúra prototípusa.' },
+  { topic:'folyamat', q:'Melyik nem fő jellemzője a Vízesés modellnek?', options:['Szekvenciális fázisok','Iteratív refaktorálás','Mindenfázis a vége felé halad','Nehéz változásokat kezelni'], correct:1, explanation:'A Vízesés modell pont az ITERATÍV megközelítés ellentéte — szekvenciális, ahol minden fázis lezárul.' },
+  { topic:'folyamat', q:'Mire való a Spirál modellben a kockázatelemzés?', options:['Csak biztonsági kockázatok elemzése','A projekt során felmerülő kockázatok azonosítása és kezelése','Pénzügyi költségvetés készítése','Csapat moráljának felmérése'], correct:1, explanation:'A Spirál modellben minden iteráció elején azonosítjuk a kockázatokat — műszaki, üzleti, ütemtervi — és stratégiát készítünk a kezelésükre.' },
+  { topic:'folyamat', q:'Mikor érdemes RAD-ot választani?', options:['Nagy, kritikus rendszerekhez','Kis-közepes projektekhez, jól ismert domainben','Kutatás-fejlesztési projektekhez','Beágyazott rendszerekhez'], correct:1, explanation:'A RAD kis-közepes projektekhez, jól ismert domainben, motivált csapattal ideális. NEM alkalmas: kritikus, nagy projektek.' },
+
+  // ── AGILIS ELVEK ─────────────────────────────────────────────────
+  { topic:'agile', q:'Mikor írták az Agile Manifesto-t?', options:['1996','1999','2001','2005'], correct:2, explanation:'Az Agile Manifesto-t 2001-ben írta Snowbird-ben (Utah) 17 fejlesztő, köztük Kent Beck, Robert Martin, Ward Cunningham.' },
+  { topic:'agile', q:'Hány érték és hány alapelv van az Agile Manifesto-ban?', options:['3 érték, 9 elv','4 érték, 12 elv','5 érték, 10 elv','6 érték, 12 elv'], correct:1, explanation:'Az Agile Manifesto 4 ÉRTÉKET és 12 ALAPELVET tartalmaz.' },
+  { topic:'agile', q:'Melyik NEM az Agile Manifesto négy értéke közül?', options:['Egyének és interakciók > folyamatok és eszközök','Működő szoftver > átfogó dokumentáció','Hosszú tervezés > rugalmasság','Ügyféllel együttműködés > szerződéses tárgyalások'], correct:2, explanation:'A 4 érték: Egyének/interakciók > folyamatok, Működő szoftver > doku, Ügyfél együttműködés > szerződés, Reagálás a változásra > terv követése.' },
+  { topic:'agile', q:'Az agilis fejlesztés melyik fő elvét fejezi ki: "Welcome changing requirements, even late in development"?', options:['Folyamatos szállítás','Változás támogatása','Önszerveződő csapat','Egyszerűség'], correct:1, explanation:'A 2. alapelv: változó követelmények elfogadása még a fejlesztés késői szakaszában is. Az agilis FOLYAMATOK kihasználják a változást versenyelőnyként.' },
+  { topic:'agile', q:'Az agilisban mi a "MoSCoW" prioritizálás?', options:['Egy orosz fejlesztési módszertan','Must have, Should have, Could have, Won\'t have','Microsoft Cloud Workflow','Egy AI nyelvi modell'], correct:1, explanation:'A MoSCoW egy követelmény-prioritizálási technika: Must have (kell), Should have (kellene), Could have (lehet), Won\'t have (most nem).' },
+  { topic:'agile', q:'Mi az "önszerveződő csapat" jellemzője az agilisban?', options:['Mindenki azt csinálja amit akar','A csapat maga dönti el hogyan oldja meg a feladatot','A vezető pontosan megmondja ki mit csinál','Random feladatkiosztás'], correct:1, explanation:'Önszerveződő csapat: a CÉL adott, a csapat dönti el HOGYAN éri el. Nem a vezető szabja meg a részleteket.' },
+  { topic:'agile', q:'Melyik agilis elv mond szóhoz a "működő szoftverről"?', options:['"A fő mérce a működő szoftver"','"Minden alkalmazás működjön"','"Tesztelés a legfontosabb"','"A dokumentáció elhagyható"'], correct:0, explanation:'A 7. alapelv: "Working software is the primary measure of progress." A működő szoftver a haladás fő mércéje.' },
+  { topic:'agile', q:'Mit jelent az "sustainable pace" agilis kontextusban?', options:['Heti 60 óra munka','Fenntartható tempó — kimerülés nélkül hosszú távon','Folyamatos munkavégzés szünet nélkül','Egyenletes nyereség'], correct:1, explanation:'Az agilis 8. alapelve: fenntartható ütem. A csapat olyan tempóban dolgozzon, amit végtelenségig képes tartani — kimerülés nélkül.' },
+
+  // ── SCRUM ────────────────────────────────────────────────────────
+  { topic:'scrum', q:'Mennyi ideig tart egy Scrum sprint?', options:['1-2 hét','1-4 hét','Minimum 4 hét','Korlátlan'], correct:1, explanation:'A Scrum sprintek 1-4 hét hosszúak, jellemzően 2 hét. Rögzített hosszúság — sprint közben nem változhat!' },
+  { topic:'scrum', q:'Mennyi a Scrum csapat ideális mérete?', options:['2-4 fő','5-9 fő','10-15 fő','Tetszőleges'], correct:1, explanation:'A Scrum csapat ideális mérete 5-9 fő. Kevesebb = nem elég kapacitás. Több = kommunikáció összetörik.' },
+  { topic:'scrum', q:'Mennyi ideig tart MAXIMUM egy Daily Scrum (Daily Meeting)?', options:['5 perc','15 perc','30 perc','1 óra'], correct:1, explanation:'A Daily Scrum maximum 15 perc, állva tartják. Ne legyen megbeszélés — csak szinkronizáció.' },
+  { topic:'scrum', q:'Mi a 3 kérdés a Daily Scrum-on?', options:['Mit, miért, mikor?','Mit csináltam tegnap? Mit tervezek ma? Van akadály?','Hogyan? Mennyiért? Mikorra?','Ki? Mit? Hol?'], correct:1, explanation:'A 3 kérdés: 1) Mit csináltam tegnap? 2) Mit tervezek ma csinálni? 3) Van-e akadály ami blokkol?' },
+  { topic:'scrum', q:'Melyik NEM Scrum szerepkör?', options:['Scrum Master','Product Owner','Team','Project Manager'], correct:3, explanation:'A 3 Scrum szerepkör: Scrum Master, Product Owner, Team. NINCS Project Manager! Ez a tradicionális modellek szerepe.' },
+  { topic:'scrum', q:'Ki a Scrum metafora szerint "disznó" és ki "csirke"?', options:['Disznó = vezető, Csirke = beosztott','Disznó = elkötelezett (SM, PO, Team), Csirke = érdekelt (stakeholderek)','Disznó = lassú, Csirke = gyors','Disznó = belső, Csirke = külső'], correct:1, explanation:'Disznó = elkötelezett (mindent beleadnak): Scrum Master, Product Owner, Team. Csirke = érdekelt: Stakeholders, Manager.' },
+  { topic:'scrum', q:'Mi a Sprint Backlog?', options:['Az összes leadandó funkció listája','Az adott sprintre bevállalt feladatok','A hibajegyek listája','A fejlesztők kívánságlistája'], correct:1, explanation:'A Sprint Backlog az AKTUÁLIS sprintre bevállalt feladatok listája, amit a Team kezel. A Product Backlog a teljes terméké.' },
+  { topic:'scrum', q:'Mi a Sprint Review ÉS a Sprint Retrospective különbsége?', options:['Ugyanaz, csak másnap van','Review = termékről, Retrospective = folyamatról','Review = csapaton belül, Retrospective = ügyféllel','Review = napi, Retrospective = sprint végi'], correct:1, explanation:'Sprint Review: a TERMÉKRŐL szól (mit szállítottunk, mit fogad el az ügyfél). Sprint Retrospective: a FOLYAMATRÓL (hogyan dolgoztunk?). KÜLÖN események!' },
+  { topic:'scrum', q:'Ki dolgozza fel a Product Backlogot?', options:['Scrum Master','Product Owner','Team','Stakeholders'], correct:1, explanation:'A Product Owner kezeli és priorizálja a Product Backlogot. Egy személy — nem bizottság!' },
+  { topic:'scrum', q:'Mi a Burndown chart?', options:['Hibajegyek száma napokon át','Fennmaradó story pointok napi alakulása a sprintben','Csapat morálja','Fejlesztők munkaideje'], correct:1, explanation:'A Burndown chart a sprint során fennmaradó story pointokat mutatja naponta. Ideális vs tényleges görbe.' },
+  { topic:'scrum', q:'Mikor készült a Scrum első leírása?', options:['1986 (Takeuchi & Nonaka)','1995 (Schwaber & Sutherland)','2001 (Agile Manifesto)','2010 (Scrum Guide)'], correct:0, explanation:'Az első Scrum cikk 1986-ban jelent meg: Takeuchi & Nonaka "The New New Product Development Game" — Harvard Business Review.' },
+  { topic:'scrum', q:'Mi történik ha sprint közben nem készülünk el?', options:['A sprint meghosszabbodik','A nem kész feladatok visszakerülnek a Product Backlogba','A csapat túlórázik','A sprint újraindul'], correct:1, explanation:'A sprint NEM hosszabbodik! Ha nem kész — visszakerül a Product Backlogba, és a következő sprint planning-en újra prioritizálják.' },
+  { topic:'scrum', q:'Ki vehet részt a Daily Scrumon?', options:['Csak a Team','Csak Scrum Master és Team','Disznók (SM, PO, Team) — Csirkék figyelhetnek','Az egész cég'], correct:2, explanation:'A Daily Scrumon a "Disznók" (elkötelezettek: SM, PO, Team) vesznek részt aktívan. A "Csirkék" (Stakeholderek) figyelhetnek, de nem szólhatnak bele.' },
+
+  // ── XP — EXTREME PROGRAMMING ─────────────────────────────────────
+  { topic:'xp', q:'Ki és mikor publikálta az Extreme Programming könyvet?', options:['Martin Fowler, 2000','Kent Beck, 1999','Robert Martin, 2001','Ron Jeffries, 1998'], correct:1, explanation:'Kent Beck publikálta az "Extreme Programming Explained" könyvet 1999-ben. A Chrysler C3 projekten alakította ki.' },
+  { topic:'xp', q:'Hány érték van az XP-ben?', options:['3 érték','4 érték','5 érték','7 érték'], correct:2, explanation:'5 érték: Communication, Simplicity, Feedback, Courage, Respect. A Respect-et 2004-ben adta hozzá Beck az eredeti 4-hez.' },
+  { topic:'xp', q:'Mi a TDD ciklus?', options:['Test-Develop-Deploy','Red-Green-Refactor','Plan-Code-Test','Design-Develop-Deliver'], correct:1, explanation:'TDD ciklus: 🔴 RED (írj hibás tesztet) → 🟢 GREEN (írj minimális kódot ami átmegy) → ♻️ REFACTOR (tisztítsd a kódot).' },
+  { topic:'xp', q:'Mit jelent a Pair Programming két szerepe?', options:['Senior + Junior','Driver + Navigator','Coder + Tester','Frontend + Backend'], correct:1, explanation:'Driver: a gép előtt ül, ő ÍR (taktikai gondolkodás). Navigator: figyel és stratégiailag gondolkodik. ~25 perc után cserélnek.' },
+  { topic:'xp', q:'Mi a "Sustainable Pace" az XP-ben?', options:['Heti 60 óra munka','Heti 40 óra fenntartható tempó','Folyamatos overtime','Részmunkaidős fejlesztés'], correct:1, explanation:'Sustainable Pace = heti 40 óra. A kimerült fejlesztő hibázik. Hosszú távon a 40 órás csapat termékenyebb mint a 60 órás.' },
+  { topic:'xp', q:'Mit jelent az "Extreme" az Extreme Programmingban?', options:['Veszélyes módszerek','A hasznos gyakorlatokat EXTRÉM szinten alkalmazzuk','Extrém sportokra alapozott','Extra hosszú munkaidő'], correct:1, explanation:'Az "extreme" azt jelenti: a hasznos programozási gyakorlatokat extrém szinten alkalmazzuk. Ha a code review jó → folyamatos review (pair). Ha a tesztelés jó → előbb a teszt (TDD).' },
+  { topic:'xp', q:'Mi a "Collective Code Ownership" az XP-ben?', options:['Csak egy ember tudja módosítani a kódot','A kód az egész CSAPATÉ — bárki módosíthat','A kód nyílt forráskódú','A vezető a kód tulajdonosa'], correct:1, explanation:'Collective Code Ownership: a kód a csapaté, nem egy emberé. Bárki módosíthat bármilyen részt. Nincs "ez Béla kódja, ne nyúlj hozzá".' },
+  { topic:'xp', q:'Mi az XP "Planning Game" lényege?', options:['Játékszoftverek tervezése','Story kártyák, becslés, prioritizálás együtt','Stratégiai üzleti tervezés','Csapatépítő játékok'], correct:1, explanation:'Planning Game: az ügyfél és a fejlesztők EGYÜTT ülnek le. Az ügyfél story kártyákat ír, a fejlesztők megbecsülik, az ügyfél prioritizál.' },
+  { topic:'xp', q:'Mit hozott be az XP a szoftverfejlesztésbe (még ma is használjuk)?', options:['Agile Manifesto-t','TDD-t és CI-t','Scrum sprinteket','Domain Driven Design-t'], correct:1, explanation:'Az XP hozta be a TDD-t és a Continuous Integration (CI) fogalmát. A mai Jenkins, GitHub Actions mind ennek leszármazottja.' },
+  { topic:'xp', q:'Mikor jó választás az XP?', options:['Nagy elosztott csapatra','Kis-közepes co-located csapatra motivált tagokkal','Banki vagy kórházi rendszerekhez','Egyszemélyes projekthez'], correct:1, explanation:'Az XP kis-közepes csapatra (2-12 fő), co-located, motivált tagokkal. NEM jó: 50+ fős csapat, elosztott, fixed scope projekt.' },
+  { topic:'xp', q:'Mi az "On-site Customer" az XP-ben?', options:['Az ügyfél fizikailag a csapattal van','Az ügyfél otthonról dolgozik','Az ügyfél videohívással csatlakozik','Az ügyfél csak hetente jön be'], correct:0, explanation:'On-site Customer: az ügyfél (vagy egy szakértő képviselője) FIZIKAILAG a csapattal van — egy szobában. Bármilyen kérdés azonnal megválaszolható.' },
+  { topic:'xp', q:'Miben kombinálhatja a Scrum-ot az XP?', options:['Sehogyan — kizárják egymást','Scrum keret + XP technikai gyakorlatok','XP keret + Scrum sprintek','Csak egyiket lehet használni'], correct:1, explanation:'Sok modern csapat "Scrum + XP" kombinációt használ: Scrum adja a keretet (sprint, daily, retro), XP adja a technikai gyakorlatokat (TDD, pair, CI, refactor).' },
+
+  // ── KOMPONENS ────────────────────────────────────────────────────
+  { topic:'komponens', q:'Mi a komponens alapú fejlesztés fő előnye?', options:['Olcsóbb hardver','Újrafelhasználható komponensek','Gyorsabb internet','Kevesebb fejlesztő kell'], correct:1, explanation:'A komponens alapú fejlesztés legfőbb előnye az újrafelhasználhatóság. Egyszer megírt, jól tesztelt komponens több helyen használható.' },
+  { topic:'komponens', q:'Mit jelent a "black-box használat"?', options:['Sötét designt használunk','A komponens belső működése rejtett, csak az interfész látható','Titkos komponensek','Hibás komponensek'], correct:1, explanation:'Black-box: a komponens belső megvalósítása rejtett, csak a publikus interfész látható és használható. Ez biztosítja az újrafelhasználhatóságot.' },
+  { topic:'komponens', q:'Mi a "Build vs Buy" döntés?', options:['Építsünk vagy vegyünk meg egy meglévő komponenst','Ház építés vagy vásárlás','Helyi vagy nemzetközi szállító','Új vagy használt eszköz'], correct:0, explanation:'Build vs Buy: a fejlesztés során eldöntjük, hogy SAJÁT komponenst írunk-e (build) vagy meglévőt használunk (buy/use). Pl. saját CMS vagy WordPress?' },
+  { topic:'komponens', q:'Hol találunk népszerű komponens-piacokat?', options:['npm, Maven Central, PyPI','Csak GitHub-on','Csak fizetett platformokon','Sehol — mindent magunknak kell megírnunk'], correct:0, explanation:'A modern komponens-piacok: npm (JS), Maven Central (Java), PyPI (Python), NuGet (.NET), RubyGems, crates.io (Rust), stb.' },
+  { topic:'komponens', q:'Miért fontos a verziókövetés a komponenseknél?', options:['Nem fontos','Frissítéskor kompatibilitási problémák léphetnek fel','Csak biztonsági okokból','Marketing célokból'], correct:1, explanation:'A verziókövetés kritikus — egy library frissítése BREAKING change-eket okozhat. SemVer (1.2.3) segít: MAJOR.MINOR.PATCH.' },
+  { topic:'komponens', q:'Mi a "függőség pokol" (dependency hell)?', options:['Egy szoftverbarokat','Több komponens egymástól függ, ellentmondó verzióval','A komponensek meghibásodása','A fejlesztők kilépése'], correct:1, explanation:'Dependency hell: amikor két komponens egyazon library különböző verzióit igényli, és nem lehet feloldani a konfliktust.' },
+  { topic:'komponens', q:'Mit kell ellenőrizni egy komponens kiválasztásánál?', options:['Csak az árát','Funkcionalitást, licencet, supportot, biztonsági réseket','Csak a fejlesztő neme','Csak a fájlméret'], correct:1, explanation:'Komponens kiválasztásakor figyelembe veendő: funkcionalitás, licenc (MIT vs GPL!), aktív support, biztonsági rések (CVE), közösség, dokumentáció.' },
+  { topic:'komponens', q:'Mi a "transitive dependency"?', options:['Egy függőség függősége','Időkorlátos függőség','Átmeneti hiba','Külső szolgáltatás'], correct:0, explanation:'Transitive dependency: a komponensünk függ A-tól, A függ B-től. B nekünk transitive dependency — közvetve használjuk.' },
+
+  // ── AOP ──────────────────────────────────────────────────────────
+  { topic:'aop', q:'Mit jelent az AOP?', options:['Application Oriented Programming','Aspect Oriented Programming','Advanced Object Programming','Application Output Protocol'], correct:1, explanation:'AOP = Aspect-Oriented Programming. A keresztmetszeti szempontok (cross-cutting concerns) elválasztása az üzleti logikától.' },
+  { topic:'aop', q:'Mire való az AOP?', options:['Adatbázis kezelésre','Keresztmetszeti szempontok (logging, security, transaction) szétválasztására','Felhasználói felületek tervezésére','Hálózati kommunikációra'], correct:1, explanation:'Az AOP a CROSS-CUTTING CONCERNS-eket (logging, security, transaction, monitoring) szétválasztja az üzleti logikától.' },
+  { topic:'aop', q:'Mi az "Aspect" az AOP-ban?', options:['Egy nézőpont','Egy modulszerű egység ami egy cross-cutting concernt valósít meg','Egy designer feladat','Egy projekt fázis'], correct:1, explanation:'Az Aspect az AOP modulszerű egysége — egy keresztmetszeti aggályt valósít meg (pl. logging aspect).' },
+  { topic:'aop', q:'Mi a "Pointcut" az AOP-ban?', options:['Egy hibakijelölés','Egy szabály, ami megmondja MELYIK metódushívásnál fusson az advice','Egy gomb a UI-n','Egy határidő'], correct:1, explanation:'Pointcut: egy szabály/feltétel, amely meghatározza HOL avatkozzon be az aspect — melyik metódushívásnál, classnál, mezőhozzáférésnél.' },
+  { topic:'aop', q:'Mi az "Advice"?', options:['Egy tanács fejlesztőknek','A kód, ami a pointcut esetén lefut','Egy review komment','A felhasználói útmutató'], correct:1, explanation:'Advice: a tényleges KÓD, ami a pointcut bekövetkezésekor lefut. Pl. before(): log az érintett metódus előtt.' },
+  { topic:'aop', q:'Melyik egy népszerű AOP framework?', options:['Spring AOP','jQuery','Bootstrap','TensorFlow'], correct:0, explanation:'Spring AOP a legnépszerűbb AOP framework Java világban. AspectJ a mélyebb, "pure" AOP eszköz.' },
+  { topic:'aop', q:'Tipikus AOP eset:', options:['UI animálás','@Transactional annotáció — tranzakcióm metódusra','SQL lekérdezések','Adatbázis migráció'], correct:1, explanation:'A @Transactional egy klasszikus AOP használat — az aspect (proxy) automatikusan tranzakciót kezel a metódus körül.' },
+
+  // ── FORMÁLIS MÓDSZEREK ───────────────────────────────────────────
+  { topic:'formal', q:'Mi a formális módszerek lényege?', options:['Hivatalos öltözet','Matematikailag precíz szoftverspecifikáció és verifikáció','Formális dokumentumok írása','Iratos kommunikáció'], correct:1, explanation:'A formális módszerek matematikai (logikai) eszközöket használnak a szoftver specifikálására, fejlesztésére és verifikálására.' },
+  { topic:'formal', q:'Melyik egy formális specifikációs nyelv?', options:['JavaScript','Z notation','HTML','Markdown'], correct:1, explanation:'A Z notation egy formális specifikációs nyelv. Más példák: VDM, B-method, TLA+, Alloy.' },
+  { topic:'formal', q:'Mikor használnak formális módszereket?', options:['Mindenhol','Kritikus rendszerekhez: űr, repülő, orvosi, atomerőmű','Csak iskolákban','Csak kis projekteknél'], correct:1, explanation:'Formális módszereket olyan helyeken használnak, ahol a hiba katasztrofális — űr, repülő, orvosi, atomerőmű. DO-178C, IEC 62304 szabványok.' },
+  { topic:'formal', q:'Mi a formális verifikáció?', options:['Egy aláírt dokumentum','A programkód helyességének matematikai bizonyítása','Hivatalos verifikáció','Csak tesztelés'], correct:1, explanation:'Formális verifikáció: matematikai bizonyítás, hogy a program megfelel a specifikációnak. Pl. theorem prover-ekkel (Coq, Isabelle).' },
+  { topic:'formal', q:'Mi a formális módszerek FŐ hátránya?', options:['Olcsók','Drága, lassú, szakértőt igényel','Nem garantálnak semmit','Csak Java-ra használhatók'], correct:1, explanation:'A formális módszerek FŐ hátránya: drága, lassú, magasan képzett matematikusokat igényel. Ezért csak biztonságkritikus rendszereknél használják.' },
+
+  // ── ARCHITEKTÚRA ALAPOK ──────────────────────────────────────────
+  { topic:'arch', q:'Mi a "10 000 láb perspektíva"?', options:['Repülőgép tervezés','A szoftvert távolról nézni — látva az összefüggéseket','Csak felhő technológia','Egy projektmenedzsment módszer'], correct:1, explanation:'A 10 000 láb (~3 km) perspektíva: a szoftvert elegendően TÁVOLRÓL nézni, hogy lássuk az összefüggéseket — nem a részleteket, hanem a struktúrát.' },
+  { topic:'arch', q:'Az F-16 példa mit tanít?', options:['A leggyorsabb a legjobb','A VALÓDI problémát kell megérteni, nem a felszíni kérést','Csak amerikai technológiát használjunk','A repülők drágák'], correct:1, explanation:'F-16: a "Mach 2.5 sebesség" kérés mögött a "menekülés a harcból" valódi igény volt. Mindig kérdezd: MIÉRT?' },
+  { topic:'arch', q:'Mi a különbség a Funkcionális és Nem-funkcionális követelmény között?', options:['Egyik fontos, másik nem','FR = MIT csinál, NFR = HOGYAN csinálja','FR a UI-ra, NFR a backendre','Ugyanaz'], correct:1, explanation:'Funkcionális (FR): MIT csinál a rendszer (bejelentkezés, kosár). Nem-funkcionális (NFR): HOGYAN csinálja (gyorsan, biztonságosan, megbízhatóan).' },
+  { topic:'arch', q:'Hogyan döntöd el ARCHITEKTÚRA vagy TERV döntés?', options:['Az architect dönti el','Költséges megváltoztatni? → Arch. Ma refaktorálható? → Terv','Méret alapján','Ki írta'], correct:1, explanation:'Két kérdés: "Költséges megváltoztatni?" → Architektúra. "Még ma refaktorálható?" → Tervi döntés.' },
+  { topic:'arch', q:'Az MVC mintát választani — milyen döntés?', options:['Tervi (Design)','Architektúrális','Üzleti','Marketing'], correct:1, explanation:'Az MVC választása ARCHITEKTÚRÁLIS döntés — meghatározza a teljes alkalmazás struktúráját. Költséges megváltoztatni utólag.' },
+  { topic:'arch', q:'Melyik egy "tiltott szó" a követelményekben?', options:['Felhasználó','Felhasználóbarát','Funkcionális','Megrendelő'], correct:1, explanation:'Tiltott szavak: "felhasználóbarát", "gyors", "intuitív", "robusztus". Mindegyik szubjektív — MINDIG pontosítani számszerűen!' },
+  { topic:'arch', q:'A jó követelmény 6 jellemzője?', options:['Hosszú, érthetetlen, drága...','Szükséges, Érthető, Ellenőrizhető, Követhető, Konzisztens, Teljes','Olcsó, gyors, jó','Modern, divatos, drága'], correct:1, explanation:'6 jellemző: Szükséges (értéket képvisel), Érthető (egyértelmű), Ellenőrizhető (mérhető), Követhető (üzleti célra vezet), Konzisztens (ellentmondásmentes), Teljes.' },
+  { topic:'arch', q:'Mi a "Olcsó-Jó-Gyors" háromszög?', options:['Mindhárom kapható','3-ból csak 2-t választhatsz','Csak 1-et választhatsz','Mindegyik egyszerre'], correct:1, explanation:'Projekt háromszög: Olcsó + Jó = Lassú. Jó + Gyors = Drága. Olcsó + Gyors = Rossz. Csak 2 közül választhatsz!' },
+  { topic:'arch', q:'Az architektúra-tervezés melyik fázisa az első?', options:['Megoldástér (kivitelezés)','Problématér (megértés)','Implementáció','Tesztelés'], correct:1, explanation:'Az architektúra-tervezés 2 fázisa: PROBLÉMATÉR (értsd meg a feladatot) → MEGOLDÁSTÉR (kivitelezd). NE ugorj a megoldásra elsőre!' },
+  { topic:'arch', q:'Mi a 4 erő, ami az architektúrára hat?', options:['Föld, víz, tűz, levegő','Funkcionális, Minőségi (NFR), Nem-technikai, Szabadság korlátja','Idő, pénz, energia, ember','Csak technikai erők'], correct:1, explanation:'4 erő: 1) Funkcionális (FR) 2) Minőségi (NFR) 3) Nem-technikai (jogi, üzleti) 4) Szabadság korlátja (csapat tudása, határidő).' },
+  { topic:'arch', q:'Mi az ADR?', options:['Application Domain Record','Architecture Decision Record','Advanced Design Repository','Annual Document Review'], correct:1, explanation:'ADR = Architecture Decision Record. Egy rövid dokumentum: kontextus + döntés + következmények. Pl. "ADR-001: PostgreSQL-t választunk, mert...".' },
+
+  // ── DOMAIN ───────────────────────────────────────────────────────
+  { topic:'domain', q:'Mit szemléltet a "6 vak ember és az elefánt" történet?', options:['Az ember tévedhet','Különböző nézőpontokat egységes egésszé kell alakítani','A vakságot','Az indiai kultúrát'], correct:1, explanation:'A 6 vak ember és az elefánt: minden szereplő más nézőponttal/tudással rendelkezik. Ezeket egységes egésszé kell alakítani — ez a domain modell célja.' },
+  { topic:'domain', q:'Mi a domain modell célja?', options:['Adatbázis tervezés','A szakterület közös megértése — szakértők és fejlesztők közt','Csak fejlesztőknek','UI tervezés'], correct:1, explanation:'A domain modell biztosítja a KÖZÖS NYELVET a szakértő és a programozó közt. Mindenki ugyanazt érti — nem fordítunk.' },
+  { topic:'domain', q:'Mit jelent az "Ubiquitous Language"?', options:['Univerzális programozási nyelv','Mindenhol használt közös szóhasználat','Web-es nyelv','SQL'], correct:1, explanation:'Ubiquitous Language: a szakterületi szóhasználatot mindenhol használjuk — kódban, dokumentációban, beszélgetésben. Pl. "Kontingens" → Quota osztály.' },
+  { topic:'domain', q:'Mi a jó modell 3 tulajdonsága?', options:['Pontos, drága, lassú','Egyszerűsít, Célhoz kötött, Válaszokat ad','Bonyolult, részletes, drága','Hosszú, érthetetlen, akadémiai'], correct:1, explanation:'A jó modell: 1) Egyszerűsít (fölösleget elhagy), 2) Célhoz kötött (tudjuk MIÉRT készül), 3) Válaszokat ad (segít a megoldásban).' },
+  { topic:'domain', q:'Mit példáz a Königsbergi hidak problémája?', options:['Egy földrajzi rejtvény','Modellek erejét — Euler egyszerűsítéssel megszüli a gráfelméletet','Egy turisztikai látnivalót','Egy építészeti megoldást'], correct:1, explanation:'Königsbergi hidak: Euler 1736-ban gráffá egyszerűsítette a problémát. A modell egyszerűsítése MEGOLDOTTA a problémát + megszülte a gráfelméletet.' },
+  { topic:'domain', q:'Melyik MEGKÖZELÍTÉS a túltervezés?', options:['Gyorsan dobjuk össze a kódot','Hónapokig tervezünk, analízis paralízis','TDD','Code review'], correct:1, explanation:'Túltervezés: analízis paralízis — a tervezők nem tudnak továbblépni, mert a modell "nem elég jó". Hónapokat veszítünk, mire kész — már elavult.' },
+  { topic:'domain', q:'Mi az "arany középút" a tervezésben?', options:['Mindent megtervezni','Tervmentes fejlesztés','Annyit tervezünk, amennyi épp szükséges','Tervezzünk a végtelenségig'], correct:2, explanation:'Az arany középút: tervezünk, de CSAK annyit, amennyire éppen szükség van. Agilis tervezés — folyamatosan működőképes, érték minden iterációban.' },
+
+  // ── DDD, ONION, CQRS ─────────────────────────────────────────────
+  { topic:'ddd', q:'Ki dolgozta ki a DDD-t?', options:['Martin Fowler','Eric Evans, 2003','Robert Martin','Kent Beck'], correct:1, explanation:'Domain-Driven Design (DDD) — Eric Evans 2003-as könyvéből származik: "Domain-Driven Design: Tackling Complexity in the Heart of Software".' },
+  { topic:'ddd', q:'Mi az Onion architektúra központja?', options:['Az adatbázis','A Domain Model','A UI','Az infrastruktúra'], correct:1, explanation:'Onion architektúra: a DOMAIN MODEL a központban, körülötte Domain Services, App Services, UI, Infrastructure, Tests. A belső réteg NEM tud a külsőről.' },
+  { topic:'ddd', q:'Mi a különbség Entity és Value Object között?', options:['Ugyanaz','Entity = ID-val (változhat), Value Object = immutable, érték az identitás','Entity = nagyobb, VO = kisebb','Entity = adatbázis, VO = memória'], correct:1, explanation:'Entity: egyedi ID-val, állapota változhat (pl. Customer). Value Object: nincs ID, immutable, az érték AZ identitása (pl. Money, Address).' },
+  { topic:'ddd', q:'Két azonos összegű "Money" objektum (pl. két 100 EUR)?', options:['Nem egyenlők, mert külön példányok','Egyenlők (Value Object)','Csak egyik lehet a "valódi"','Mindig hibát dob'], correct:1, explanation:'A Money Value Object — két 100 EUR teljesen egyenlő. Az értékük AZONOS, és ez számít. Nem kell ID.' },
+  { topic:'ddd', q:'Mit jelent a CRUD?', options:['Create, Read, Update, Delete','Code, Run, Update, Debug','Common Repository Universal Database','Continuous Release Update Deploy'], correct:0, explanation:'CRUD = Create, Read, Update, Delete. Az adatbázis 4 alapművelete.' },
+  { topic:'ddd', q:'Mit jelent a CQRS?', options:['Continuous Quality Requirements System','Command Query Responsibility Segregation','Centralized Query Response System','Common Quality Review Standard'], correct:1, explanation:'CQRS = Command Query Responsibility Segregation. Az adatok módosítása (Command) és olvasása (Query) szétválasztva — külön modellekkel.' },
+  { topic:'ddd', q:'Mikor érdemes CQRS-t használni?', options:['Mindig','Egyszerű CRUD appoknál','Komplex domain, sokkal több olvasás mint írás','Csak kis projekteknél'], correct:2, explanation:'CQRS akkor jó: komplex domain, sokkal több olvasás mint írás, skálázási igények. EGYSZERŰ alkalmazásra TÚLZÁS — Martin Fowler: "ha kétséges, NE használd".' },
+  { topic:'ddd', q:'Mi a "Bounded Context" a DDD-ben?', options:['Egy programozási nyelv','Egy domain modell határai','Egy projektmenedzsment módszer','Egy biztonsági réteg'], correct:1, explanation:'Bounded Context: egy nagy rendszerben több domain modell létezik. Pl. "Customer" mást jelent Sales kontextusban, mint Support kontextusban. Világos határok.' },
+  { topic:'ddd', q:'Mit jelent a Dependency Inversion az Onion architektúrában?', options:['A függőség fordítva van','A domain interface-ket definiál, infrastruktúra implementálja','Az adatbázis hívja a UI-t','Nincs függőség'], correct:1, explanation:'Dependency Inversion: a Domain INTERFACE-ket definiál (pl. AccountRepository), az Infrastructure réteg IMPLEMENTÁLJA. Cserélhető bármikor.' },
+
+  // ── ENTERPRISE ───────────────────────────────────────────────────
+  { topic:'enterprise', q:'Mi az on-shore?', options:['Csak külföldi cég','Munkavégzés ugyanazon az országon belül','Csak USA-ban','Csak EU-n belül'], correct:1, explanation:'On-shore: munkavégzés ugyanazon az országon/területen belül. Drágább, de nincs jogi/kulturális különbség.' },
+  { topic:'enterprise', q:'Mi az off-shore fő előnye?', options:['Olcsóbb munkaerő','Gyorsabb kommunikáció','Jobb minőség','Kevesebb jogi probléma'], correct:0, explanation:'Off-shore: legolcsóbb munkaerő. Hátránya: nagy időzóna eltérés (±5-12h), kulturális/jogi különbségek, nehéz kommunikáció.' },
+  { topic:'enterprise', q:'Mi a különbség leányvállalat és kiszervezés közt?', options:['Ugyanaz','Leányvállalat = saját részleg, Kiszervezés = külső cég','Leányvállalat = kisebb','Kiszervezés = csak külföldre'], correct:1, explanation:'Leányvállalat: saját részleg másik országban, anyacég felel, nagy kockázat. Kiszervezés: polgári jogi szerződés külső céggel, alacsonyabb kockázat.' },
+  { topic:'enterprise', q:'Külföldről dolgozni magyar cégnek — milyen jogi kérdés?', options:['Nincs','Adózási kötelezettség keletkezhet abban az országban ahol dolgozol','Csak engedély kell','Tilos'], correct:1, explanation:'Külföldi munkavégzés: az adózás abban az országban történik, ahol dolgozol. Spanyolországból dolgozni 3 hónapot → spanyol adózási kötelezettség keletkezhet.' },
+  { topic:'enterprise', q:'Mi az "integrációs bumm"?', options:['Hangrobbanás','Hosszú ideig nem integráltak a csapatok, szállítás előtt derül ki minden probléma','Új integrációs eszköz','Marketing kampány'], correct:1, explanation:'Integrációs bumm: ha hosszú ideig külön dolgoznak a csapatok, majd integrálnak — rengeteg konfliktus, inkompatibilitás. Hetekig tartó "pokol".' },
+  { topic:'enterprise', q:'Mi a near-shore?', options:['Tengerparti munka','Munkavégzés EU országok közt — minimális kulturális/jogi különbség','Csak Németországban','Helyi munka'], correct:1, explanation:'Near-shore: pl. EU országok közt. Minimális időzóna/kulturális különbség, hasonló jogrendszer. Közepes ár.' },
+
+  // ── SAFE ─────────────────────────────────────────────────────────
+  { topic:'safe', q:'Hány szintű a SAFe modell?', options:['1','2','3 (Portfolio, Essential, Team)','5'], correct:2, explanation:'SAFe 3 szintű: Portfolio (stratégia), Essential (csapat-koordináció), Team (Scrum csapatok). Az alsóbb szint mindig a magasabbtól származtatja a feladatokat.' },
+  { topic:'safe', q:'Mi az "EPIC" a SAFe-ben?', options:['Egy nagy User Story','Magas szintű termék/funkció definíció a Portfolio szinten','Egy ősi pont','Egy szerepkör'], correct:1, explanation:'EPIC: a SAFe Portfolio szintjén definiált magas szintű termék/funkció. Az Epic Owner felel érte. Lebomlik Feature-ökre az Essential szinten.' },
+  { topic:'safe', q:'Mi a "Release Train"?', options:['Egy fizikai vonat','Egy ütemezett szállítási folyamat, ahol a csapatok szinkronban szállítanak','Egy szoftver','Egy CI/CD eszköz'], correct:1, explanation:'Release Train: ütemezett folyamat, ahol a csapatok EGYÜTT, szinkronban szállítanak. A "vonatra felszállnak" a PI elején, együtt "érkeznek meg".' },
+  { topic:'safe', q:'Mi a PI Planning?', options:['Egy szoftvertelepítés','2 napos esemény: 4-5 sprint közös tervezése, függőségek azonosítása','Egy projektmenedzsment eszköz','Egy adatbázis tervezés'], correct:1, explanation:'PI Planning: 2 napos esemény. Az összes csapat PO-ja, SM-je részt vesz. Azonosítják a függőségeket, szinkronizálják a következő 4-5 sprintet.' },
+  { topic:'safe', q:'Ki a "Release Train Engineer" (RTE)?', options:['Egy vonatfékező','A Release Train karmestere — folyamatokat és eseményeket kezel','A senior fejlesztő','Egy QA mérnök'], correct:1, explanation:'RTE: a Release Train karmestere. Az események és folyamatok kezelése, függőségek jelzése, rizikók menedzselése.' },
+  { topic:'safe', q:'Mi a CE/CI/CD a SAFe-ben?', options:['Bizonyítványok','Continuous Exploration / Integration / Delivery','Adatbázis műveletek','Programozási nyelvek'], correct:1, explanation:'CE: Continuous Exploration (mit fejlesszünk). CI: Continuous Integration (folyamatos integráció). CD: Continuous Delivery (folyamatos szállítás).' },
+  { topic:'safe', q:'Mi a SAFe alternatívája egyszerűbb cégekhez?', options:['LeSS (Large-Scale Scrum)','Nincs','Kanban','Waterfall'], correct:0, explanation:'LeSS (Large-Scale Scrum): egyszerűsített, Scrum alapokon. Kisebb cégeknek (2-8 csapat) jobb. SAFe nagy vállalatoknak (100+ csapat).' },
+
+  // ── RBT (Rizikó Alapú Tesztelés) ─────────────────────────────────
+  { topic:'rbt', q:'Mi az RBT formulája?', options:['P = V + K + T','P = V × K × T (Valószínűség × Kár × Teszt hatékonyság)','P = V - K - T','P = V / K / T'], correct:1, explanation:'Prioritás = Valószínűség × Kár × Teszt hatékonyság. V × K = Kihatás. Kihatás × T = Prioritás.' },
+  { topic:'rbt', q:'Hány lépésből áll az RBT folyamat?', options:['3','5','7','10'], correct:1, explanation:'5 lépés: 1) Rizikó azonosítás, 2) Rizikó analízis, 3) Rizikóra reagálás, 4) Ellenőrzés & Döntés, 5) Teszt tervezés.' },
+  { topic:'rbt', q:'Mit jelent a Valószínűség 1-5 skála "5"-ös értéke?', options:['Soha nem következik be','1-20%','81-99% — szinte biztos','100%'], correct:2, explanation:'5: 81-99% — "szinte biztosan bekövetkezik". 1: 1-20% — "erősen valószínűtlen".' },
+  { topic:'rbt', q:'Mit jelent a Kár 5-ös értéke?', options:['Negligible','Critical — üzleti célok NEM érhetők el','Moderate','Csak felhasználói panasz'], correct:1, explanation:'Kár 5: Critical — az üzleti célok NEM érhetők el. Pl. fizetési funkció lefagy.' },
+  { topic:'rbt', q:'Mi a "Teszt hatékonyság" jelentése az RBT-ben?', options:['Mennyi idő alatt fut le','Mennyire tudjuk a teszteléssel csökkenteni a kockázatot','A tesztelő bére','A tesztek száma'], correct:1, explanation:'Teszt hatékonyság (1-5): mennyire tudja a TESZTELÉS csökkenteni az adott rizikót. 1: NEM oldja meg. 5: nagy bizalom, hogy megtalálja a hibákat.' },
+  { topic:'rbt', q:'Egy rizikó V=5, K=2, T=1. Mi a Prioritás?', options:['8','5','10','2'], correct:2, explanation:'V × K = 5 × 2 = 10 (Kihatás). Kihatás × T = 10 × 1 = 10. Tehát Prioritás = 10. Annak ellenére, hogy V magas (5), a T alacsony → Prioritás nem nagy.' },
+  { topic:'rbt', q:'Hol illeszthető be az RBT a Scrum folyamatba?', options:['Sehol','Refinement (Grooming) — még a sprint előtt','Csak a sprint végén','Csak retrospektíven'], correct:1, explanation:'RBT meeting a Refinement / Grooming részeként történik. A PO bemutatja a story-t, a csapat azonosítja a rizikókat. Sprint Planning-re már priorizált rizikók.' },
+
+  // ── TESZTELÉS ALAPOK ─────────────────────────────────────────────
+  { topic:'teszt', q:'Mit jelent a V&V?', options:['Visual & Verbal','Verifikáció + Validáció','Version Verification','Variable Validation'], correct:1, explanation:'V&V = Verifikáció + Validáció. Verifikáció: "Jól építjük?" (spec szerint). Validáció: "Jót építünk?" (az ügyfél igényét).' },
+  { topic:'teszt', q:'Mi a tesztpiramis 4 szintje?', options:['Unit, Integration, System, Acceptance','Alpha, Beta, Gamma, Delta','Plan, Test, Deploy, Monitor','UI, API, DB, Network'], correct:0, explanation:'Tesztpiramis: 1) Unit teszt (fehér doboz, sok), 2) Integrációs teszt, 3) Rendszer teszt (fekete doboz), 4) Átvételi teszt (UAT, kevés).' },
+  { topic:'teszt', q:'A Unit teszt fehér vagy fekete dobozos?', options:['Fekete','Fehér (forráskód ismeretében)','Mindkettő','Egyik sem'], correct:1, explanation:'Unit teszt: FEHÉR dobozos — a forráskód ismeretében teszteli a rendszer önálló részeit. A Rendszer teszt fekete dobozos.' },
+  { topic:'teszt', q:'Mi a Shift Left tesztelés lényege?', options:['Csak a baloldalon kell tesztelni','Tolni mindent BALRA — a folyamat elejére','Egyik csapatból a másikba','Földrajzi áthelyezés'], correct:1, explanation:'Shift Left: tolni mindent a folyamat elejére. Korai (követelmény) fázisban talált hiba 1×, production-ban 100-1000× költségbe kerül javítani.' },
+  { topic:'teszt', q:'A Boeing 737 MAX katasztrófa fő oka?', options:['Pilóta hiba','MCAS rendszer — egyetlen szenzor adata + nincs redundancia','Üzemanyag hiány','Időjárás'], correct:1, explanation:'Boeing 737 MAX (2018-19): 346 halott. Az MCAS EGYETLEN állásszög-szenzor alapján döntött. Redundancia HIÁNYA + pilóta oktatás hiánya.' },
+  { topic:'teszt', q:'Hány alapelve van a tesztelésnek (a tananyag szerint)?', options:['5','7','9','3'], correct:1, explanation:'7 alapelv: 1) Korai tesztelés, 2) Mindent nem lehet, 3) Dijkstra (hibák jelenléte), 4) Hibák csoportosulnak, 5) Reális környezet, 6) Hibátlan nincs, 7) Pesticid paradoxon.' },
+  { topic:'teszt', q:'Dijkstra mondása szerint a tesztelés mit tud kimutatni?', options:['A teljes hibamentességet','Csak a hibák JELENLÉTÉT, nem a hibamentességet','Az összes hibát','Csak a kódminőséget'], correct:1, explanation:'Dijkstra: "A tesztelés a hibák jelenlétét, és nem a hibamentességet tudja kimutatni — de azokat legalább tudjuk javítani."' },
+  { topic:'teszt', q:'Mi a "Pesticid paradoxon"?', options:['Vegyszerek a kódban','Ugyanazok a tesztek idővel egyre kevesebb hibát találnak','Növényvédelem','Mérgezés'], correct:1, explanation:'Pesticid paradoxon: ugyanaz a tesztkészlet idővel egyre kevesebb hibát talál — a kód "immunissá" válik. Frissíteni kell a teszteket!' },
+  { topic:'teszt', q:'Mi a Funkcionális vs Nem-funkcionális teszt különbsége?', options:['Egyik nem fontos','Funkcionális: MIT csinál. Non-functional: HOGYAN csinálja','Funkcionális csak UI-ra','Non-functional csak DB-re'], correct:1, explanation:'Funkcionális teszt: MIT csinál a rendszer (bejelentkezés működik?). Non-functional: HOGYAN (gyorsan? biztonságosan? megbízhatóan?).' },
+  { topic:'teszt', q:'Mi a Performance, Load, Stress teszt különbsége?', options:['Mindhárom ugyanaz','Performance: gyors? Load: sok userrel? Stress: hol esik szét?','Csak elnevezések','Csak hardware tesztek'], correct:1, explanation:'Performance: "elég gyors?" Load: "sok felhasználóval is megy?" Stress: "hol a töréspont, hol esik szét?"' },
+  { topic:'teszt', q:'Mi a regressziós teszt?', options:['Hátrafelé futás','Korábban működő funkciók újra-tesztelése minden változás után','Performance teszt','Új feature teszt'], correct:1, explanation:'Regressziós teszt: korábban működő funkciók ELLENŐRZÉSE minden változás után. "Ami régen ment, ma is menjen." Automatizálható.' },
+  { topic:'teszt', q:'Mi a Security tesztelés 7 típusa közül 1?', options:['UI teszt','Behatolásteszt (Pen Test)','SQL injection','Code review'], correct:1, explanation:'7 Security teszt: 1) Sebezhetőség vizsgálat, 2) Biztonsági szkennelés, 3) Behatolásteszt (Pen Test), 4) Kockázatértékelés, 5) Audit, 6) Etikus hackelés, 7) Testtartás-értékelés.' },
+
+  // ── CONFIGURATION MANAGEMENT ─────────────────────────────────────
+  { topic:'cm', q:'Mi a Konfigurációkezelés 5 területe?', options:['Csak verziókövetés','Verziókövetés, Változáskövetés, Generálás, Kiadás, Integráció','Csak Git használat','Csak build folyamat'], correct:1, explanation:'CM 5 területe: 1) Verziókövetés, 2) Változáskövetés, 3) Generálás (Build), 4) Kiadáskezelés, 5) Integráció (CI).' },
+  { topic:'cm', q:'Mit jelent a "konfigurációs elem"?', options:['Egy beállítás','Egy nyomon követhető egység: kód, doku, build környezet','Egy fizikai eszköz','Egy email beállítás'], correct:1, explanation:'Konfigurációs elem: bármilyen nyomon követhető egység — szoftverkód, dokumentáció, fejlesztői környezet, build környezet.' },
+  { topic:'cm', q:'Mi a CM fő célja?', options:['Több munka','Ellenőrzött fejlesztés + reprodukálható állapotok','Pénzmegtakarítás','UI javítás'], correct:1, explanation:'CM cél: a fejlesztés ellenőrzött körülmények közt + a rögzített állapotok reprodukálhatóak a teljes élettartam alatt.' },
+  { topic:'cm', q:'Mit jelent a "Baseline"?', options:['Egy adatbázis','Rögzített, "befagyasztott" állapot — mérföldkő','Egy verzió 1.0','Egy Git branch'], correct:1, explanation:'Baseline: egy rögzített, "befagyasztott" állapot. Ide bármikor vissza lehet állni. Pl. v2.0.0 release tag.' },
+  { topic:'cm', q:'Mit jelent az ABC veszély a CM-ben?', options:['Egy szabvány','Attitude, Behavior, Culture — emberi tényezők','Egy ranglista','Egy ISO szabvány'], correct:1, explanation:'ABC veszélyek: Attitude (hozzáállás), Behavior (viselkedés), Culture (kultúra). A technika nem elég — az embereken múlik a CM siker.' },
+  { topic:'cm', q:'Mi a "Work Item" 4 fő típusa?', options:['Bug, Feature, Refactor, Customer','User, Admin, Manager, Tester','Plan, Code, Build, Deploy','Win, Lose, Draw, Forfeit'], correct:0, explanation:'4 Work Item: Bug (hibajavítás), Feature (új funkció), Refactor (kódtisztítás), Ügyféligény (customer requirement).' },
+  { topic:'cm', q:'Az ITIL melyik fázisához kapcsolódik a CM?', options:['Service Strategy','Service Design','Service Transition (ST)','Service Operation'], correct:2, explanation:'CM az ITIL-ben a Service Transition (ST) fázishoz tartozik — Dev → Ops átadás, kiadáskezelés, CMDB.' },
+
+  // ── GIT ──────────────────────────────────────────────────────────
+  { topic:'git', q:'Ki és mikor készítette a Gitet?', options:['Bill Gates, 1990','Linus Torvalds, 2005','Steve Jobs, 2001','Mark Zuckerberg, 2010'], correct:1, explanation:'A Git-et Linus Torvalds készítette 2005-ben a Linux kernel fejlesztéséhez. Elosztott (distributed) verziókezelő.' },
+  { topic:'git', q:'Mit csinál a "git clone" parancs?', options:['Új repo létrehozás','Egy meglévő repo letöltése a saját gépre','Branch létrehozás','Commit'], correct:1, explanation:'git clone <url>: egy meglévő remote repository letöltése a saját gépre, full história + minden branch.' },
+  { topic:'git', q:'Mi a "Staging Area" a Git-ben?', options:['Egy szerver','Köztes tároló logikai csoportosításhoz commit előtt','Egy backup','Egy branch'], correct:1, explanation:'Staging Area (Index): köztes tároló. A git add tervbe veszi a változtatást, de még nem commitolja. Logikai csoportosítás.' },
+  { topic:'git', q:'Mi a fő különbség Git és SVN közt?', options:['Nincs','Git: elosztott (minden gépen teljes repo). SVN: centralizált','Git platformfüggő, SVN nem','Git ingyenes, SVN drága'], correct:1, explanation:'Git: ELOSZTOTT (distributed) — minden fejlesztőnek teljes másolata van. SVN: CENTRALIZÁLT — csak egy szerver, fejlesztők working copy-t használnak.' },
+  { topic:'git', q:'Mit csinál a "git pull"?', options:['Új commitot készít','Letölti és összefésüli a remote változásokat','Branch-et töröl','Tag-et készít'], correct:1, explanation:'git pull = git fetch + git merge. Letölti a remote változásokat és összefésüli a lokális branchel.' },
+  { topic:'git', q:'Mi a Merge Conflict?', options:['Hálózati hiba','Két branch ugyanazt a sort módosította, Git nem tudja eldönteni','Verzió eltérés','Engedélyezési probléma'], correct:1, explanation:'Merge Conflict: két branch ugyanazt a sort másképp módosította. A Git nem tudja automatikusan eldönteni — manuálisan kell megoldani.' },
+  { topic:'git', q:'Mi a Git tag?', options:['Egy felirat a kódban','Egy adott commitra mutató állandó hivatkozás (baseline)','Egy hashtag','Egy commit üzenet'], correct:1, explanation:'Tag: egy adott commitra mutató ÁLLANDÓ hivatkozás. Branch mozog, tag NEM. Pl. v2.3.1 release. Annotated tag tartalmaz üzenetet is.' },
+  { topic:'git', q:'A SemVer 1.2.3-ban a "3" mit jelent?', options:['MAJOR','MINOR','PATCH (hibajavítás)','BUILD'], correct:2, explanation:'SemVer: MAJOR.MINOR.PATCH. 1.2.3 → MAJOR=1 (breaking change), MINOR=2 (új funkció), PATCH=3 (hibajavítás).' },
+  { topic:'git', q:'Mit jelent egy "Protected branch"?', options:['Olvashatatlan','Direkt push tiltva — Merge Request kötelező','Csak admin férhet hozzá','Titkosított'], correct:1, explanation:'Protected branch (általában main/master): direkt push tiltva. Csak Merge Request-en át, code review + CI zöld után kerülhet bele kód.' },
+  { topic:'git', q:'Mit csinál a "git checkout -b feature/login"?', options:['Töröl egy branchet','Új feature/login branchet hoz létre ÉS átvált rá','Csak átvált rá','Csak létrehozza, nem vált át'], correct:1, explanation:'git checkout -b <név>: új branch létrehozása ÉS átváltás rá. (Régi szintaxis; újabb: git switch -c)' },
+
+  // ── BIZTONSÁGI SÉRÜLÉKENYSÉGEK ───────────────────────────────────
+  { topic:'security', q:'Mi a Stuxnet?', options:['Egy hálózati protokoll','Az első ismert kiberfegyver — iráni atomprogramot támadta','Egy Linux disztribúció','Egy biztonsági cég'], correct:1, explanation:'Stuxnet (2010): az első ismert kiberfegyver. Iráni urándúsító centrifugákat támadta — a centrifugák 20%-a megsemmisült.' },
+  { topic:'security', q:'Mit jelent a CVE?', options:['Common Vulnerabilities and Exposures','Critical Vulnerability Engine','Cyber Vulnerability Estimation','Common Verification Engine'], correct:0, explanation:'CVE = Common Vulnerabilities and Exposures. Minden ismert sérülékenység egyedi számmal (pl. CVE-2021-44228 = Log4Shell).' },
+  { topic:'security', q:'Mit jelent az XSS?', options:['Extra Site Search','Cross-Site Scripting — kliens oldali kód futtatása','XML Schema','Extreme Security System'], correct:1, explanation:'XSS = Cross-Site Scripting. Egy támadó JavaScriptet injektál egy weboldalba — a böngészők lefuttatják. Megelőzés: input validáció + output encoding.' },
+  { topic:'security', q:'Mit jelent az SQL Injection?', options:['SQL adatbázis kezelés','Felhasználói input bekerül az SQL kódba (manipulálva azt)','SQL feltöltés','Egy adatbázis hibája'], correct:1, explanation:'SQL Injection: a felhasználói input bekerül az SQL kódba ellenőrzés nélkül. Pl. \' OR \'1\'=\'1 → az összes user adata kijön. Megelőzés: Prepared Statements.' },
+  { topic:'security', q:'Mi a CSRF?', options:['Cross-Site Request Forgery — az áldozat saját session-jével hajt végre műveletet','Egy security framework','Cyber Security Risk Framework','Customer Service Response Framework'], correct:0, explanation:'CSRF: az áldozat be van jelentkezve, a hacker küld neki egy linket. Rákattint → a saját session-jével hajtja végre a műveletet (pl. pénzátutalás).' },
+  { topic:'security', q:'Mi a Buffer Overflow?', options:['Hálózati torlódás','Pufferen túli írás — felülírja a stack-en a visszatérési címet','Lassú számítógép','Túl sok adat letöltése'], correct:1, explanation:'Buffer Overflow: a programkód több adatot ír egy bufferbe, mint amennyi belefér. Felülírja a stack-en a visszatérési címet → akár kódfuttatás.' },
+  { topic:'security', q:'Mi a hibák biztonsági szintje (felső)?', options:['Magas','Kritikus','Vészhelyzet','Sürgős'], correct:1, explanation:'5 szint: 1) Nincs hatás, 2) Alacsony, 3) Közepes, 4) Magas, 5) KRITIKUS. Pl. Buffer Overflow az OS API-ban — milliókat érint.' },
+  { topic:'security', q:'Az Alkotmánybíróság weboldalán milyen sérülékenység volt?', options:['SQL injection','XSS — átírták az alaptörvény szövegét','CSRF','Buffer overflow'], correct:1, explanation:'Az Alkotmánybíróság weboldalán XSS sérülékenységgel írták át az alaptörvény szövegét. A látogatók hamis tartalmat láttak.' },
+  { topic:'security', q:'Mit jelent a "Path Traversal"?', options:['Útvonal-tervezés','Bemenetbe ../../ — visszafelé lépeget a fájlrendszerben','Hálózati útvonalválasztás','Egy router beállítás'], correct:1, explanation:'Path Traversal: ../../../etc/passwd → a támadó visszafelé lépeget a fájlrendszerben. Védelem: whitelist, realpath ellenőrzés.' },
+
+  // ── MICROSOFT SDL ────────────────────────────────────────────────
+  { topic:'sdl', q:'Mit jelent az SDL?', options:['Software Development License','Security Development Lifecycle','Standard Database Layer','System Design Language'], correct:1, explanation:'SDL = Security Development Lifecycle. Microsoft 2004-ben dolgozta ki. A biztonságot a fejlesztési folyamat MINDEN fázisába integrálja.' },
+  { topic:'sdl', q:'Hány szakaszból áll a Microsoft SDL?', options:['5','6','7 (0-6)','10'], correct:2, explanation:'7 szakasz (0-6): 0) Oktatás, 1) Követelmény, 2) Tervezés, 3) Implementáció, 4) Verifikáció, 5) Kiadás, 6) Utóélet.' },
+  { topic:'sdl', q:'Mi az SDL 0. szakasza?', options:['Tervezés','Oktatás (minden részvevő)','Kódolás','Tesztelés'], correct:1, explanation:'SDL 0. szakasz: Oktatás. MINDEN kollégának — fejlesztő, tesztelő, manager. Évente frissített biztonsági oktatás.' },
+  { topic:'sdl', q:'Mit jelent a "Defense in Depth"?', options:['Csak egy védelem','Több biztonsági réteg egymás után — mélységi védekezés','Mély internet','Pénzügyi védelem'], correct:1, explanation:'Defense in Depth: több biztonsági réteg egymás után. Ha az egyik átszakad, a következő megállítja. Pl. Tűzfal + Auth + Titkosítás + Monitoring.' },
+  { topic:'sdl', q:'Mit jelent a "Least Privilege"?', options:['A legkisebb fizetés','Csak annyi jogosultság, amennyire szükség van','A legkisebb projekt','Junior fejlesztő joga'], correct:1, explanation:'Least Privilege (legkisebb privilégium): csak annyi jogosultságot adjunk, amennyire szükség van. Pl. DB user csak SELECT joggal, ha nem kell írni.' },
+  { topic:'sdl', q:'Hány STRIDE kategória van?', options:['4','6 (S-T-R-I-D-E)','8','10'], correct:1, explanation:'STRIDE 6 kategória: Spoofing, Tampering, Repudiation, Info Disclosure, Denial of Service, Elevation of Privilege.' },
+  { topic:'sdl', q:'Mi a SAST?', options:['Static Application Security Testing','Speed and Storage Test','Security Audit System Tool','Standard Application Security Test'], correct:0, explanation:'SAST = Static Application Security Testing. Statikus kódelemzés — a kódot futtatás NÉLKÜL elemzi. Code fázisban.' },
+  { topic:'sdl', q:'Mi a DAST?', options:['Dynamic Application Security Testing','Data Application Service Tool','Database Application Standard Test','Direct Application Security Tool'], correct:0, explanation:'DAST = Dynamic Application Security Testing. A FUTÓ alkalmazás tesztelése — fekete dobozos, mint egy igazi támadó. Pl. OWASP ZAP.' },
+  { topic:'sdl', q:'Mi a "Threat Modelling"?', options:['Fenyegetettség modellezés — strukturált kockázatazonosítás','Egy 3D modell','Egy hacker','Egy biztonsági szabvány'], correct:0, explanation:'Threat Modelling: strukturált megközelítés a biztonsági kockázatok azonosítására. STRIDE, PASTA, Threat Tree módszerek.' },
+  { topic:'sdl', q:'Mi a "Shift Left" a DevSecOps-ban?', options:['Politikai irányváltás','A biztonságot a folyamat ELEJÉRE tolni','Egy ergonomikus mozdulat','Egy programnyelv'], correct:1, explanation:'Shift Left: a biztonságot a folyamat ELEJÉRE tolni — már a Plan és Code fázisban. Korai felismerés = 100× olcsóbb javítás.' },
+
+  // ── SZOFTVERMINŐSÉG ──────────────────────────────────────────────
+  { topic:'minoseg', q:'Hány megközelítése van a minőségnek Garvin szerint?', options:['3','5 (Felhasználói, Termék, Folyamat, Érték, Transzcendens)','7','9'], correct:1, explanation:'Garvin 5 megközelítése: 1) Felhasználói alapú, 2) Termék alapú, 3) Folyamat alapú, 4) Érték alapú, 5) Transzcendens.' },
+  { topic:'minoseg', q:'Hány dimenzióból áll Garvin minőségmodellje?', options:['5','6','8 dimenzió','10'], correct:2, explanation:'Garvin 8 dimenziója: Teljesítmény, Sajátosságok, Megbízhatóság, Megfelelés, Tartósság, Használhatóság, Esztétika, Felismert minőség.' },
+  { topic:'minoseg', q:'A minőségnek hány fokozata van?', options:['2','4 (Ártatlanság, Eszmélés, Elkötelezettség, Világszínvonal)','6','8'], correct:1, explanation:'4 fokozat: 1) Ártatlanság kora ("ez van, ezt kell szeretni"), 2) Eszmélés, 3) Elkötelezettség, 4) Világszínvonal.' },
+  { topic:'minoseg', q:'Mit jelent a "Mi-Mit-Mikor-Mennyiért" az ISO minőség definícióban?', options:['A négy alapelv','MIT akar a vevő, MIKOR akarja, MENNYIÉRT — megfelelő minőségben','Egy projekt módszer','Egy szabvány'], correct:1, explanation:'ISO definíció: a termék azt nyújtja a vevőnek MIT akar, MIKOR akarja, MENNYIÉRT — megfelelő árért.' },
+  { topic:'minoseg', q:'Mennyivel drágább egy bug javítása production-ben mint tervezéskor?', options:['2×','10×','100-1000×','5×'], correct:2, explanation:'Tervezés: 1×, Kódolás: 10×, Tesztelés: 50×, Production: 100-1000× költségbe kerül egy bug javítása.' },
+  { topic:'minoseg', q:'Mi a "minőség paradoxona"?', options:['Mindenki ismeri','Nehéz definiálni, lehetetlen mérni, de könnyű felismerni','Drága','Időigényes'], correct:1, explanation:'A minőség paradoxona: nehéz definiálni, lehetetlen pontosan mérni — de könnyű felismerni. "A vevő jön vissza, nem a termék."' },
+  { topic:'minoseg', q:'Mit jelent a "minőség az termék-alapú definíció szerint?"', options:['Felhasználói elégedettség','Mérhető paraméterekből következik (objektív)','Spec szerint','Veleszületett kiválóság'], correct:1, explanation:'Garvin 2. (Termék alapú): a minőség a termék MÉRHETŐ paramétereiből következik. Objektív megítélés (nem szubjektív).' },
+
+  // ── ISO MODELLEK ─────────────────────────────────────────────────
+  { topic:'iso', q:'Ki dolgozta ki a McCall minőségmodellt?', options:['IBM','McCall és csapata, General Electric','Microsoft','Apple'], correct:1, explanation:'McCall féle modell: General Electric-nél fejlesztették 1977-ben. A DoD és AirForce termék-alapú modelljére épült.' },
+  { topic:'iso', q:'Mi a McCall háromszög 3 nézőpontja?', options:['Past, Present, Future','Operation, Revision, Transition','UI, Backend, Database','Plan, Code, Test'], correct:1, explanation:'McCall 3 nézőpont: Operation (működés), Revision (módosítás), Transition (átvitel).' },
+  { topic:'iso', q:'Hány minőségi jellemző van az ISO 9126-ban?', options:['4','6','8','10'], correct:1, explanation:'ISO 9126 (2001) — 6 jellemző: Funkcionalitás, Megbízhatóság, Használhatóság, Hatékonyság, Karbantarthatóság, Hordozhatóság.' },
+  { topic:'iso', q:'Mi a különbség ISO 9126 és ISO 25010 közt?', options:['Ugyanaz','ISO 25010 (2011) = 9126 + Security + Compatibility (8 jellemző)','Csak év','Más nyelven'], correct:1, explanation:'ISO 25010 (2011): a 9126 modernebb változata. Hozzáadta a Security és Compatibility jellemzőket — 8 jellemzőre bővítve.' },
+  { topic:'iso', q:'Az ISO 9000 mit tanúsít?', options:['A termék minőségét','A fejlesztési FOLYAMAT minőségét','Az ár megfelelőségét','A munkavállalók képességét'], correct:1, explanation:'ISO 9000 NEM termékminőséget tanúsít! A FOLYAMAT minőségbiztosítási rendszerét — hogy következetesen ugyanazt a minőséget szállítják.' },
+  { topic:'iso', q:'Hány minőségirányítási alapelve van az ISO 9000-nek?', options:['5','8 alapelv','10','12'], correct:1, explanation:'ISO 9000 — 8 alapelv: 1) Vevőközpontúság, 2) Támogató vezetés, 3) Munkatársak bevonása, 4) Folyamatszemlélet, 5) Rendszerszemlélet, 6) Folyamatos fejlesztés, 7) Tényekre alapozott döntés, 8) Beszállítói kapcsolatok.' },
+  { topic:'iso', q:'Az autóipari szoftvereknek milyen szabvány írja elő a tesztlefedettséget?', options:['ISO 9001','ISO 26262','GDPR','PCI-DSS'], correct:1, explanation:'ISO 26262: autóipari funkcionális biztonság. Magas ASIL szinten 100% MC/DC coverage. Orvosi: IEC 62304. Repülő: DO-178C.' },
+  { topic:'iso', q:'Egy McDonald\'s ISO 9001 tanúsított — mit jelent?', options:['A Big Mac a legjobb a világon','MINDEN Big Mac UGYANOLYAN — következetes folyamat','Az ár fix','Csak ők kapnak engedélyt'], correct:1, explanation:'ISO 9001 NEM termékminőséget jelent. Azt jelenti: MINDEN Big Mac UGYANOLYAN Párizsban és Tokióban is. A FOLYAMAT minősége — nem a végeredmény "kiválósága".' },
+
+  // ── DEVOPS ───────────────────────────────────────────────────────
+  { topic:'devops', q:'Mikor jött létre a DevOps?', options:['2001','2009 — első DevOpsDays','2015','2020'], correct:1, explanation:'DevOps: 2009-ben az első DevOpsDays konferencián. Patrick Debois szervezte. A 21. század szoftverfejlesztési gyakorlata.' },
+  { topic:'devops', q:'Hány fázisa van a DevOps életciklusnak?', options:['4','6','8 (Plan → Monitor)','10'], correct:2, explanation:'8 fázis: Plan, Code, Build, Test, Release, Deploy, Operate, Monitor. Dev oldal: Plan-Test. Ops oldal: Release-Monitor.' },
+  { topic:'devops', q:'Mi a CI?', options:['Common Interface','Continuous Integration — folyamatos integráció','Customer Interaction','Critical Issue'], correct:1, explanation:'CI = Continuous Integration. A kódváltozások automatikusan integrálódnak — minden push után build + teszt. Megelőzi az integrációs bummot.' },
+  { topic:'devops', q:'Mi az IaC?', options:['Internal Application Code','Infrastructure as Code — infrastruktúra mint kód','Industry Automation Center','Internet Application Control'], correct:1, explanation:'IaC = Infrastructure as Code. Az infrastruktúra leírása KÓDDAL (Terraform, Ansible) — verziókövethető, reprodukálható, tesztelhető.' },
+  { topic:'devops', q:'Mi a DevSecOps?', options:['Csak biztonság','DevOps + Security minden fázisban','Egy biztonsági szabvány','Egy AI eszköz'], correct:1, explanation:'DevSecOps: DevOps + Security MINDEN fázisban. Threat modeling (Plan), SAST (Code), SCA (Build), DAST (Test), container scan (Deploy), SIEM (Monitor).' },
+  { topic:'devops', q:'Mi a Stuxnet tanulsága a DevSecOps-ban?', options:['A biztonság opcionális','A szoftverhibák FIZIKAI pusztítást is okozhatnak — minden fázisban biztonság kell','Csak állami szoftverek érintettek','A Linux biztonságos'], correct:1, explanation:'Stuxnet tanulsága: a szoftverhibák FIZIKAI pusztítást is okozhatnak (centrifugák 20%-a megsemmisült). Ezért kell a biztonság MINDEN fázisban.' },
+  { topic:'devops', q:'Mit jelent a "Shift Left" a DevSecOps-ban?', options:['Politikai irányváltás','Biztonság a folyamat ELEJÉN (Plan/Code), nem csak végén','Földrajzi áthelyezés','Egy operációs rendszer'], correct:1, explanation:'Shift Left: a biztonságot a folyamat elejére tolni. Korai (követelmény) hibák OLCSÓK, késői (production) hibák KATASZTROFÁLISAK.' },
+  { topic:'devops', q:'Mi a DevOps 3 alapelve?', options:['Olcsó, jó, gyors','Automatizálás, Folyamatos kommunikáció, Szoros együttműködés','TDD, CI, CD','Plan, Build, Deploy'], correct:1, explanation:'DevOps 3 alapelv: 1) Automatizálás (kódgenerálás, teszt, integráció), 2) Folyamatos kommunikáció, 3) Szoros együttműködés Dev és Ops közt.' },
+  { topic:'devops', q:'Melyik egy népszerű konténer technológia?', options:['Photoshop','Docker','Microsoft Word','Excel'], correct:1, explanation:'Docker: a legnépszerűbb konténer technológia. Kubernetes az orchestrátor. Mindkettő a DevOps stack része.' },
+  { topic:'devops', q:'Mi a DevOps fő előnye?', options:['Drágább','Gyorsabb termékfejlesztés + folyamatos hibajavítás + jobb minőség','Több ember kell','Lassabb release-ek'], correct:1, explanation:'DevOps előnye: hatékonyabb és gyorsabb termékfejlesztés (CI/CD), folyamatos hibajavítás → elégedettebb felhasználók, jobb piaci pozíció.' },
+];
+
+let selectedTopic = 'all';
+let selectedCount = 20;
+let quizQuestions = [];
+let currentIdx = 0;
+let correctCount = 0;
+let wrongCount = 0;
+let startTime = 0;
+let answers = [];
+
+function renderTopics() {
+  const grid = document.getElementById('topicGrid');
+  grid.innerHTML = Object.entries(TOPICS).map(([key, t]) => {
+    const count = key === 'all' ? QUESTIONS.length : QUESTIONS.filter(q => q.topic === key).length;
+    return `<button class="topic-btn ${key===selectedTopic?'sel':''}" data-topic="${key}">
+      <span class="ti">${t.label.split(' ')[0]}</span>
+      <span>${t.label.split(' ').slice(1).join(' ')}</span>
+      <span class="tc">${count}</span>
+    </button>`;
+  }).join('');
+  grid.querySelectorAll('.topic-btn').forEach(btn => {
+    btn.onclick = () => {
+      selectedTopic = btn.dataset.topic;
+      renderTopics();
+    };
+  });
+}
+
+document.querySelectorAll('#countRow .opt-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#countRow .opt-btn').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    selectedCount = parseInt(btn.dataset.count);
+  };
+});
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+document.getElementById('startBtn').onclick = () => {
+  let pool = selectedTopic === 'all' ? QUESTIONS : QUESTIONS.filter(q => q.topic === selectedTopic);
+  pool = shuffle(pool);
+  quizQuestions = selectedCount === 0 ? pool : pool.slice(0, selectedCount);
+
+  // shuffle options for each question
+  quizQuestions = quizQuestions.map(q => {
+    const idx = q.options.map((_, i) => i);
+    const shuffledIdx = shuffle(idx);
+    return {
+      ...q,
+      options: shuffledIdx.map(i => q.options[i]),
+      correct: shuffledIdx.indexOf(q.correct)
+    };
+  });
+
+  currentIdx = 0;
+  correctCount = 0;
+  wrongCount = 0;
+  answers = [];
+  startTime = Date.now();
+
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('quiz').style.display = 'block';
+  document.getElementById('results').style.display = 'none';
+  renderQuestion();
+};
+
+function renderQuestion() {
+  const q = quizQuestions[currentIdx];
+  const total = quizQuestions.length;
+  document.getElementById('qNum').textContent = `${currentIdx + 1} / ${total}`;
+  document.getElementById('progressFill').style.width = `${((currentIdx) / total) * 100}%`;
+  document.getElementById('correctCount').textContent = correctCount;
+  document.getElementById('wrongCount').textContent = wrongCount;
+
+  const topicInfo = TOPICS[q.topic];
+  const topicBadge = document.getElementById('qTopic');
+  topicBadge.textContent = topicInfo.label;
+  topicBadge.style.color = topicInfo.color;
+  topicBadge.style.borderColor = topicInfo.color;
+  topicBadge.style.backgroundColor = topicInfo.color + '20';
+
+  document.getElementById('qText').textContent = q.q;
+  const opts = document.getElementById('options');
+  opts.innerHTML = q.options.map((opt, i) => `
+    <div class="opt" data-idx="${i}">
+      <span class="opt-letter">${String.fromCharCode(65 + i)}</span>
+      <span>${opt}</span>
+    </div>
+  `).join('');
+
+  opts.querySelectorAll('.opt').forEach(el => {
+    el.onclick = () => selectAnswer(parseInt(el.dataset.idx));
+  });
+
+  document.getElementById('explanation').classList.remove('show');
+  document.getElementById('explanation').innerHTML = '';
+  document.getElementById('nextBtn').style.display = 'none';
+}
+
+function selectAnswer(idx) {
+  const q = quizQuestions[currentIdx];
+  const opts = document.querySelectorAll('.opt');
+
+  opts.forEach((el, i) => {
+    el.classList.add('disabled');
+    el.onclick = null;
+    if (i === q.correct) {
+      el.classList.add('correct');
+      el.innerHTML += '<span class="opt-icon">✓</span>';
+    } else if (i === idx) {
+      el.classList.add('wrong');
+      el.innerHTML += '<span class="opt-icon">✗</span>';
+    }
+  });
+
+  const isCorrect = idx === q.correct;
+  if (isCorrect) correctCount++;
+  else wrongCount++;
+  answers.push({ topic: q.topic, correct: isCorrect });
+
+  const exp = document.getElementById('explanation');
+  exp.innerHTML = `<strong>${isCorrect ? '✓ Helyes!' : '✗ Hibás.'}</strong> ${q.explanation}`;
+  exp.classList.add('show');
+
+  document.getElementById('correctCount').textContent = correctCount;
+  document.getElementById('wrongCount').textContent = wrongCount;
+  document.getElementById('nextBtn').style.display = 'block';
+  document.getElementById('nextBtn').textContent = (currentIdx === quizQuestions.length - 1) ? 'Eredmények →' : 'Következő →';
+}
+
+document.getElementById('nextBtn').onclick = () => {
+  currentIdx++;
+  if (currentIdx >= quizQuestions.length) {
+    showResults();
+  } else {
+    renderQuestion();
+  }
+};
+
+document.getElementById('quitBtn').onclick = () => {
+  if (confirm('Biztos megszakítod a tesztet?')) {
+    document.getElementById('setup').style.display = 'block';
+    document.getElementById('quiz').style.display = 'none';
+    document.getElementById('results').style.display = 'none';
+  }
+};
+
+function showResults() {
+  document.getElementById('quiz').style.display = 'none';
+  document.getElementById('results').style.display = 'block';
+
+  const total = quizQuestions.length;
+  const pct = Math.round((correctCount / total) * 100);
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const min = Math.floor(elapsed / 60);
+  const sec = elapsed % 60;
+
+  document.getElementById('rScore').textContent = `${correctCount}/${total}`;
+  document.getElementById('rPct').textContent = `${pct}% helyes`;
+  document.getElementById('rCorr').textContent = correctCount;
+  document.getElementById('rWrong').textContent = wrongCount;
+  document.getElementById('rTime').textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+
+  let icon, title;
+  if (pct >= 90) { icon = '🏆'; title = 'Kiváló!'; }
+  else if (pct >= 75) { icon = '🎉'; title = 'Nagyon jó!'; }
+  else if (pct >= 60) { icon = '👍'; title = 'Jó!'; }
+  else if (pct >= 40) { icon = '📚'; title = 'Még tanulj egy kicsit'; }
+  else { icon = '💪'; title = 'Nem feladni!'; }
+  document.getElementById('rIco').textContent = icon;
+  document.getElementById('rTitle').textContent = title;
+
+  // breakdown by topic
+  const byTopic = {};
+  answers.forEach(a => {
+    if (!byTopic[a.topic]) byTopic[a.topic] = { c: 0, t: 0 };
+    byTopic[a.topic].t++;
+    if (a.correct) byTopic[a.topic].c++;
+  });
+
+  const bd = document.getElementById('rBreakdown');
+  if (Object.keys(byTopic).length > 1) {
+    bd.innerHTML = `<div class="r-bd-title">📊 Téma szerinti bontás</div>` + Object.entries(byTopic).map(([t, s]) => {
+      const p = Math.round((s.c / s.t) * 100);
+      return `<div class="r-bd-row">
+        <div class="r-bd-name">${TOPICS[t].label}</div>
+        <div class="r-bd-bar-wrap"><div class="r-bd-bar" style="width:${p}%;background:${TOPICS[t].color}"></div></div>
+        <div class="r-bd-num" style="color:${TOPICS[t].color}">${s.c}/${s.t}</div>
+      </div>`;
+    }).join('');
+  } else {
+    bd.innerHTML = '';
+  }
+}
+
+function restart() {
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('setup').style.display = 'block';
+}
+
+function retry() {
+  currentIdx = 0;
+  correctCount = 0;
+  wrongCount = 0;
+  answers = [];
+  startTime = Date.now();
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('quiz').style.display = 'block';
+  renderQuestion();
+}
+
+renderTopics();
+</script>
+</body>
+</html>
